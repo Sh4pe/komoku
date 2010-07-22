@@ -2,8 +2,6 @@ package main
 
 import (
     "fmt"
-    //"./common"
-    //"./treenode"
     "./komoku/komoku"
 )
 
@@ -13,4 +11,6 @@ func main() {
     a := 0*19 + 5
     fmt.Println(a)
     fmt.Printf("%d = (%d, %d)\n", a, a/19, a%19)
+
+    fmt.Println(komoku.BoardSize)
 }

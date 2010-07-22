@@ -1,3 +1,4 @@
 *.swp
 *.6
-src/komoku
+src/main
+src/komoku/komoku.a
