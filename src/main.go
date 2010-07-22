@@ -2,7 +2,9 @@ package main
 
 import (
     "fmt"
-    "./treenode"
+    //"./common"
+    //"./treenode"
+    "./komoku/komoku"
 )
 
 func main() {

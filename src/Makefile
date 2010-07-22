@@ -1,19 +1,18 @@
 # vim: set noexpandtab :
 
-all: main.6
-	6l -o komoku main.6
+CC=6g
+TARG=main
+LINK=6l
+
+all: main.6 
+	6l -o main main.6
 	
-main.6: main.go treenode.6 gamestate.6
+main.6: main.go komoku/komoku.a
 	6g main.go
 
-treenode.6: treenode.go gamestate.6 common.6
-	6g treenode.go
-
-gamestate.6: gamestate.go
-	6g gamestate.go
-
-common.6: common.go
-	6g common.go
+komoku/komoku.a:
+	cd komoku && make
 
 clean:
-	rm -f komoku main.6 treenode.6 gamestate.6 common.6
+	cd komoku && make clean
+	rm -f main main.6
