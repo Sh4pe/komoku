@@ -2,8 +2,6 @@ package komoku
 
 import (
     "container/vector"
-    //"./gamestate"
-    //"./common"
 )
 
 /*

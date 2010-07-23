@@ -13,8 +13,8 @@ all: $(TARG).6
 	rm -f $(TARG).a
 	$(PACK) grc $(TARG).a $(TARG).6
 
-$(TARG).6:
-	$(CC) -o $(TARG).6 common.go gamestate.go treenode.go
+$(TARG).6: common.go board.go treenode.go
+	$(CC) -o $(TARG).6 common.go board.go treenode.go
 
 # the stuff in the target may be copy&pasted
 common_test:

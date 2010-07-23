@@ -10,7 +10,7 @@ all: main.6
 main.6: main.go komoku/komoku.a
 	6g main.go
 
-komoku/komoku.a:
+komoku/komoku.a: komoku/common.go komoku/board.go komoku/treenode.go
 	cd komoku && make
 
 clean:
