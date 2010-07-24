@@ -2,3 +2,4 @@
 *.6
 src/main
 src/komoku/komoku.a
+src/komoku/common_test

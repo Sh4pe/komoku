@@ -1,5 +1,19 @@
 # vim: set noexpandtab :
 
+#  *(1)
+#
+#  # create tmp file with adjusted testrunner in it
+#  echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
+#  # if the target is foo_test, sed is used to produce the last word of the command
+#  # 6g -o foo_test.6 foo_test.go foo.go
+#  $(CC) -o $(@).6 $(@).go `echo $(@) | sed 's/_[a-zA-Z]*//g'`.go
+#  # compile the tmp file
+#  $(CC) -o $(@).tmp.6 $(@).tmp.go
+#  $(LINK) -o $(@) $(@).tmp.6
+#  # clean up the tmp files
+#  rm -f $(@).tmp.6
+#  rm -f $(@).tmp.go
+
 CC=6g
 TARG=komoku
 PACK=gopack
@@ -16,19 +30,20 @@ all: $(TARG).6
 $(TARG).6: common.go board.go treenode.go
 	$(CC) -o $(TARG).6 common.go board.go treenode.go
 
-# the stuff in the target may be copy&pasted
-common_test:
-	# create tmp file with adjusted testrunner in it
+# for documentation see *(1)
+common_test: common_test.go
 	echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
-	# if the target is foo_test, sed is used to produce the last word of the command
-	# 6g -o foo_test.6 foo_test.go foo.go
 	$(CC) -o $(@).6 $(@).go `echo $(@) | sed 's/_[a-zA-Z]*//g'`.go
-	# compile the tmp file
 	$(CC) -o $(@).tmp.6 $(@).tmp.go
 	$(LINK) -o $(@) $(@).tmp.6
-	# clean up the tmp files
 	rm -f $(@).tmp.6
 	rm -f $(@).tmp.go
+
+common_test_run: common_test
+	echo 'Running common_test'
+	./common_test
+
+tests_run: common_test_run
 
 clean:
 	rm -f $(TARG).6 $(TARG).a common_test common_test.6

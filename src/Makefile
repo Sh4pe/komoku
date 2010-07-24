@@ -13,6 +13,9 @@ main.6: main.go komoku/komoku.a
 komoku/komoku.a: komoku/common.go komoku/board.go komoku/treenode.go
 	cd komoku && make
 
+tests_run:
+	cd komoku && make tests_run
+
 clean:
 	cd komoku && make clean
 	rm -f main main.6
