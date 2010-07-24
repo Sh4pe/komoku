@@ -6,7 +6,7 @@
 #  echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
 #  # if the target is foo_test, sed is used to produce the last word of the command
 #  # 6g -o foo_test.6 foo_test.go foo.go
-#  $(CC) -o $(@).6 $(@).go `echo $(@) | sed 's/_[a-zA-Z]*//g'`.go
+#  $(CC) -o $(@).6 $(^) `echo $(@) | sed 's/_[a-zA-Z]*//g'`.go
 #  # compile the tmp file
 #  $(CC) -o $(@).tmp.6 $(@).tmp.go
 #  $(LINK) -o $(@) $(@).tmp.6
@@ -33,7 +33,7 @@ $(TARG).6: common.go board.go treenode.go
 # for documentation see *(1)
 common_test: common_test.go
 	echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
-	$(CC) -o $(@).6 $(@).go `echo $(@) | sed 's/_[a-zA-Z]*//g'`.go
+	$(CC) -o $(@).6 $(^) `echo $(@) | sed 's/_[a-zA-Z]*//g'`.go
 	$(CC) -o $(@).tmp.6 $(@).tmp.go
 	$(LINK) -o $(@) $(@).tmp.6
 	rm -f $(@).tmp.6
@@ -43,7 +43,19 @@ common_test_run: common_test
 	echo 'Running common_test'
 	./common_test
 
-tests_run: common_test_run
+board_test: board_test.go common.go
+	echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
+	$(CC) -o $(@).6 $(^) `echo $(@) | sed 's/_[a-zA-Z]*//g'`.go
+	$(CC) -o $(@).tmp.6 $(@).tmp.go
+	$(LINK) -o $(@) $(@).tmp.6
+	rm -f $(@).tmp.6
+	rm -f $(@).tmp.go
+
+board_test_run: board_test
+	echo 'Running board_test'
+	./board_test
+
+tests_run: common_test_run board_test_run
 
 clean:
-	rm -f $(TARG).6 $(TARG).a common_test common_test.6
+	rm -f $(TARG).6 $(TARG).a common_test common_test.6 board_test board_test.6

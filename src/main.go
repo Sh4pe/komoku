@@ -14,15 +14,11 @@ const (
 func main() {
     fmt.Println(komoku.BoardSize)
 
-    fmt.Printf("%d %d %d\n\n", a,b,c)
-    a := [...]int{1,2,3,4,5,6}
-    for k, v := range a {
-        fmt.Printf("k=%d v=%d\n", k, v)
+    var a komoku.FieldIndices = make(komoku.FieldIndices,10,10)
+    for i := 0; i < len(a); i++ {
+        a[i] = i
     }
-
-    fmt.Println("")
-    b := a[0:3]
-    for k, v := range b {
-        fmt.Printf("k=%d v=%d\n", k, v)
-    }
+    fmt.Printf("%v\n", a)
+    a.Remove(3)
+    fmt.Printf("%v\n", a)
 }
