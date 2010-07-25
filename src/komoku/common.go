@@ -1,13 +1,49 @@
 package komoku
 
+import (
+    "os"
+)
+
 // ################ constants ####################
 const (
     BoardSize = 19 // we support only quadratic boards at the moment
 )
 
+// komokus error constants
+const (
+    ErrFieldOccupied = iota;
+)
+
+// ################ interfaces ##############
+type Error interface {
+    os.Error
+    Errno() int
+}
+
 // ################ types ####################
+
 type Point struct {
     x, y int
+}
+
+type komokuError struct {
+    msg string
+    errno int
+}
+
+// komokuError has to implement os.Error
+func (e *komokuError) String() string {
+    return e.msg
+}
+
+// ...and it has to implement the Error interface
+func (e *komokuError) Errno() int {
+    return e.errno
+}
+
+// Create a new Error
+func NewError(s string, errno int) Error {
+    return &komokuError{ s, errno }
 }
 
 // ################ helper functions ####################

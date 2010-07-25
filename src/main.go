@@ -12,13 +12,16 @@ const (
 )
 
 func main() {
-    fmt.Println(komoku.BoardSize)
+    fmt.Printf("%d\n\n\n", komoku.BoardSize)
 
-    var a komoku.FieldIndices = make(komoku.FieldIndices,10,10)
-    for i := 0; i < len(a); i++ {
-        a[i] = i
+    a := komoku.NewFieldIndices(10,10)
+    for i := 0; i < 10; i++ {
+        a.Set(i,i)
     }
     fmt.Printf("%v\n", a)
-    a.Remove(3)
+
+    for i := 0; i < 10; i++ {
+        a.Set(i,i*i)
+    }
     fmt.Printf("%v\n", a)
 }
