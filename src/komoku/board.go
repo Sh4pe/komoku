@@ -11,6 +11,13 @@ const (
     Black = false
 )
 
+func (c Color) String() string {
+    if c == White {
+        return "white"
+    }
+    return "black"
+}
+
 // ############### Field struct ###############
 type Field struct {
     value int8
@@ -118,7 +125,10 @@ type Board struct {
 func (b *Board) Move(x, y int, color Color) (err Error) {
     index := xyToPos(x,y)
     if !b.fields[index].Empty() {
-        return FieldOccupiedError(x,y)
+        return NewFieldOccupiedError(x,y)
+    }
+    if !b.LegalMove(x,y, color) {
+        return NewIllegalMoveError(x,y, color)
     }
     // TODO: not yet done at all!
     return
@@ -126,7 +136,18 @@ func (b *Board) Move(x, y int, color Color) (err Error) {
 
 // Is it legal to play a stone of color 'color' at (x,y)?
 func (b *Board) LegalMove(x, y int, color Color) bool {
-    return true
+    // TODO: write test for this!
+    var indices *FieldIndices = &b.legalBlackMoves
+    if color == White {
+        indices = &b.legalWhiteMoves
+    }
+    pos := xyToPos(x,y)
+    for i := 0; i < indices.Length(); i++ {
+        if indices.Get(i) == pos {
+            return true
+        }
+    }
+    return false
 }
 
 // ##################### Board helper functions ##########################
@@ -145,8 +166,13 @@ func NewBoard() *Board {
 }
 
 // Creates a new FieldOccupiedError, indicating that (x,y) is alrady used.
-func FieldOccupiedError(x, y int) (err Error) {
+func NewFieldOccupiedError(x, y int) (err Error) {
     return NewError(fmt.Sprintf("(%d,%d) is already occupied", x, y), ErrFieldOccupied)
 }
 
-// methods
+// Creates a new FieldOccupiedError, indicating that (x,y) is alrady used.
+func NewIllegalMoveError(x, y int, color Color) (err Error) {
+    return NewError(fmt.Sprintf("a %v move at (%d,%d) is illegal", color, x, y), ErrIllegalMove)
+}
+
+

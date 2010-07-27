@@ -12,6 +12,7 @@ const (
 // komokus error constants
 const (
     ErrFieldOccupied = iota;
+    ErrIllegalMove;
 )
 
 // ################ interfaces ##############

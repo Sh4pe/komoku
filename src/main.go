@@ -12,16 +12,12 @@ const (
 )
 
 func main() {
-    fmt.Printf("%d\n\n\n", komoku.BoardSize)
+    fmt.Printf("%d\n", komoku.BoardSize)
+    fmt.Printf("%d %d\n\n\n", komoku.ErrFieldOccupied, komoku.ErrIllegalMove)
 
-    a := komoku.NewFieldIndices(10,10)
-    for i := 0; i < 10; i++ {
-        a.Set(i,i)
-    }
-    fmt.Printf("%v\n", a)
+    b := komoku.NewBoard()
+    b.LegalMove(1,1,komoku.White)
 
-    for i := 0; i < 10; i++ {
-        a.Set(i,i*i)
-    }
-    fmt.Printf("%v\n", a)
+    err := komoku.NewIllegalMoveError(1,1,komoku.White)
+    fmt.Printf("%v\n", err)
 }
