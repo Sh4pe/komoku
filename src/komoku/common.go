@@ -6,13 +6,17 @@ import (
 
 // ################ constants ####################
 const (
-    BoardSize = 19 // we support only quadratic boards at the moment
+    BoardSize = 13 // ...says that we are playing on a (BoardSize * BoardSize) - board
+                   // We support only quadratic boards at the moment.
+                   // This should be less than 26, because ui.go.PrintBoard will have problems otherwise....
 )
 
 // komokus error constants
 const (
     ErrFieldOccupied = iota;
     ErrIllegalMove;
+    ErrInvalidCoordinateChar;
+    ErrInvalidCoordinateDigit;
 )
 
 // ################ interfaces ##############
@@ -56,7 +60,7 @@ func posToXY(pos int) (x, y int) {
 
 // TODO: use point!
 func xyToPos(x, y int) int {
-    return 19*y + x
+    return BoardSize*y + x
 }
 
 // Returns the neighbours of a field (x,y)
@@ -91,4 +95,31 @@ func neighbours(x, y int) []Point {
             count++
     }
     return ret[0:count]
+}
+
+// returns true if (x,y) is a hoshi point. 
+// Currently, the only supported board size are 19. 
+// For other sizes, this function returns false for all (x,y).
+// Right now, this function is only used by printing functions in ui.go, so this
+// is not a 'very important' function
+func isHoshi(x, y int) bool {
+    switch BoardSize {
+        case 19:
+            if (x == 3) || (x == 9) || (x == 15)  {
+                return (y == 3) || (y == 9) || (y == 15)
+            }
+            return false
+        case 13:
+            if (x == 3) || (x  == 9) {
+                return (y == 3) || (y == 9)
+            }
+            if (x == 6) && (y == 6) {
+                return true
+            }
+        case 9:
+            if (x == 2) || (x == 6) {
+                return (y == 2) || (y == 6)
+            }
+    }
+    return false
 }

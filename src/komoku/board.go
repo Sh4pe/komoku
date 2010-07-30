@@ -34,6 +34,16 @@ func (f *Field) Empty() bool {
     return f.value == fieldEmpty
 }
 
+// Is this field occupied by a black stone?
+func (f *Field) Black() bool {
+    return f.value == fieldBlack
+}
+
+// Is this field occupied by a black stone?
+func (f *Field) White() bool {
+    return f.value == fieldWhite
+}
+
 // Create empty field.
 func NewField() (ret *Field) {
     return
@@ -131,7 +141,14 @@ func (b *Board) Move(x, y int, color Color) (err Error) {
         return NewIllegalMoveError(x,y, color)
     }
     // TODO: not yet done at all!
+    // Go on here!
     return
+}
+
+// Returns the field at (x,y)
+func (b *Board) GetField(x,y int) Field {
+    //fmt.Printf("(%d,%d), pos: %d\n",x,y,xyToPos(x,y))
+    return b.fields[xyToPos(x,y)]
 }
 
 // Is it legal to play a stone of color 'color' at (x,y)?

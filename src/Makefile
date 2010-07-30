@@ -10,7 +10,7 @@ all: main.6
 main.6: main.go komoku/komoku.a
 	6g main.go
 
-komoku/komoku.a: komoku/common.go komoku/board.go komoku/treenode.go
+komoku/komoku.a: komoku/common.go komoku/board.go komoku/treenode.go komoku/ui.go
 	cd komoku && make
 
 tests_run:

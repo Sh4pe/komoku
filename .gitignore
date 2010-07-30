@@ -4,3 +4,4 @@ src/main
 src/komoku/komoku.a
 src/komoku/common_test
 src/komoku/board_test
+src/komoku/ui_test
