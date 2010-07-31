@@ -13,9 +13,13 @@ const (
 
 func main() {
     b := komoku.NewBoard()
-    b.LegalMove(1,1,komoku.White)
+    b.IsLegalMove(1,1,komoku.White)
 
     fmt.Printf("Board of size %d\n", komoku.BoardSize)
     komoku.PrintBoard(b)
+
+    fi := komoku.NewFieldIndices(3)
+    fi.Append(5)
+    fmt.Printf("%d\n", fi.Length())
 
 }

@@ -42,17 +42,17 @@ func TestNeighbours(t *testing.T) {
             }
             for _, ni := range n {
                 // Each neighbour on same row or same column?
-                if (ni.x != col) && (ni.y != row) {
-                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) not on same row/column", col, row, ni.x, ni.y)
+                if (ni.X != col) && (ni.Y != row) {
+                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) not on same row/column", col, row, ni.X, ni.Y)
                 }
                 // Each neighbour has the right distance?
-                dx := (ni.x-col)*(ni.x-col)
-                dy := (ni.y-row)*(ni.y-row)
+                dx := (ni.X-col)*(ni.X-col)
+                dy := (ni.Y-row)*(ni.Y-row)
                 // one of dx, dy has to be 1, the other 0
                 if (dx - dy)*(dx - dy) != 1 {
                     //t.Logf("dx^2: %d", dx)
                     //t.Logf("dy^2: %d", dy)
-                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) has the wrong distance", col, row, ni.x, ni.y)
+                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) has the wrong distance", col, row, ni.X, ni.Y)
                 }
             }
         }

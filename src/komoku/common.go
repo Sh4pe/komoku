@@ -28,7 +28,7 @@ type Error interface {
 // ################ types ####################
 
 type Point struct {
-    x, y int
+    X, Y int
 }
 
 type komokuError struct {
