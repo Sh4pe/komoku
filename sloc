@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#
+# (c) 2010 by David Nies (nies.david@googlemail.com)
+#     http://www.twitter.com/Sh4pe
+#
+# Use of this source code is governed by a license 
+# that can be found in the LICENSE file.
+#
+
+GOSLOC=$(cat $(find . | grep '\.go$') | wc -l)
+MAKEFILESLCO=$(cat $(find . | grep 'Makefile') | wc -l)
+echo '.go:       '${GOSLOC}
+echo 'Makefiles: '${MAKEFILESLCO}
+echo
+echo 'sum:       '`expr ${GOSLOC} + ${MAKEFILESLCO}`
