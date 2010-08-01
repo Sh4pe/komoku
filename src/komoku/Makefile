@@ -1,84 +1,86 @@
 # vim: set noexpandtab :
 
-#  *(1)
-#
-#  # create tmp file with adjusted testrunner in it
-#  echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
-#  # if the target is foo_test, sed is used to produce the last word of the command
-#  # 6g -o foo_test.6 foo_test.go foo.go
-#  $(CC) -o $(@).6 $(^) `echo $(@) | sed 's/_[a-zA-Z]*//g'`.go
-#  # compile the tmp file
-#  $(CC) -o $(@).tmp.6 $(@).tmp.go
-#  $(LINK) -o $(@) $(@).tmp.6
-#  # clean up the tmp files
-#  rm -f $(@).tmp.6
-#  rm -f $(@).tmp.go
-#
-#  Notes: the sed part is not used any more...
-
+#########################################################################################
+####################### most common defintions ##########################################
+#########################################################################################
 CC=6g
 TARG=komoku
 PACK=gopack
 LINK=6l
 
-TESTRUNNER='package main; import ( "./common_test"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
-TRUNNERPRE='package main; import ( "./'
-TRUNNERPOST='"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
+KOMOKULIB=$(TARG).a
 
-all: $(TARG).a
+COMPILE  = $(CC) -o $(@) $(^)
+COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
-$(TARG).a: $(TARG).6
-	rm -f $(TARG).a
-	$(PACK) grc $(TARG).a $(TARG).6
+OBJS = $(TARG).6 $(TARG).a common_test common_test.6 board_test board_test.6 ui_test.6 ui_test
+
+#########################################################################################
+############### Stuff needed for generating test executables ############################
+#########################################################################################
+
+# _ALL is just there for 'documentaions sake'
+TESTCOMPILEPROG_ALL='package main; import ( "./blah_blah"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
+TESTCOMPILEPROG_PRE='package main; import ( "./'
+TESTCOMPILEPROG_POST='"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
+
+# the command for compiling tests
+TESTCOMPILE  = $(CC) -o $(@).6 $(^); # compile all dependencies to $(@).6
+TESTCOMPILE += echo $(TESTCOMPILEPROG_PRE)$(@)$(TESTCOMPILEPROG_POST) > $(@).tmp.go; # create tmp file with adjusted testrunner code in it
+TESTCOMPILE += $(CC) -o $(@).tmp.6 $(@).tmp.go; # compiles the generated program with all dependencies as .go-file arguments
+TESTCOMPILE += $(LINK) -o $(@) $(@).tmp.6; # link the program to generate an executable
+TESTCOMPILE += rm -f $(@).tmp.6; # remove the .6 file for the temorarily created file
+TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created file
+
+# the command for doing this quietly with a nice output
+TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
+
+# targets look like 'foo_test_run', and sed chops of the trailing '_foo'
+TESTRUN = @echo Running `echo $(@) | sed 's/_[a-zA-Z]*$$//g'`...;
+TESTRUN += ./`echo $(@) | sed 's/_[a-zA-Z]*$$//g'`
+
+#########################################################################################
+####################### build rules #####################################################
+#########################################################################################
+all: $(KOMOKULIB)
+
+$(KOMOKULIB): $(TARG).6
+	@rm -f $(TARG).a
+	@echo '  6l $(TARG).a'
+	@$(PACK) grc $(TARG).a $(TARG).6
 	
 $(TARG).6: common.go board.go treenode.go ui.go
-	$(CC) -o $(TARG).6 common.go board.go treenode.go ui.go
+	$(COMPILE_QUIET)
 
-# for documentation see *(1)
 common_test: common_test.go common.go
-	echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
-	$(CC) -o $(@).6 $(^)
-	$(CC) -o $(@).tmp.6 $(@).tmp.go
-	$(LINK) -o $(@) $(@).tmp.6
-	rm -f $(@).tmp.6
-	rm -f $(@).tmp.go
+	$(TESTCOMPILE_QUIET)
 
 common_test_run: common_test
-	echo 'Running common_test'
-	./common_test
+	$(TESTRUN)
 
 board_test: board_test.go common.go board.go
-	echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
-	$(CC) -o $(@).6 $(^) 
-	$(CC) -o $(@).tmp.6 $(@).tmp.go
-	$(LINK) -o $(@) $(@).tmp.6
-	rm -f $(@).tmp.6
-	rm -f $(@).tmp.go
+	$(TESTCOMPILE_QUIET)
 
 board_test_run: board_test
-	echo 'Running board_test'
-	./board_test
+	$(TESTRUN)
 
 ui_test: ui_test.go common.go board.go ui.go
-	echo $(TRUNNERPRE)$(@)$(TRUNNERPOST) > $(@).tmp.go 
-	$(CC) -o $(@).6 $(^)
-	$(CC) -o $(@).tmp.6 $(@).tmp.go
-	$(LINK) -o $(@) $(@).tmp.6
-	rm -f $(@).tmp.6
-	rm -f $(@).tmp.go
+	$(TESTCOMPILE_QUIET)
 
 ui_test_run: ui_test
-	echo 'Running ui_test'
-	./ui_test
+	$(TESTRUN)
 
 tests_compile: common_test board_test ui_test
 
-tests_run: $(TARG).a tests_compile
-	echo
-	echo 'running tests....'
-	./common_test 
-	./board_test 
-	./ui_test
+tests_run: $(KOMOKULIB) common_test board_test ui_test
+	@for targ in $(^); do \
+		 if test x"$$targ" != x"$(KOMOKULIB)"; then \
+		 	make "$$targ"_run; \
+		 fi \
+	done;
 
 clean:
-	rm -f $(TARG).6 $(TARG).a common_test common_test.6 board_test board_test.6 ui_test.6 ui_test
+	@for obj in $(OBJS); do \
+		echo '  rm '"$$obj"; \
+		rm -f "$$obj"; \
+	done;

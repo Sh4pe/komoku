@@ -5,6 +5,11 @@ import (
     //"fmt"
 )
 
+/*
+ * TODO:
+ *      Write a test method for testing FieldIndices.grow() and FieldIndices.Remove() at the same time.
+ */
+
 func TestFieldIndicesRemove(t *testing.T) {
     dummy := [...]int {0,1,2,3,4,5,6,7,8,9}
     length := len(dummy)
@@ -55,8 +60,30 @@ func TestRemoveAndAppendWork(t *testing.T) {
     }
 }
 
+// Tests if FieldIndices.grow() works
+func TestFieldIndicesGrow(t *testing.T) {
+    for initSize := 10; initSize < BoardSize; initSize++ {
+        fi := NewFieldIndices(initSize)
+        for i := 0; i < initSize*initSize; i++ {
+            if fi.Length() != i {
+                t.Fatalf("The FieldIndices instance has the wronge size. Expected %d, got %d", i, fi.Length())
+            }
+            fi.Append(i)
+            // does fi 'remain unique'?
+            unique := make(map[int]bool)
+            for j := 0; j < fi.Length(); j++ {
+                unique[fi.Get(j)] = true
+            }
+            if len(unique) != fi.Length() {
+                t.Fatalf("The FieldIndices instance seems to contain non-unique entries")
+            }
+        }
+    }
+}
+
 func Testsuite() []testing.Test {
     return []testing.Test { testing.Test{"TestFieldIndicesRemove", TestFieldIndicesRemove},
                             testing.Test{"TestRemoveAndAppendWork", TestRemoveAndAppendWork},
+                            testing.Test{"TestFieldIndicesGrow", TestFieldIndicesGrow},
                           }
 }

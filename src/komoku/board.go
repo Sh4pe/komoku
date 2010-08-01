@@ -51,7 +51,7 @@ func (f *Field) Empty() bool {
 }
 
 
-// Is this field occupied by a black stone?
+// Is this field occupied by a white stone?
 func (f *Field) White() bool {
     return f.value == fieldWhite
 }
@@ -91,11 +91,19 @@ type FieldIndices struct {
 
 // Appends i to the FieldIndices
 func (fi *FieldIndices) Append(i int) {
+    // is fi.indices big enough?
+    if fi.topIndex >= cap(fi.indices) {
+        fi.grow()
+    }
     // adjust length of the slice
     fi.indices = fi.indices[0:fi.topIndex+1]
     fi.indices[fi.topIndex] = i
     fi.topIndex++
     fi.Sequence++
+}
+
+func (fi *FieldIndices) Capacity() int {
+    return cap(fi.indices)
 }
 
 // Empties a FieldIndices entirely
@@ -108,6 +116,15 @@ func (fi *FieldIndices) Clear() {
 // Returns index-th element...
 func (fi *FieldIndices) Get(index int) int {
     return fi.indices[index]
+}
+
+// If the slice fi.indices gets too small, this function lets it grow.
+func (fi *FieldIndices) grow() {
+    const newElements = 10
+    newIndices := make([]int, fi.topIndex, fi.topIndex + newElements)
+    copy(newIndices, fi.indices)
+    fi.indices = newIndices
+    // TODO: fi.Sequence++ here?
 }
 
 // Returns the length of a FieldIndices.
@@ -141,19 +158,11 @@ func (fi *FieldIndices) String() string {
     return fmt.Sprintf("%v", fi.indices)
 }
 
-// Returns index-th element...
-/*
-func (fi *FieldIndices) Set(index, value int) {
-    fi.Sequence++
-    fi.indices[index] = value
-}*/
-
-
 // ########################### helper functions ###################################
 
-// a, b as in make([]int, a, b)...
-func NewFieldIndices(capacity int) *FieldIndices {
-    return &FieldIndices{ indices: make([]int, 0, capacity),
+// c is the capacity of the 'FieldIndices'
+func NewFieldIndices(c int) *FieldIndices {
+    return &FieldIndices{ indices: make([]int, 0, c),
                         }
 }
 

@@ -22,4 +22,6 @@ func main() {
     fi.Append(5)
     fmt.Printf("%d\n", fi.Length())
 
+    tmp := make([]int, 10, 50)
+    fmt.Printf("len: %d, cap: %d\n", len(tmp), cap(tmp))
 }

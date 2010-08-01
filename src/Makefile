@@ -1,21 +1,39 @@
 # vim: set noexpandtab :
 
+#########################################################################################
+####################### most common defintions ##########################################
+#########################################################################################
 CC=6g
 TARG=main
 LINK=6l
 
-all: main.6 
-	6l -o main main.6
+COMPILEFIRST  = $(CC) -o $(@) $(<)
+COMPILEFIRST_QUIET = @echo '  6g $(@)'; $(COMPILE)
+
+OBJS= main main.6
+
+#########################################################################################
+####################### build rules #####################################################
+#########################################################################################
+all: $(TARG).6
+	@echo '  6l $(TARG)'; 6l -o $(TARG) $(TARG).6
 	
-main.6: main.go komoku/komoku.a
-	6g main.go
+$(TARG).6: main.go komoku/komoku.a
+	@echo '  6g $(@)'; $(CC) -o $(@) main.go
 
 komoku/komoku.a: komoku/common.go komoku/board.go komoku/treenode.go komoku/ui.go
-	cd komoku && make
+	@echo 'Building in subdirectory komoku...'
+	@cd komoku && make
+	@echo 'Leaving komoku...'
 
 tests_run:
-	cd komoku && make tests_run
+	@cd komoku && make tests_run
 
 clean:
-	cd komoku && make clean
-	rm -f main main.6
+	@for obj in $(OBJS); do \
+		echo '  rm '"$$obj"; \
+		rm -f "$$obj"; \
+	done;
+	@echo 
+	@echo 'Cleaning subdirectory komoku...'
+	@cd komoku && make clean
