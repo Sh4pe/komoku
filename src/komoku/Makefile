@@ -21,15 +21,16 @@ KOMOKULIB=$(TARG).a
 COMPILE  = $(CC) -o $(@) $(^)
 COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
-OBJS = $(TARG).6 $(TARG).a common_test common_test.6 board_test board_test.6 ui_test.6 ui_test
+OBJS = $(TARG).6 $(TARG).a common_test common_test.6 board_test board_test.6 ui_test.6 ui_test \
+	design_decision_benchmark design_decision_benchmark.6
 
 #########################################################################################
 ############### Stuff needed for generating test executables ############################
 #########################################################################################
 
-# _ALL is just there for 'documentaions sake'
-TESTCOMPILEPROG_ALL='package main; import ( "./blah_blah"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
-TESTCOMPILEPROG_PRE='package main; import ( "./'
+# _ALL is here just for documentation
+TESTCOMPILEPROG_ALL ='package main; import ( "./blah_blah"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
+TESTCOMPILEPROG_PRE	='package main; import ( "./'
 TESTCOMPILEPROG_POST='"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
 
 # the command for compiling tests
@@ -44,8 +45,34 @@ TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created fi
 TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
 
 # targets look like 'foo_test_run', and sed chops of the trailing '_foo'
-TESTRUN = @echo Running `echo $(@) | sed 's/_[a-zA-Z]*$$//g'`...;
-TESTRUN += ./`echo $(@) | sed 's/_[a-zA-Z]*$$//g'`
+TESTRUN  = @echo Running `echo $(@) | sed 's/_[a-zA-Z]*$$//g'`...;
+TESTRUN += ./`echo $(@) | sed 's/_[a-zA-Z]*$$//g'`;
+
+#########################################################################################
+############### Stuff needed for generating benchmark executables #######################
+#########################################################################################
+
+BENCHMARKCOMPILEPROG_PRE   = 'package main; import ( "testing"; "flag"; "fmt"; "os"; "./'
+BENCHMARKCOMPILEPROG_POST  = '"; ); func main() { flag.Parse(); b := komoku.Benchmarks(); if len(os.Args) == 1 { bn := "";'
+BENCHMARKCOMPILEPROG_POST += 'for _, n := range b { bn += n.Name + " "; }; fmt.Println("benchmarks:"); fmt.Println(bn); return; }; '
+BENCHMARKCOMPILEPROG_POST += 'testing.RunBenchmarks(b); }'
+
+# The command for compiling benchmarks. Mostly analogous to $(TESTCOMPILE)
+BENCHMARKCOMPILE  = $(CC) -o $(@).6 $(^);
+BENCHMARKCOMPILE += echo $(BENCHMARKCOMPILEPROG_PRE)$(@)$(BENCHMARKCOMPILEPROG_POST) > $(@).tmp.go;
+BENCHMARKCOMPILE += $(CC) -o $(@).tmp.6 $(@).tmp.go;
+BENCHMARKCOMPILE += $(LINK) -o $(@) $(@).tmp.6;
+BENCHMARKCOMPILE += rm -f $(@).tmp.6;
+BENCHMARKCOMPILE += rm -f $(@).tmp.go;
+
+BENCHMARKCOMPILE_QUIET = @echo '  6l $(@)'; $(BENCHMARKCOMPILE)
+
+# This is the standard regexp supplied to -benchmarks= in the benchmark executables
+BENCHMARKREGEX = [a-zA-Z]*
+
+# Command for running benchmarks
+BENCHMARKRUN  = @echo Running `echo $(@) | sed 's/_[a-zA-Z]*$$//g'`...;
+BENCHMARKRUN += ./`echo $(@) | sed 's/_[a-zA-Z]*$$//g'` -benchmarks='$(BENCHMARKREGEX)';
 
 #########################################################################################
 ####################### build rules #####################################################
@@ -59,6 +86,9 @@ $(KOMOKULIB): $(TARG).6
 	
 $(TARG).6: common.go board.go treenode.go ui.go
 	$(COMPILE_QUIET)
+
+
+#################### tests ################
 
 common_test: common_test.go common.go
 	$(TESTCOMPILE_QUIET)
@@ -87,6 +117,23 @@ tests_run: $(KOMOKULIB) common_test board_test ui_test
 		 fi \
 	done;
 
+
+#################### benchmarks ################
+
+design_decision_benchmark: design_decision_benchmark.go
+	$(BENCHMARKCOMPILE_QUIET)
+
+design_decision_benchmark_run: design_decision_benchmark
+	$(BENCHMARKRUN)
+	
+benchmarks_run: $(KOMOKULIB) design_decision_benchmark
+	@for targ in $(^); do \
+		 if test x"$$targ" != x"$(KOMOKULIB)"; then \
+		 	make "$$targ"_run; \
+		 fi \
+	done;
+
+#################### maintenance ################
 clean:
 	@for obj in $(OBJS); do \
 		echo '  rm '"$$obj"; \

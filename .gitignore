@@ -1,7 +1,9 @@
 *.swp
 *.6
+*.DS_Store
 src/main
 src/komoku/komoku.a
 src/komoku/common_test
 src/komoku/board_test
 src/komoku/ui_test
+src/komoku/design_decision_benchmark

@@ -37,6 +37,9 @@ komoku/komoku.a: komoku/common.go komoku/board.go komoku/treenode.go komoku/ui.g
 tests_run:
 	@cd komoku && make tests_run
 
+benchmarks_run:
+	@cd komoku && make benchmarks_run
+
 clean:
 	@for obj in $(OBJS); do \
 		echo '  rm '"$$obj"; \
