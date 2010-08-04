@@ -22,7 +22,7 @@ COMPILE  = $(CC) -o $(@) $(^)
 COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
 OBJS = $(TARG).6 $(TARG).a common_test common_test.6 board_test board_test.6 ui_test.6 ui_test \
-	design_decision_benchmark design_decision_benchmark.6
+	design_decision_benchmark design_decision_benchmark.6 intlist_test intlist_test.6
 
 ALLTESTS = common_test board_test ui_test intlist_test
 
