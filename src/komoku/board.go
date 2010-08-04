@@ -15,6 +15,7 @@ import (
 /*
  * TODO:
  *      - is FieldIndices.Sequence needed/useful?
+ *      - let this talk the GTP-protocol
  */
 
 
@@ -79,110 +80,15 @@ func NewFieldWhite() *Field {
 }
 
 // ################################################################################
-// ########################### FieldIndices struct ################################
-// ################################################################################
-
-// TODO: Do we want to export this?
-type SequenceType uint64
-
-// Storage type for indices of fields. It is assumed that each index occures at most
-// once in a FieldIndices.
-// TODO: do we want to export this?
-type FieldIndices struct {
-    indices []int
-    Sequence SequenceType // Used to check if the indices are up to date
-    topIndex int // points to the last element
-}
-
-// ######################## methods ###############################
-
-// Appends i to the FieldIndices
-func (fi *FieldIndices) Append(i int) {
-    // is fi.indices big enough?
-    if fi.topIndex >= cap(fi.indices) {
-        fi.grow()
-    }
-    // adjust length of the slice
-    fi.indices = fi.indices[0:fi.topIndex+1]
-    fi.indices[fi.topIndex] = i
-    fi.topIndex++
-    fi.Sequence++
-}
-
-func (fi *FieldIndices) Capacity() int {
-    return cap(fi.indices)
-}
-
-// Empties a FieldIndices entirely
-func (fi *FieldIndices) Clear() {
-    fi.indices = fi.indices[0:0]
-    fi.topIndex = 0
-    fi.Sequence++
-}
-
-// Returns index-th element...
-func (fi *FieldIndices) Get(index int) int {
-    return fi.indices[index]
-}
-
-// If the slice fi.indices gets too small, this function lets it grow.
-func (fi *FieldIndices) grow() {
-    const newElements = 10
-    newIndices := make([]int, fi.topIndex, fi.topIndex + newElements)
-    copy(newIndices, fi.indices)
-    fi.indices = newIndices
-    // TODO: fi.Sequence++ here?
-}
-
-// Returns the length of a FieldIndices.
-func (fi *FieldIndices) Length() int {
-    //return len(fi.indices)
-    return fi.topIndex
-}
-
-// Removes 'index' from a FieldIndices. The rest remains unchanged.
-func (fi *FieldIndices) Remove(index int) {
-    // This whole method doesn't work if an index might occur more than once.
-    jump := 0
-    length := fi.Length()
-    for i := 0; i < length - jump; i++ {
-        if fi.indices[i] == index {
-            jump++
-            if i+jump >= length {
-                break
-            }
-        }
-        //fmt.Printf("i: %d, jump: %d, length: %d\n", i, jump, length)
-        fi.indices[i] = fi.indices[i+jump]
-    }
-    fi.indices = fi.indices[0:length-jump]
-    fi.topIndex = length-jump
-    fi.Sequence++
-}
-
-// Implemented so that FieldIndices implements Stringer interface. 
-func (fi *FieldIndices) String() string {
-    return fmt.Sprintf("%v", fi.indices)
-}
-
-// ########################### helper functions ###################################
-
-// c is the capacity of the 'FieldIndices'
-func NewFieldIndices(c int) *FieldIndices {
-    return &FieldIndices{ indices: make([]int, 0, c),
-                        }
-}
-
-// ################################################################################
 // ########################### Board struct #######################################
 // ################################################################################
 
 // This object is responsible for recording a current state of a game.
 type Board struct {
     fields [BoardSize*BoardSize]Field
-    legalBlackMoves FieldIndices // Indices of fields at which it is legal to play a black stone.
-    legalWhiteMoves FieldIndices // Indices of fields at which it is legal to play a white stone.
-    emptyFields FieldIndices // indices of empty fields
+    legalBlackMoves IntList // Indices of fields at which it is legal to play a black stone.
+    legalWhiteMoves IntList // Indices of fields at which it is legal to play a white stone.
+    emptyFields IntList // indices of empty fields
 }
 
 // ##################### Board methods ##########################
@@ -198,13 +104,14 @@ func (b *Board) GetField(x,y int) Field {
 // Is it legal to play a stone of color 'color' at (x,y)?
 func (b *Board) IsLegalMove(x, y int, color Color) bool {
     // TODO: write test for this!
-    var indices *FieldIndices = &b.legalBlackMoves
+    var indices *IntList = &b.legalBlackMoves
     if color == White {
         indices = &b.legalWhiteMoves
     }
     pos := xyToPos(x,y)
-    for i := 0; i < indices.Length(); i++ {
-        if indices.Get(i) == pos {
+    last := indices.Last()
+    for it := indices.First(); it != last; it = it.Next() {
+        if it.Value() == pos {
             return true
         }
     }
@@ -240,8 +147,11 @@ func (b* Board) updateLegalMoves() {
     // This method assumes that b.emptyFields is correctly set.
     b.legalWhiteMoves.Clear()
     b.legalBlackMoves.Clear()
-    for i := 0; i < b.emptyFields.Length(); i++ {
-        pos := b.emptyFields.Get(i)
+    last := b.emptyFields.Last()
+    //for i := 0; i < b.emptyFields.Length(); i++ {
+    for it := b.emptyFields.First(); it != last; it = it.Next() {
+        //pos := b.emptyFields.Get(i)
+        pos := it.Value()
         x, y := posToXY(pos)
         nbours := neighbours(x,y)
         freeNBours := 0
@@ -264,9 +174,9 @@ func (b* Board) updateLegalMoves() {
 // ##################### Board helper functions ##########################
 // Creates a new, initial board
 func NewBoard() *Board {
-    ret := &Board{ legalWhiteMoves: *NewFieldIndices(BoardSize*BoardSize),
-                   legalBlackMoves: *NewFieldIndices(BoardSize*BoardSize),
-                   emptyFields: *NewFieldIndices(BoardSize*BoardSize),
+    ret := &Board{ legalWhiteMoves: *NewIntList(),
+                   legalBlackMoves: *NewIntList(),
+                   emptyFields: *NewIntList(),
                  }
     for i := 0; i < BoardSize*BoardSize; i++ {
         ret.legalWhiteMoves.Append(i)

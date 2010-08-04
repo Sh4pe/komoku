@@ -24,6 +24,8 @@ COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 OBJS = $(TARG).6 $(TARG).a common_test common_test.6 board_test board_test.6 ui_test.6 ui_test \
 	design_decision_benchmark design_decision_benchmark.6
 
+ALLTESTS = common_test board_test ui_test intlist_test
+
 #########################################################################################
 ############### Stuff needed for generating test executables ############################
 #########################################################################################
@@ -84,11 +86,17 @@ $(KOMOKULIB): $(TARG).6
 	@echo '  6l $(TARG).a'
 	@$(PACK) grc $(TARG).a $(TARG).6
 	
-$(TARG).6: common.go board.go treenode.go ui.go
+$(TARG).6: common.go board.go treenode.go ui.go intlist.go
 	$(COMPILE_QUIET)
 
 
 #################### tests ################
+
+board_test: board_test.go common.go board.go intlist.go
+	$(TESTCOMPILE_QUIET)
+
+board_test_run: board_test
+	$(TESTRUN)
 
 common_test: common_test.go common.go
 	$(TESTCOMPILE_QUIET)
@@ -96,21 +104,21 @@ common_test: common_test.go common.go
 common_test_run: common_test
 	$(TESTRUN)
 
-board_test: board_test.go common.go board.go
+intlist_test: intlist_test.go intlist.go common.go
 	$(TESTCOMPILE_QUIET)
 
-board_test_run: board_test
+intlist_test_run: intlist_test
 	$(TESTRUN)
 
-ui_test: ui_test.go common.go board.go ui.go
+ui_test: ui_test.go common.go board.go intlist.go ui.go 
 	$(TESTCOMPILE_QUIET)
 
 ui_test_run: ui_test
 	$(TESTRUN)
 
-tests_compile: common_test board_test ui_test
+tests_compile: $(ALLTESTS)
 
-tests_run: $(KOMOKULIB) common_test board_test ui_test
+tests_run: $(KOMOKULIB) $(ALLTESTS)
 	@for targ in $(^); do \
 		 if test x"$$targ" != x"$(KOMOKULIB)"; then \
 		 	make "$$targ"_run; \

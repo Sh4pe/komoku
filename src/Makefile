@@ -20,6 +20,9 @@ COMPILEFIRST_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
 OBJS= main main.6
 
+KOMOKUDEPS = komoku/common.go komoku/board.go komoku/treenode.go komoku/ui.go \
+			 komoku/intlist.go
+
 #########################################################################################
 ####################### build rules #####################################################
 #########################################################################################
@@ -29,7 +32,7 @@ all: $(TARG).6
 $(TARG).6: main.go komoku/komoku.a
 	@echo '  6g $(@)'; $(CC) -o $(@) main.go
 
-komoku/komoku.a: komoku/common.go komoku/board.go komoku/treenode.go komoku/ui.go
+komoku/komoku.a: $(KOMOKUDEPS)
 	@echo 'Building in subdirectory komoku...'
 	@cd komoku && make
 	@echo 'Leaving komoku...'

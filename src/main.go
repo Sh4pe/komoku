@@ -25,10 +25,22 @@ func main() {
     fmt.Printf("Board of size %d\n", komoku.BoardSize)
     komoku.PrintBoard(b)
 
-    fi := komoku.NewFieldIndices(3)
-    fi.Append(5)
-    fmt.Printf("%d\n", fi.Length())
+    fmt.Println("")
 
-    tmp := make([]int, 10, 50)
-    fmt.Printf("len: %d, cap: %d\n", len(tmp), cap(tmp))
+    il := komoku.NewIntList()
+    fmt.Printf("len: %d\n", il.Length())
+    for i := 0; i < 10; i++ {
+        il.Append(i)
+    }
+    fmt.Printf("len: %d\n", il.Length())
+    last := il.Last()
+    for it := il.First(); it != last; it = it.Next() {
+        fmt.Printf("%d\n", it.Value())
+    }
+    il.Remove(5)
+    fmt.Printf("len: %d\n", il.Length())
+    last = il.Last()
+    for it := il.First(); it != last; it = it.Next() {
+        fmt.Printf("%d\n", it.Value())
+    }
 }
