@@ -11,6 +11,7 @@ package komoku
 /* 
  * TODO:
  *      - .Sequence for IntList?
+ *      - Write test for .Clear()
  */
 
 // ################################################################################

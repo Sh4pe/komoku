@@ -34,14 +34,14 @@ $(TARG).6: main.go komoku/komoku.a
 
 komoku/komoku.a: $(KOMOKUDEPS)
 	@echo 'Building in subdirectory komoku...'
-	@cd komoku && make
+	@cd komoku && $(MAKE)
 	@echo 'Leaving komoku...'
 
 tests_run:
-	@cd komoku && make tests_run
+	@cd komoku && $(MAKE) tests_run
 
 benchmarks_run:
-	@cd komoku && make benchmarks_run
+	@cd komoku && $(MAKE) benchmarks_run
 
 clean:
 	@for obj in $(OBJS); do \
@@ -50,4 +50,4 @@ clean:
 	done;
 	@echo 
 	@echo 'Cleaning subdirectory komoku...'
-	@cd komoku && make clean
+	@cd komoku && $(MAKE) clean

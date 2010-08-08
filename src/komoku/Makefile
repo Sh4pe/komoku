@@ -8,6 +8,9 @@
 # that can be found in the LICENSE file.
 #
 
+# TODO:
+#	
+
 #########################################################################################
 ####################### most common defintions ##########################################
 #########################################################################################
@@ -21,38 +24,41 @@ KOMOKULIB=$(TARG).a
 COMPILE  = $(CC) -o $(@) $(^)
 COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
-OBJS = $(TARG).6 $(TARG).a common_test common_test.6 board_test board_test.6 ui_test.6 ui_test \
-	design_decision_benchmark design_decision_benchmark.6 intlist_test intlist_test.6
-
-ALLTESTS = common_test board_test ui_test intlist_test
-
 #########################################################################################
 ############### Stuff needed for generating test executables ############################
 #########################################################################################
+TESTDIR = t/
 
-# _ALL is here just for documentation
-TESTCOMPILEPROG_ALL ='package main; import ( "./blah_blah"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
-TESTCOMPILEPROG_PRE	='package main; import ( "./'
-TESTCOMPILEPROG_POST='"; "testing"; ); func main() { testing.Main(komoku.Testsuite()) }'
-
-# the command for compiling tests
+### the command for compiling tests
+#
 TESTCOMPILE  = $(CC) -o $(@).6 $(^); # compile all dependencies to $(@).6
-TESTCOMPILE += echo $(TESTCOMPILEPROG_PRE)$(@)$(TESTCOMPILEPROG_POST) > $(@).tmp.go; # create tmp file with adjusted testrunner code in it
-TESTCOMPILE += $(CC) -o $(@).tmp.6 $(@).tmp.go; # compiles the generated program with all dependencies as .go-file arguments
-TESTCOMPILE += $(LINK) -o $(@) $(@).tmp.6; # link the program to generate an executable
+# create tmp file with adjusted testrunner code in it
+TESTCOMPILE += cat $(TESTDIR)/skeleton.go | sed 's/SUBSTITUTE_THIS/$(notdir $(@))/g' > $(TESTDIR)$(notdir $(@)).tmp.go; 
+TESTCOMPILE += $(CC) -I$(TESTDIR) -o $(@).tmp.6 $(@).tmp.go; # compiles the generated program with all dependencies as .go-file arguments
+TESTCOMPILE += $(LINK) -L$(TESTDIR) -o $(@) $(@).tmp.6; # link the program to generate an executable
 TESTCOMPILE += rm -f $(@).tmp.6; # remove the .6 file for the temorarily created file
 TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created file
 
 # the command for doing this quietly with a nice output
 TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
 
-# targets look like 'foo_test_run', and sed chops of the trailing '_foo'
-TESTRUN  = @echo Running `echo $(@) | sed 's/_[a-zA-Z]*$$//g'`...;
-TESTRUN += ./`echo $(@) | sed 's/_[a-zA-Z]*$$//g'`;
+ALLTESTS_TARGS = common_test board_test ui_test intlist_test
+ALLTESTS = $(patsubst %,$(TESTDIR)%,$(ALLTESTS_TARGS))
+
+
+TESTOBJS += board_test
+TESTOBJS += board_test.6
+TESTOBJS += common_test
+TESTOBJS += common_test.6 
+TESTOBJS += intlist_test
+TESTOBJS += intlist_test.6
+TESTOBJS += ui_test
+TESTOBJS += ui_test.6
 
 #########################################################################################
 ############### Stuff needed for generating benchmark executables #######################
 #########################################################################################
+BENCHMARKDIR = b/
 
 BENCHMARKCOMPILEPROG_PRE   = 'package main; import ( "testing"; "flag"; "fmt"; "os"; "./'
 BENCHMARKCOMPILEPROG_POST  = '"; ); func main() { flag.Parse(); b := komoku.Benchmarks(); if len(os.Args) == 1 { bn := "";'
@@ -61,9 +67,9 @@ BENCHMARKCOMPILEPROG_POST += 'testing.RunBenchmarks(b); }'
 
 # The command for compiling benchmarks. Mostly analogous to $(TESTCOMPILE)
 BENCHMARKCOMPILE  = $(CC) -o $(@).6 $(^);
-BENCHMARKCOMPILE += echo $(BENCHMARKCOMPILEPROG_PRE)$(@)$(BENCHMARKCOMPILEPROG_POST) > $(@).tmp.go;
-BENCHMARKCOMPILE += $(CC) -o $(@).tmp.6 $(@).tmp.go;
-BENCHMARKCOMPILE += $(LINK) -o $(@) $(@).tmp.6;
+BENCHMARKCOMPILE += cat $(BENCHMARKDIR)/skeleton.go | sed 's/SUBSTITUTE_THIS/$(notdir $(@))/g' > $(BENCHMARKDIR)$(notdir $(@)).tmp.go; 
+BENCHMARKCOMPILE += $(CC) -I$(BENCHMARKDIR) -o $(@).tmp.6 $(@).tmp.go;
+BENCHMARKCOMPILE += $(LINK) -L$(BENCHMARKDIR) -o $(@) $(@).tmp.6;
 BENCHMARKCOMPILE += rm -f $(@).tmp.6;
 BENCHMARKCOMPILE += rm -f $(@).tmp.go;
 
@@ -73,8 +79,23 @@ BENCHMARKCOMPILE_QUIET = @echo '  6l $(@)'; $(BENCHMARKCOMPILE)
 BENCHMARKREGEX = [a-zA-Z]*
 
 # Command for running benchmarks
-BENCHMARKRUN  = @echo Running `echo $(@) | sed 's/_[a-zA-Z]*$$//g'`...;
-BENCHMARKRUN += ./`echo $(@) | sed 's/_[a-zA-Z]*$$//g'` -benchmarks='$(BENCHMARKREGEX)';
+BENCHMARKRUN  = @echo Running $(patsubst %_run,%, $(@));
+BENCHMARKRUN += ./$(patsubst %_run,%, $(@)) -benchmarks='$(BENCHMARKREGEX)';
+
+ALLBENCHMARKS_TARGS = design_decision_benchmark
+ALLBENCHMARKS = $(patsubst %,$(BENCHMARKDIR)%,$(ALLBENCHMARKS_TARGS))
+
+
+BENCHMARKOBJS += design_decision_benchmark
+BENCHMARKOBJS += design_decision_benchmark.6
+
+
+#########################################################################################
+####################### 'final' global vars #############################################
+#########################################################################################
+
+OBJS  = $(TARG).6 $(TARG).a $(patsubst %,$(TESTDIR)%,$(TESTOBJS)) 
+OBJS += $(patsubst %,$(BENCHMARKDIR)%,$(BENCHMARKOBJS))
 
 #########################################################################################
 ####################### build rules #####################################################
@@ -89,59 +110,51 @@ $(KOMOKULIB): $(TARG).6
 $(TARG).6: common.go board.go treenode.go ui.go intlist.go
 	$(COMPILE_QUIET)
 
-
 #################### tests ################
 
-board_test: board_test.go common.go board.go intlist.go
+$(TESTDIR)board_test: $(TESTDIR)board_test.go common.go board.go intlist.go
 	$(TESTCOMPILE_QUIET)
 
-board_test_run: board_test
-	$(TESTRUN)
-
-common_test: common_test.go common.go
+$(TESTDIR)common_test: $(TESTDIR)common_test.go common.go
 	$(TESTCOMPILE_QUIET)
 
-common_test_run: common_test
-	$(TESTRUN)
-
-intlist_test: intlist_test.go intlist.go common.go
+$(TESTDIR)intlist_test: $(TESTDIR)intlist_test.go intlist.go common.go
 	$(TESTCOMPILE_QUIET)
 
-intlist_test_run: intlist_test
-	$(TESTRUN)
-
-ui_test: ui_test.go common.go board.go intlist.go ui.go 
+$(TESTDIR)ui_test: $(TESTDIR)ui_test.go common.go board.go intlist.go ui.go 
 	$(TESTCOMPILE_QUIET)
 
-ui_test_run: ui_test
-	$(TESTRUN)
-
+.PHONY: tests_compile
 tests_compile: $(ALLTESTS)
 
 tests_run: $(KOMOKULIB) $(ALLTESTS)
 	@for targ in $(^); do \
 		 if test x"$$targ" != x"$(KOMOKULIB)"; then \
-		 	make "$$targ"_run; \
+		 	echo "Running $$targ..."; \
+			$$targ; \
 		 fi \
 	done;
 
-
 #################### benchmarks ################
-
-design_decision_benchmark: design_decision_benchmark.go
+$(BENCHMARKDIR)design_decision_benchmark: $(BENCHMARKDIR)design_decision_benchmark.go
 	$(BENCHMARKCOMPILE_QUIET)
 
-design_decision_benchmark_run: design_decision_benchmark
+$(BENCHMARKDIR)design_decision_benchmark_run: $(BENCHMARKDIR)design_decision_benchmark
 	$(BENCHMARKRUN)
+
+
+.PHONY: benchmarks_compile
+benchmarks_compile: $(ALLBENCHMARKS)
 	
-benchmarks_run: $(KOMOKULIB) design_decision_benchmark
+benchmarks_run: $(KOMOKULIB) $(ALLBENCHMARKS)
 	@for targ in $(^); do \
 		 if test x"$$targ" != x"$(KOMOKULIB)"; then \
 		 	make "$$targ"_run; \
 		 fi \
 	done;
 
-#################### maintenance ################
+#################### phony targets ################
+.PHONY: clean
 clean:
 	@for obj in $(OBJS); do \
 		echo '  rm '"$$obj"; \
