@@ -19,66 +19,6 @@ import (
  */
 
 
-type Color bool
-const (
-    White = true
-    Black = false
-)
-
-func (c Color) String() string {
-    if c == White {
-        return "white"
-    }
-    return "black"
-}
-
-// ############### Field struct ###############
-type Field struct {
-    value int8
-}
-
-const (
-    fieldWhite = iota - 1;
-    fieldEmpty;
-    fieldBlack
-)
-
-// Is this field occupied by a black stone?
-func (f *Field) Black() bool {
-    return f.value == fieldBlack
-}
-
-// makes f Empty()
-func (f *Field) Clear() {
-    f.value = fieldEmpty
-}
-
-// Is this field empty?
-func (f *Field) Empty() bool {
-    return f.value == fieldEmpty
-}
-
-
-// Is this field occupied by a white stone?
-func (f *Field) White() bool {
-    return f.value == fieldWhite
-}
-
-// ################### helpers ################
-
-// Create empty field.
-func NewField() (ret *Field) {
-    return
-}
-
-func NewFieldBlack() *Field {
-    return &Field{ fieldBlack }
-}
-
-func NewFieldWhite() *Field {
-    return &Field{ fieldWhite }
-}
-
 // ################################################################################
 // ########################### Board struct #######################################
 // ################################################################################
@@ -92,7 +32,6 @@ type Board struct {
 }
 
 // ##################### Board methods ##########################
-
 
 
 // Returns a copy of the field at (x,y)

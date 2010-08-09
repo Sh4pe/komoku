@@ -94,6 +94,7 @@ func (iln *IntListNode) Value() int {
 
 // Creates an empty IntList
 func NewIntList() *IntList {
+    // -111 for no good reason. FIXME(david)?
     f := newIntListNode(nil, nil, -111)
     l := newIntListNode(f, nil, -111)
     f.next = l

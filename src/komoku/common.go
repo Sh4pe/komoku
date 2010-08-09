@@ -5,6 +5,11 @@
  * Use of this source code is governed by a license 
  * that can be found in the LICENSE file.
  */
+
+/*
+ * TODO:
+ *      - This whole file is not very tidy. Clean it up.
+ */
 package komoku
 
 import (
@@ -15,7 +20,7 @@ import (
 const (
     BoardSize = 13 // ...says that we are playing on a (BoardSize * BoardSize) - board
                    // We support only quadratic boards at the moment.
-                   // This should be less than 26, because ui.go.PrintBoard will have problems otherwise....
+                   // This should be less than 25, because ui.go.PrintBoard will have problems otherwise....
 )
 
 // komokus error constants
@@ -32,7 +37,9 @@ type Error interface {
     Errno() int
 }
 
+// ###########################################
 // ################ types ####################
+// ###########################################
 
 type Point struct {
     X, Y int
@@ -58,7 +65,69 @@ func NewError(s string, errno int) Error {
     return &komokuError{ s, errno }
 }
 
-// ################ helper functions ####################
+
+// ################## type color #####################
+type Color bool
+const (
+    White = true
+    Black = false
+)
+
+func (c Color) String() string {
+    if c == White {
+        return "white"
+    }
+    return "black"
+}
+
+// ############### Field struct ###############
+type Field struct {
+    value int8
+}
+
+const (
+    fieldWhite = iota - 1;
+    fieldEmpty;
+    fieldBlack
+)
+
+// Is this field occupied by a black stone?
+func (f *Field) Black() bool {
+    return f.value == fieldBlack
+}
+
+// makes f Empty()
+func (f *Field) Clear() {
+    f.value = fieldEmpty
+}
+
+// Is this field empty?
+func (f *Field) Empty() bool {
+    return f.value == fieldEmpty
+}
+
+
+// Is this field occupied by a white stone?
+func (f *Field) White() bool {
+    return f.value == fieldWhite
+}
+
+// Create empty field.
+func NewField() (ret *Field) {
+    return
+}
+
+func NewFieldBlack() *Field {
+    return &Field{ fieldBlack }
+}
+
+func NewFieldWhite() *Field {
+    return &Field{ fieldWhite }
+}
+
+// ###########################################
+// ################ helper functions #########
+// ###########################################
 
 // TODO: use point!
 func posToXY(pos int) (x, y int) {
@@ -104,8 +173,8 @@ func neighbours(x, y int) []Point {
     return ret[0:count]
 }
 
-// returns true if (x,y) is a hoshi point. 
-// Currently, the only supported board size are 19. 
+// Returns true if (x,y) is a hoshi point. 
+// Currently, the only supported board sizes are 9, 13 and 19. 
 // For other sizes, this function returns false for all (x,y).
 // Right now, this function is only used by printing functions in ui.go, so this
 // is not a 'very important' function

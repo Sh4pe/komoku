@@ -20,15 +20,16 @@ COMPILEFIRST_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
 OBJS= main main.6
 
-KOMOKUDEPS = komoku/common.go komoku/board.go komoku/treenode.go komoku/ui.go \
-			 komoku/intlist.go
+ALLSOURCE = board.go common.go group.go intlist.go treenode.go ui.go 
+
+KOMOKUDEPS = $(patsubst %,komoku/%, $(ALLSOURCE))
 
 #########################################################################################
 ####################### build rules #####################################################
 #########################################################################################
 all: $(TARG).6
 	@echo '  6l $(TARG)'; 6l -o $(TARG) $(TARG).6
-	
+
 $(TARG).6: main.go komoku/komoku.a
 	@echo '  6g $(@)'; $(CC) -o $(@) main.go
 

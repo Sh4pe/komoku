@@ -24,6 +24,8 @@ KOMOKULIB=$(TARG).a
 COMPILE  = $(CC) -o $(@) $(^)
 COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
+ALLSOURCE = board.go common.go group.go intlist.go treenode.go ui.go 
+
 #########################################################################################
 ############### Stuff needed for generating test executables ############################
 #########################################################################################
@@ -42,7 +44,7 @@ TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created fi
 # the command for doing this quietly with a nice output
 TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
 
-ALLTESTS_TARGS = common_test board_test ui_test intlist_test
+ALLTESTS_TARGS = board_test common_test intlist_test ui_test 
 ALLTESTS = $(patsubst %,$(TESTDIR)%,$(ALLTESTS_TARGS))
 
 
@@ -107,7 +109,7 @@ $(KOMOKULIB): $(TARG).6
 	@echo '  6l $(TARG).a'
 	@$(PACK) grc $(TARG).a $(TARG).6
 	
-$(TARG).6: common.go board.go treenode.go ui.go intlist.go
+$(TARG).6: $(ALLSOURCE)
 	$(COMPILE_QUIET)
 
 #################### tests ################
@@ -136,7 +138,7 @@ tests_run: $(KOMOKULIB) $(ALLTESTS)
 	done;
 
 #################### benchmarks ################
-$(BENCHMARKDIR)design_decision_benchmark: $(BENCHMARKDIR)design_decision_benchmark.go
+$(BENCHMARKDIR)design_decision_benchmark: $(BENCHMARKDIR)design_decision_benchmark.go intlist.go
 	$(BENCHMARKCOMPILE_QUIET)
 
 $(BENCHMARKDIR)design_decision_benchmark_run: $(BENCHMARKDIR)design_decision_benchmark

@@ -27,20 +27,6 @@ func main() {
 
     fmt.Println("")
 
-    il := komoku.NewIntList()
-    fmt.Printf("len: %d\n", il.Length())
-    for i := 0; i < 10; i++ {
-        il.Append(i)
-    }
-    fmt.Printf("len: %d\n", il.Length())
-    last := il.Last()
-    for it := il.First(); it != last; it = it.Next() {
-        fmt.Printf("%d\n", it.Value())
-    }
-    il.Remove(5)
-    fmt.Printf("len: %d\n", il.Length())
-    last = il.Last()
-    for it := il.First(); it != last; it = it.Next() {
-        fmt.Printf("%d\n", it.Value())
-    }
+    gm := komoku.NewGroupMap()
+    fmt.Printf("%v\n", gm.Get(2))
 }

@@ -42,9 +42,30 @@ func BenchmarkIntVector(b *testing.B) {
     }
 }
 
+func BenchmarkCreationPointerAssign(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        var il *IntList
+        // Does this copy? Thats the question of this benchmark...
+        il = NewIntList()
+        // Dummy op to avoid "declared and not used"-error
+        il.Length()
+    }
+}
+
+func BenchmarkCreationValueAssign(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        var il IntList
+        // Does this copy? Thats the question of this benchmark...
+        il = *NewIntList()
+        // dummy op to avoid "declared and not used"-error
+        il.Length()
+    }
+}
 
 func Benchmarks() []testing.Benchmark {
     return []testing.Benchmark { testing.Benchmark{"BenchmarkGenericVector", BenchmarkGenericVector},
                                  testing.Benchmark{"BenchmarkIntVector", BenchmarkIntVector},
+                                 testing.Benchmark{"BenchmarkCreationPointerAssign", BenchmarkCreationPointerAssign},
+                                 testing.Benchmark{"BenchmarkCreationValueAssign", BenchmarkCreationValueAssign},
                                }
 }
