@@ -93,16 +93,18 @@ func printBoardPrimitive(b *Board,
         rightSpace := ""
         for x := 0; x < BoardSize; x++ {
             //fmt.Printf("(%d,%d)\n",x,y)
-            field := b.GetField(x,y)
+            //field := b.GetField(x,y)
+            empty, group := b.GetGroup(x,y)
             fieldChar := ""
-            if field.Empty() {
+            //fmt.Printf("empty: %v, group: %v\n", empty, group)
+            if empty {
                 // is this a hoshi?
                 if isHoshi(x,y) {
                     fieldChar = "+"
                 } else {
                     fieldChar = "."
                 }
-            } else if field.Black() {
+            } else if group.Color == Black {
                 fieldChar = "X"
             } else {
                 // so the field must be occupied by a white stone...

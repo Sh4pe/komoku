@@ -25,27 +25,33 @@ import (
 
 // This object is responsible for recording a current state of a game.
 type Board struct {
-    fields [BoardSize*BoardSize]Field
-    legalBlackMoves IntList // Indices of fields at which it is legal to play a black stone.
-    legalWhiteMoves IntList // Indices of fields at which it is legal to play a white stone.
-    emptyFields IntList // indices of empty fields
+    fields [BoardSize*BoardSize]GroupIndexType // Stores the indices for groupMap
+    groupMap *GroupMap // Maps fields to groups
+    legalBlackMoves *IntList // Indices of fields at which it is legal to play a black stone.
+    legalWhiteMoves *IntList // Indices of fields at which it is legal to play a white stone.
+    emptyFields *IntList // indices of empty fields
 }
 
 // ##################### Board methods ##########################
 
 
-// Returns a copy of the field at (x,y)
-func (b *Board) GetField(x,y int) Field {
-    //fmt.Printf("(%d,%d), pos: %d\n",x,y,xyToPos(x,y))
-    return b.fields[xyToPos(x,y)]
+// If the field (x,y) is empty, this method returns (false, nil).
+// If the field is not empty, it returns (true, 'pointer to group')...
+func (b *Board) GetGroup(x,y int) (empty bool, group *Group) {
+    index := xyToPos(x,y)
+    gindex := b.fields[index]
+    if gindex.Empty() {
+        return true, nil
+    }
+    return false, b.groupMap.Get(gindex)
 }
 
 // Is it legal to play a stone of color 'color' at (x,y)?
 func (b *Board) IsLegalMove(x, y int, color Color) bool {
     // TODO: write test for this!
-    var indices *IntList = &b.legalBlackMoves
+    var indices *IntList = b.legalBlackMoves
     if color == White {
-        indices = &b.legalWhiteMoves
+        indices = b.legalWhiteMoves
     }
     pos := xyToPos(x,y)
     last := indices.Last()
@@ -72,12 +78,14 @@ func (b *Board) Move(x, y int, color Color) (err Error) {
     return
 }
 
-// Removes a stone at (x,y), if there is any and updates b.emptyFields.
+// Removes the group which occupies (x,y), if there is any, and updates b.emptyFields.
 // This method does not alter legalWhiteMoves or legalBlackMoves
-func (b *Board) removeStone(x, y int) {
+func (b *Board) removeGroup(x, y int) {
+    //TODO: implement this!
     pos := xyToPos(x,y)
     if !b.fields[pos].Empty() {
-        b.fields[pos].Clear()
+        //TODO: this has to be fixed!
+        //b.fields[pos].Clear()
         b.emptyFields.Append(pos)
     }
 }
@@ -105,6 +113,7 @@ func (b* Board) updateLegalMoves() {
                 b.legalWhiteMoves.Append(pos)
                 b.legalBlackMoves.Append(pos)
             case freeNBours == 0: // this case is more difficult
+                // TODO: implement this!
                 return
         }
     }
@@ -113,9 +122,10 @@ func (b* Board) updateLegalMoves() {
 // ##################### Board helper functions ##########################
 // Creates a new, initial board
 func NewBoard() *Board {
-    ret := &Board{ legalWhiteMoves: *NewIntList(),
-                   legalBlackMoves: *NewIntList(),
-                   emptyFields: *NewIntList(),
+    ret := &Board{ legalWhiteMoves: NewIntList(),
+                   legalBlackMoves: NewIntList(),
+                   emptyFields: NewIntList(),
+                   groupMap: NewGroupMap(),
                  }
     for i := 0; i < BoardSize*BoardSize; i++ {
         ret.legalWhiteMoves.Append(i)

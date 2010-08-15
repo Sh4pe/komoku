@@ -18,7 +18,8 @@ package komoku
 // ########################### struct IntList #####################################
 // ################################################################################
 
-// This is a doubly-linked list of ints
+// This is a doubly-linked list of ints. It is assumed that the entries are 
+// pairwise different.
 type IntList struct {
     first *IntListNode
     last *IntListNode
@@ -53,6 +54,28 @@ func (il *IntList) First() *IntListNode {
     return il.first.next
 }
 
+// This method joins the IntLists 'other' into 'il', in such
+// a way that the entries in the resulting 'il' are pairwise different.
+// 'other' is not changed by this method, you will have to delete it for yourself.
+func (il *IntList) JoinUnique(other *IntList) {
+    // The algorithm here is stupid. Are there better ones?
+    otherLast := other.Last()
+    for otherIt := other.First(); otherIt != otherLast; otherIt = otherIt.Next() {
+        contained := false
+        value := otherIt.Value()
+        last := il.Last()
+        for it := il.First(); it != last; it = it.Next() {
+            if it.Value() == value {
+                contained = true
+                break
+            }
+        }
+        if !contained {
+            il.Append(value)
+        }
+    }
+}
+
 func (il *IntList) Last() *IntListNode {
     return il.last
 }
@@ -73,6 +96,7 @@ func (il *IntList) Remove(val int) bool {
             // TODO(david): are the next two lines needed (for the GC)?
             it.next = nil
             it.prev = nil
+
             il.length--
             return true
         }

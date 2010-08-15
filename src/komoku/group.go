@@ -29,7 +29,7 @@ func (g *Group) NumStones() int {
 
 // ##################### Group helper functions ##########################
 
-// Creates a new empty group of colof 'c'.
+// Creates a new empty group of color 'c'.
 func NewGroup(c Color) *Group {
     return &Group{ Color: c,
                    Fields: NewIntList(),
@@ -38,32 +38,43 @@ func NewGroup(c Color) *Group {
 }
 
 // ################################################################################
+// ########################### GrouIndexType ######################################
+// ################################################################################
+
+type GroupIndexType uint32
+
+// 0 is reserved to represent an 'empty' group
+func (g *GroupIndexType) Empty() bool {
+    return *g == 0
+}
+
+// ################################################################################
 // ########################### GroupMap struct ####################################
 // ################################################################################
 
 type GroupMap struct {
-    mapping map[uint32]*Group
-    topIndex uint32
+    mapping map[GroupIndexType]*Group
+    topIndex GroupIndexType
 }
 
 // ##################### GroupMap methods ##########################
 
 // 'Appends' 'group' to the GroupMap, returns its index
-func (gm *GroupMap) Append(group *Group) uint32 {
+func (gm *GroupMap) Append(group *Group) GroupIndexType {
     ret := gm.topIndex
     gm.mapping[gm.topIndex] = group
     gm.topIndex++
     return ret
 }
 
-func (gm *GroupMap) Get(index uint32) (gropu *Group) {
-    return
+func (gm *GroupMap) Get(index GroupIndexType) (group *Group) {
+    return gm.mapping[index]
 }
 
 // ##################### GroupMap helper functions ##########################
 
 func NewGroupMap() *GroupMap {
-    return &GroupMap{ mapping: make(map[uint32]*Group),
+    return &GroupMap{ mapping: make(map[GroupIndexType]*Group),
                       topIndex: 1, // 0 is reserved to represent empty fields
                     }
 }

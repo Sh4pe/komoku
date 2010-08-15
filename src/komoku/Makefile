@@ -62,11 +62,6 @@ TESTOBJS += ui_test.6
 #########################################################################################
 BENCHMARKDIR = b/
 
-BENCHMARKCOMPILEPROG_PRE   = 'package main; import ( "testing"; "flag"; "fmt"; "os"; "./'
-BENCHMARKCOMPILEPROG_POST  = '"; ); func main() { flag.Parse(); b := komoku.Benchmarks(); if len(os.Args) == 1 { bn := "";'
-BENCHMARKCOMPILEPROG_POST += 'for _, n := range b { bn += n.Name + " "; }; fmt.Println("benchmarks:"); fmt.Println(bn); return; }; '
-BENCHMARKCOMPILEPROG_POST += 'testing.RunBenchmarks(b); }'
-
 # The command for compiling benchmarks. Mostly analogous to $(TESTCOMPILE)
 BENCHMARKCOMPILE  = $(CC) -o $(@).6 $(^);
 BENCHMARKCOMPILE += cat $(BENCHMARKDIR)/skeleton.go | sed 's/SUBSTITUTE_THIS/$(notdir $(@))/g' > $(BENCHMARKDIR)$(notdir $(@)).tmp.go; 
@@ -114,16 +109,16 @@ $(TARG).6: $(ALLSOURCE)
 
 #################### tests ################
 
-$(TESTDIR)board_test: $(TESTDIR)board_test.go common.go board.go intlist.go
+$(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go group.go intlist.go 
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)common_test: $(TESTDIR)common_test.go common.go
 	$(TESTCOMPILE_QUIET)
 
-$(TESTDIR)intlist_test: $(TESTDIR)intlist_test.go intlist.go common.go
+$(TESTDIR)intlist_test: $(TESTDIR)intlist_test.go common.go intlist.go 
 	$(TESTCOMPILE_QUIET)
 
-$(TESTDIR)ui_test: $(TESTDIR)ui_test.go common.go board.go intlist.go ui.go 
+$(TESTDIR)ui_test: $(TESTDIR)ui_test.go board.go common.go group.go intlist.go ui.go 
 	$(TESTCOMPILE_QUIET)
 
 .PHONY: tests_compile

@@ -8,6 +8,7 @@
 package komoku
 
 import (
+    //"fmt"
     "testing"
 )
 
@@ -62,8 +63,83 @@ func TestRemoveAndAppendWork(t *testing.T) {
     }
 }
 
+// Tests if JoinUnique yields IntLists with correct lengths.
+func TestJoinUniqueLength(t *testing.T) {
+    // First: disjoint IntLists
+    for top := 0; top < 100; top++ {
+        evenIntList := NewIntList()
+        for even := 0; even < top; even += 2 {
+            evenIntList.Append(even)
+        }
+        oddList := NewIntList()
+        for odd := 1; odd < top; odd += 2 {
+            oddList.Append(odd)
+        }
+        evenIntList.JoinUnique(oddList)
+        if evenIntList.Length() != top {
+            t.Fatalf("IntList has wrong length after .JoinUnique (disjoint lists): expected %d, got %d", top, evenIntList.Length())
+        }
+    }
+    // Second: setwise identical IntLists
+    for top := 0; top < 100; top++ {
+        listOne := NewIntList()
+        listTwo := NewIntList()
+        for i := 0; i < top; i++ {
+            listOne.Append(i)
+            listTwo.Append(top-1-i)
+        }
+        listOne.JoinUnique(listTwo)
+        if listOne.Length() != top {
+            t.Fatalf("IntList has wrong length after .JoinUnique (setwise identical lists): expected %d, got %d", top, listOne.Length())
+        }
+    }
+    // Third: non-identical list with nonempty intersection
+    for length := 50; length < 100; length++ {
+        for offset := 10; offset < length/2; offset++ {
+            listOne := NewIntList()
+            listTwo := NewIntList()
+            for i := 0; i < length; i++ {
+                listOne.Append(i)
+                listTwo.Append(i+offset)
+            }
+            listOne.JoinUnique(listTwo)
+            if listOne.Length() != length + offset {
+                t.Fatalf("IntList has wrong length after .JoinUnique (nonempty intersection): expected %d, got %d", length + offset, listOne.Length())
+            }
+        }
+    }
+}
+
+// Tests if JoinUnique yields 'unique' lists...
+func TestJoinUniqueSetwise(t *testing.T) {
+    for top := 50; top < 500; top++ {
+        l1 := NewIntList()
+        l2 := NewIntList()
+        for i := 0; i < top - 10; i++ {
+            l1.Append(i)
+            l2.Append(i)
+        }
+        for i := top - 10; i < top; i += 2 {
+            l1.Append(i)
+            l2.Append(i+1)
+        }
+        l1.JoinUnique(l2)
+        uniq := make(map[int]bool)
+        last := l1.last;
+        for it := l1.First(); it != last; it = it.Next() {
+            uniq[it.Value()] = true
+        }
+        if len(uniq) != top {
+            //fmt.Printf("uniq:\n%v\ntop: %d\n", uniq, top)
+            t.Fatalf("JoinUnique yields non-unique lists. Expected length: %d, got %d", top, len(uniq))
+        }
+    }
+}
+
 func Testsuite() []testing.Test {
     return []testing.Test { testing.Test{"TestIntListRemove", TestIntListRemove},
                             testing.Test{"TestRemoveAndAppendWork", TestRemoveAndAppendWork},
+                            testing.Test{"TestJoinUniqueLength", TestJoinUniqueLength},
+                            testing.Test{"TestJoinUniqueSetwise", TestJoinUniqueSetwise},
                           }
 }
