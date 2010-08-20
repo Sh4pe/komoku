@@ -16,12 +16,12 @@ import (
 )
 
 var charDigit = map[string]int {
-    "a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7, "j": 8, "k": 9, "l": 10,
-    "m": 11, "n": 12, "o": 13, "p": 14, "q": 15, "r": 16, "s": 17, "t": 18, "u": 19, "v": 20, "w": 21,
-    "x": 22, "y": 23, "z": 24,
+    "A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7, "J": 8, "K": 9, "L": 10,
+    "M": 11, "N": 12, "O": 13, "P": 14, "Q": 15, "R": 16, "S": 17, "T": 18, "U": 19, "V": 20, "W": 21,
+    "X": 22, "Y": 23, "Z": 24,
 }
 
-var coordinateChars string = "abcdefghjklmnopqrstuvwxyz"
+var coordinateChars string = "ABCDEFGHJKLMNOPQRSTUVWXYZ"
 
 // TODO: there must be a better way to do this...
 func CharToDigit(c string) (digit int, err Error) {
@@ -59,6 +59,7 @@ func PrintBoard(b *Board) {
 // this does the actual work
 // kind of ugly...
 // TODO: cache the printed lines so that error output is never mixed with regular output.
+// TODO: make this GTP-compatible
 func printBoardPrimitive(b *Board,
                          leftOffset string, // printed on the very beginning of each line
                          lastX, lastY int, // Marks the last played move. Negative values indicate that no last move is provided.

@@ -38,10 +38,15 @@ func NewGroup(c Color) *Group {
 }
 
 // ################################################################################
-// ########################### GrouIndexType ######################################
+// ########################### GroupIndexType ######################################
 // ################################################################################
 
-type GroupIndexType uint32
+type GroupIndexType int
+
+// Makes 'g' emypt, i.e. sets it to 0
+func (g *GroupIndexType) Clear() {
+    *g = 0
+}
 
 // 0 is reserved to represent an 'empty' group
 func (g *GroupIndexType) Empty() bool {
@@ -59,7 +64,7 @@ type GroupMap struct {
 
 // ##################### GroupMap methods ##########################
 
-// 'Appends' 'group' to the GroupMap, returns its index
+// `Appends` 'group' to the GroupMap, returns its index
 func (gm *GroupMap) Append(group *Group) GroupIndexType {
     ret := gm.topIndex
     gm.mapping[gm.topIndex] = group
@@ -69,6 +74,11 @@ func (gm *GroupMap) Append(group *Group) GroupIndexType {
 
 func (gm *GroupMap) Get(index GroupIndexType) (group *Group) {
     return gm.mapping[index]
+}
+
+// Removes 'index' from 'gm' if it was contained in it.
+func (gm *GroupMap) Remove(index GroupIndexType) {
+    gm.mapping[index] = nil, false
 }
 
 // ##################### GroupMap helper functions ##########################

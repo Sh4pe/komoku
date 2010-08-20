@@ -18,7 +18,7 @@ import (
 
 // ################ constants ####################
 const (
-    BoardSize = 13 // ...says that we are playing on a (BoardSize * BoardSize) - board
+    BoardSize = 19 // ...says that we are playing on a (BoardSize * BoardSize) - board
                    // We support only quadratic boards at the moment.
                    // This should be less than 25, because ui.go.PrintBoard will have problems otherwise....
 )
@@ -43,6 +43,10 @@ type Error interface {
 
 type Point struct {
     X, Y int
+}
+
+func NewPoint(x, y int) *Point {
+    return &Point{ X: x, Y: y }
 }
 
 type komokuError struct {
@@ -139,7 +143,7 @@ func xyToPos(x, y int) int {
     return BoardSize*y + x
 }
 
-// Returns the neighbours of a field (x,y)
+// Returns the neighbours of a field (x,y) as a slice of Points.
 func neighbours(x, y int) []Point {
     // TODO: can this be implemented better?
     ret := make([]Point, 4)

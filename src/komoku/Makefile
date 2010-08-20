@@ -109,7 +109,7 @@ $(TARG).6: $(ALLSOURCE)
 
 #################### tests ################
 
-$(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go group.go intlist.go 
+$(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go group.go intlist.go ui.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)common_test: $(TESTDIR)common_test.go common.go

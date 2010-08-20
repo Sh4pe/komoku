@@ -62,10 +62,32 @@ func BenchmarkCreationValueAssign(b *testing.B) {
     }
 }
 
+func BenchmarkIntAssignment(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        var a int = 100
+        var b int = 200
+
+        b = a
+        b++
+    }
+}
+
+func BenchmarkIntCast(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        var a int = 100
+        var b uint32 = 200
+
+        b = uint32(a)
+        b++
+    }
+}
+
 func Benchmarks() []testing.Benchmark {
     return []testing.Benchmark { testing.Benchmark{"BenchmarkGenericVector", BenchmarkGenericVector},
                                  testing.Benchmark{"BenchmarkIntVector", BenchmarkIntVector},
                                  testing.Benchmark{"BenchmarkCreationPointerAssign", BenchmarkCreationPointerAssign},
                                  testing.Benchmark{"BenchmarkCreationValueAssign", BenchmarkCreationValueAssign},
+                                 testing.Benchmark{"BenchmarkIntAssignment", BenchmarkIntAssignment},
+                                 testing.Benchmark{"BenchmarkIntCast", BenchmarkIntCast},
                                }
 }

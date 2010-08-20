@@ -34,13 +34,25 @@ type IntListNode struct {
 
 // ################### methods of IntList ###########################
 
-// Appends the value 'v' to the end if il
+// Appends the value 'v' to the end of 'il'. This method does not check if
+// 'v' is already contained in 'il'.
 func (il *IntList) Append(v int) {
     secondLast := il.last.prev
     newNode := newIntListNode(secondLast, il.last, v)
     secondLast.next = newNode
     il.last.prev = newNode
     il.length++
+}
+
+// Appends 'v' only if it is not already contained in 'il'
+func (il *IntList) AppendUnique(v int) {
+    last := il.Last()
+    for it := il.First(); it != last; it = it.Next() {
+        if it.Value() == v {
+            return
+        }
+    }
+    il.Append(v)
 }
 
 // Clears the whole 'il' entirely
@@ -84,7 +96,7 @@ func (il *IntList) Length() int {
     return il.length
 }
 
-// Removes the value 'val' from il, if it exists therein. This method (as well as the whole IntList) ssumes that
+// Removes the value 'val' from il, if it exists therein. This method (as well as the whole IntList) assumes that
 // each value occurs at most once.
 // Returns true if 'val' was contained in 'il'
 func (il *IntList) Remove(val int) bool {
