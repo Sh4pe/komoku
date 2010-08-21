@@ -53,19 +53,20 @@ func NewInvalidCoordinateDigitError(digit int) (err Error) {
 // ################################################################################
 
 func PrintBoard(b *Board) {
-    printBoardPrimitive(b, "", -1, -1)
+    fmt.Printf(printBoardPrimitive(b, " ", -1, -1))
 }
 
 // this does the actual work
 // kind of ugly...
+// returns a string
 // TODO: cache the printed lines so that error output is never mixed with regular output.
 // TODO: make this GTP-compatible
 func printBoardPrimitive(b *Board,
                          leftOffset string, // printed on the very beginning of each line
                          lastX, lastY int, // Marks the last played move. Negative values indicate that no last move is provided.
-                        ) {
+                        ) (s string) {
     // so that the values of lastX, lastY don't interfere with our algorithm...
-    // Now we can assume that lastX, lastY are valid of 'too small'
+    // Now we can assume that lastX, lastY are valid or 'too small'
     if lastX < 0 || lastY < 0 {
         lastX = -10
         lastY = -10
@@ -74,6 +75,9 @@ func printBoardPrimitive(b *Board,
     // print coordinates at the header
     line := leftOffset
     line += " "
+    if BoardSize > 9 {
+        line += " "
+    }
     for i := 0; i < BoardSize; i++ {
         char, err := DigitToChar(i)
         if err != nil {
@@ -82,15 +86,15 @@ func printBoardPrimitive(b *Board,
         }
         line += " " + char
     }
-    fmt.Println(line)
+    s += line + "\n"
     // print the board
-    for y := 0; y < BoardSize; y++ {
-        char, err := DigitToChar(y)
-        if err != nil {
-            fmt.Printf("Error in printBoardPrimitive. Error:\n%s\n", err)
-            return
+    //for y := 0; y < BoardSize; y++ {
+    for y := BoardSize-1; y >= 0; y-- {
+        lineNumber := fmt.Sprintf("%d", y+1)
+        if BoardSize > 9 {
+            lineNumber = fmt.Sprintf("%2d", y+1)
         }
-        line = leftOffset + char
+        line = leftOffset + lineNumber
         rightSpace := ""
         for x := 0; x < BoardSize; x++ {
             //fmt.Printf("(%d,%d)\n",x,y)
@@ -126,12 +130,15 @@ func printBoardPrimitive(b *Board,
         if rightSpace != ")" {
             line += " "
         }
-        line += char
-        fmt.Println(line)
+        line += lineNumber
+        s += line + "\n"
     }
     // and print the footer
     line = leftOffset
     line += " "
+    if BoardSize > 9 {
+        line += " "
+    }
     for i := 0; i < BoardSize; i++ {
         char, err := DigitToChar(i)
         if err != nil {
@@ -140,5 +147,6 @@ func printBoardPrimitive(b *Board,
         }
         line += " " + char
     }
-    fmt.Println(line)
+    s += line + "\n"
+    return s
 }

@@ -48,6 +48,7 @@ type Board struct {
 // of legal{Black,White}Moves... 
 // Note that this method assumes that (x,y) is empty.
 func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action func()) {
+    //fmt.Printf("Board.calculateIfLegal(%d, %d, %v)\n", x,y,color)
     // Is this move prohibited because of a ko?
     if b.ko != nil {
         if b.ko.X == x && b.ko.Y == y {
@@ -56,6 +57,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
     }
     pos := xyToPos(x,y)
     nFree, adjSameColor, adjOtherColor := b.GetEnvironment(x,y)
+    //fmt.Printf("Board.calculateIfLegal: environment: nFree: %d, adjSameColor: %v, adjOtherColor: %v\n", nFree, adjSameColor, adjOtherColor)
     if color == White {
         adjSameColor, adjOtherColor = adjOtherColor, adjSameColor
     }
@@ -115,6 +117,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                     // and set b.ko to the right point.
                     koX, koY := posToXY(firstGroup.Fields.First().Value())
                     action = func() {
+                        //fmt.Printf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, ko case\n")
                         removeGroupsFunc()
                         b.CreateGroup(x,y,color)
                         updateLiberyFunc()
@@ -123,6 +126,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                 } else {
                     // It's not a ko
                     action = func() {
+                        //fmt.Printf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, not ko case\n")
                         removeGroupsFunc()
                         b.CreateGroup(x,y,color)
                         updateLiberyFunc()
@@ -136,6 +140,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
             // is always legal. Remove adjacent enemy groups if necessary and create a new group.
             if removeGroups {
                action = func() {
+                    //fmt.Printf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = true\n")
                     removeGroupsFunc()
                     b.CreateGroup(x,y,color)
                     updateLiberyFunc()
@@ -143,6 +148,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                 }
             } else {
                 action = func() {
+                    //fmt.Printf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = false\n")
                     b.CreateGroup(x,y,color)
                     updateLiberyFunc()
                     b.ko = nil
@@ -156,6 +162,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                 // This move captures stones and thus produces empty fields, so it is legal. Capture
                 // the stones first and then join the adjacent groups of the same color.
                 action = func() {
+                    //fmt.Printf("Board.calculateIfLegal: sameColLen > 0, nFree == 0, removeGroups = true\n")
                     removeGroupsFunc()
                     joinGroupsFunc()
                     updateLiberyFunc()
@@ -179,16 +186,38 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                     // If we join the groups, the resulting group has at least one liberty, so this move is legal.
                     // Since there are no groups to capture, simply join the adjacient groups of color 'color'.
                     action = func() {
+                        //fmt.Printf("Board.calculateIfLegal: sameColLen > 0, nFree == 0, removeGroups = false, oneHasTwo = true\n")
                         joinGroupsFunc()
                         updateLiberyFunc()
                         b.ko = nil
                     }
+                    return true, action
                 } else {
                     // There is no groups to remove and every adjacient group of the same color has only one liberty,
                     // which must be the field (x,y) we want to play at, so this move is illegal.
-                    return false, action
+                    return false, nil
                 }
             }
+        } else {
+            // There are free neighbour fields, so this move is always legal. Capture adjacent enemy groups if necessary, 
+            // then join groups and update liberties
+            if removeGroups {
+                action = func() {
+                    //fmt.Printf("Board.calculateIfLegal: sameColLen > 0, nFree > 0, removeGroups = true\n")
+                    removeGroupsFunc()
+                    joinGroupsFunc()
+                    updateLiberyFunc()
+                    b.ko = nil
+                }
+            } else {
+                action = func() {
+                    //fmt.Printf("Board.calculateIfLegal: sameColLen > 0, nFree > 0, removeGroups = false\n")
+                    joinGroupsFunc()
+                    updateLiberyFunc()
+                    b.ko = nil
+                }
+            }
+            return true, action
         }
     }
 
@@ -222,6 +251,8 @@ func (b *Board) CreateGroup(x, y int, color Color) {
 // TODO: write tests for this...
 func (b *Board) determineGroupsAtariStatus(groups *IntList) (inAtari, notinAtari *IntList) {
     last := groups.Last()
+    inAtari = NewIntList()
+    notinAtari = NewIntList()
     for it := groups.First(); it != last; it = it.Next() {
         groupIndex := GroupIndexType(it.Value())
         group := b.groupMap.Get(groupIndex)
@@ -316,7 +347,8 @@ func (b *Board) joinGroups(into, from GroupIndexType) {
 // If an error occurs (such as that this place is already occupied) this error is returned.
 // This method assumes that b.actionOnNextMove is correcty set
 // TODO: write tests for this...
-func (b *Board) Play(x, y int) (err Error) {
+func (b *Board) PlayMove(x, y int) (err Error) {
+    //fmt.Printf("Board.Play(%d, %d)\n", x, y)
     pos := xyToPos(x,y)
     if !b.fields[pos].Empty() {
         return NewFieldOccupiedError(x,y)
@@ -336,6 +368,15 @@ func (b *Board) Play(x, y int) (err Error) {
     b.updateLegalMoves()
 
     return
+}
+
+// The player, whose turn it is, plays a pass.
+func (b *Board) PlayPass() {
+    for i := 0; i < BoardSize*BoardSize; i++ {
+        b.actionOnNextMove[i] = nil
+    }
+    b.colorOfNextPlay = !b.colorOfNextPlay
+    b.updateLegalMoves()
 }
 
 // Removes the group which occupies (x,y), if there is any, and updates b.emptyFields.

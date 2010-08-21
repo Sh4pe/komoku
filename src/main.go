@@ -8,7 +8,7 @@
 package main
 
 import (
-    "fmt"
+    //"fmt"
     //"container/list"
     "./komoku/komoku"
 )
@@ -21,22 +21,13 @@ const (
 
 func main() {
     b := komoku.NewBoard()
-    b.IsLegalMove(1,1,komoku.White)
-    b.CreateGroup(3,3,komoku.White)
-    b.CreateGroup(2,2,komoku.Black)
+    b.PlayMove(3,3)
+    b.PlayMove(3,4)
+    b.PlayMove(2,4)
+    b.PlayMove(8,8)
+    b.PlayMove(3,5)
+    b.PlayMove(9,9)
+    b.PlayMove(4,4)
 
-    x,y := 2,3
-    nFree, adjBlack, adjWhite := b.GetEnvironment(x,y)
-
-    fmt.Printf("Board of size %d\n", komoku.BoardSize)
     komoku.PrintBoard(b)
-
-    fmt.Println()
-    fmt.Printf("At (%d,%d):\n\n", x,y)
-    fmt.Printf("nFree: %d,\nadjBlack: %v\nadjWhite: %v\n", nFree, adjBlack, adjWhite)
-
-    var color komoku.Color
-    color = komoku.White
-    fmt.Printf("color: %v, opposite color: %v\n", color, !color)
-
 }
