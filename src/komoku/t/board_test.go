@@ -104,6 +104,9 @@ func TestJoinGroups(t *testing.T) {
         b.CreateGroup(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[xyToPos(p.X, p.Y)])
     }
+    if b.groupMap.Length() != 1 {
+        t.Fatalf("(Created 1st group) Wrong number of groups, got %d, want 1", b.groupMap.Length())
+    }
 
     ref = t2
     refpos = xyToPos(ref[0].X, ref[0].Y)
@@ -114,8 +117,14 @@ func TestJoinGroups(t *testing.T) {
         b.CreateGroup(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[xyToPos(p.X, p.Y)])
     }
+    if b.groupMap.Length() != 2 {
+        t.Fatalf("(Created 2nd group) Wrong number of groups, got %d, want 2", b.groupMap.Length())
+    }
 
     b.joinGroups(b.fields[t1pos], b.fields[t2pos])
+    if b.groupMap.Length() != 1 {
+        t.Fatalf("(Joined the two groups) Wrong number of groups, got %d, want 1", b.groupMap.Length())
+    }
     _, g := b.GetGroup(t1[0].X, t1[0].Y)
     b.updateGroupLiberties(g)
     if g.Liberties.Length() != 11 {

@@ -25,7 +25,7 @@ func main() {
     b.CreateGroup(3,3,komoku.White)
     b.CreateGroup(2,2,komoku.Black)
 
-    x,y := 8,8
+    x,y := 2,3
     nFree, adjBlack, adjWhite := b.GetEnvironment(x,y)
 
     fmt.Printf("Board of size %d\n", komoku.BoardSize)
@@ -34,5 +34,9 @@ func main() {
     fmt.Println()
     fmt.Printf("At (%d,%d):\n\n", x,y)
     fmt.Printf("nFree: %d,\nadjBlack: %v\nadjWhite: %v\n", nFree, adjBlack, adjWhite)
+
+    var color komoku.Color
+    color = komoku.White
+    fmt.Printf("color: %v, opposite color: %v\n", color, !color)
 
 }

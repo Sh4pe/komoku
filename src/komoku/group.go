@@ -76,6 +76,11 @@ func (gm *GroupMap) Get(index GroupIndexType) (group *Group) {
     return gm.mapping[index]
 }
 
+// Returns the number of elements in the GroupMap
+func (gm *GroupMap) Length() int {
+    return len(gm.mapping)
+}
+
 // Removes 'index' from 'gm' if it was contained in it.
 func (gm *GroupMap) Remove(index GroupIndexType) {
     gm.mapping[index] = nil, false
