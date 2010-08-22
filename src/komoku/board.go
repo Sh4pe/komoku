@@ -14,6 +14,11 @@ import (
 )
 
 /*
+ * This file defines the Board object. This object handles the representation of one current
+ * state in a game. It provides the methods for creating legal games.
+ */
+
+/*
  * TODO:
  *      - let this talk the GTP-protocol
  *      - make this all more Go-ideomatic. Can the use of interfaces make IntList obsolete?
@@ -343,41 +348,6 @@ func (b *Board) joinGroups(into, from GroupIndexType) {
     b.groupMap.Remove(from)
 }
 
-// Play a stone (x,y). The color of this stone depends upon whose turn it is. 
-// If an error occurs (such as that this place is already occupied) this error is returned.
-// This method assumes that b.actionOnNextMove is correcty set
-// TODO: write tests for this...
-func (b *Board) PlayMove(x, y int) (err Error) {
-    //fmt.Printf("Board.Play(%d, %d)\n", x, y)
-    pos := xyToPos(x,y)
-    if !b.fields[pos].Empty() {
-        return NewFieldOccupiedError(x,y)
-    }
-    if !b.IsLegalMove(x,y, b.colorOfNextPlay) {
-        return NewIllegalMoveError(x,y, b.colorOfNextPlay)
-    }
-
-    b.actionOnNextMove[pos]()
-    // Clear the actionOnNextMove array. 
-    // David: This is really important so that the GC can free the closures with all the
-    // associated contexts. Am I right?
-    for i := 0; i < BoardSize*BoardSize; i++ {
-        b.actionOnNextMove[i] = nil
-    }
-    b.colorOfNextPlay = !b.colorOfNextPlay
-    b.updateLegalMoves()
-
-    return
-}
-
-// The player, whose turn it is, plays a pass.
-func (b *Board) PlayPass() {
-    for i := 0; i < BoardSize*BoardSize; i++ {
-        b.actionOnNextMove[i] = nil
-    }
-    b.colorOfNextPlay = !b.colorOfNextPlay
-    b.updateLegalMoves()
-}
 
 // Removes the group which occupies (x,y), if there is any, and updates b.emptyFields.
 // This method does not alter legalWhiteMoves or legalBlackMoves.
@@ -417,6 +387,42 @@ func (b *Board) removeGroupByGroupIndex(gid GroupIndexType) {
         b.updateGroupLiberties(b.groupMap.Get( GroupIndexType(adjIt.Value()) ))
     }
     b.groupMap.Remove(gid)
+}
+
+// The player whose turn it is plays a stone (x,y). If an error occurs (such as that 
+// this place is already occupied) this error is returned. This method assumes that 
+// b.actionOnNextMove is correcty set
+// TODO: write tests for this...
+func (b *Board) TurnPlayMove(x, y int) (err Error) {
+    //fmt.Printf("Board.Play(%d, %d)\n", x, y)
+    pos := xyToPos(x,y)
+    if !b.fields[pos].Empty() {
+        return NewFieldOccupiedError(x,y)
+    }
+    if !b.IsLegalMove(x,y, b.colorOfNextPlay) {
+        return NewIllegalMoveError(x,y, b.colorOfNextPlay)
+    }
+
+    b.actionOnNextMove[pos]()
+    // Clear the actionOnNextMove array. 
+    // David: This is really important so that the GC can free the closures with all the
+    // associated contexts. Am I right?
+    for i := 0; i < BoardSize*BoardSize; i++ {
+        b.actionOnNextMove[i] = nil
+    }
+    b.colorOfNextPlay = !b.colorOfNextPlay
+    b.updateLegalMoves()
+
+    return
+}
+
+// The player, whose turn it is, plays a pass.
+func (b *Board) TurnPlayPass() {
+    for i := 0; i < BoardSize*BoardSize; i++ {
+        b.actionOnNextMove[i] = nil
+    }
+    b.colorOfNextPlay = !b.colorOfNextPlay
+    b.updateLegalMoves()
 }
 
 // Recomputes the liberties of 'group' based only on the currently occupied and empty

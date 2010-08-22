@@ -24,7 +24,7 @@ KOMOKULIB=$(TARG).a
 COMPILE  = $(CC) -o $(@) $(^)
 COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
-ALLSOURCE = board.go common.go group.go intlist.go treenode.go ui.go 
+ALLSOURCE = board.go common.go group.go gtp.go gtpcmd.go intlist.go treenode.go ui.go 
 
 #########################################################################################
 ############### Stuff needed for generating test executables ############################
@@ -44,7 +44,7 @@ TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created fi
 # the command for doing this quietly with a nice output
 TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
 
-ALLTESTS_TARGS = board_test common_test intlist_test ui_test 
+ALLTESTS_TARGS = board_test common_test gtp_test intlist_test ui_test 
 ALLTESTS = $(patsubst %,$(TESTDIR)%,$(ALLTESTS_TARGS))
 
 
@@ -52,6 +52,8 @@ TESTOBJS += board_test
 TESTOBJS += board_test.6
 TESTOBJS += common_test
 TESTOBJS += common_test.6 
+TESTOBJS += gtp_test
+TESTOBJS += gtp_test.6 
 TESTOBJS += intlist_test
 TESTOBJS += intlist_test.6
 TESTOBJS += ui_test
@@ -113,6 +115,9 @@ $(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go group.go intlis
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)common_test: $(TESTDIR)common_test.go common.go
+	$(TESTCOMPILE_QUIET)
+
+$(TESTDIR)gtp_test: $(TESTDIR)gtp_test.go common.go gtp.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)intlist_test: $(TESTDIR)intlist_test.go common.go intlist.go 
