@@ -22,7 +22,7 @@ package komoku
 import (
     "sort"
     "container/vector"
-    //"fmt"
+    "fmt"
 )
 
 // The board size is changed. The board configuration, number of captured stones, and move history become arbitrary.
@@ -133,6 +133,18 @@ func gtpkomoku_infocmd(obj *GTPObject) *GTPCommand {
                       }
 }
 
+// Prints the number of groups in this format: "#black: <number>, #white: <number>"
+func gtpkomoku_numgroups(obj *GTPObject) *GTPCommand {
+    signature := []int {}
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        nblack, nwhite := obj.env.CurrentGame.B.numberOfGroups()
+        return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
 // List all commands, one by each line, sorted alphabetically
 func gtplist_commands(obj *GTPObject) *GTPCommand {
     signature := []int {}
@@ -159,6 +171,34 @@ func gtpname(obj *GTPObject) *GTPCommand {
     signature := []int {}
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         return komokuProgramName, false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Arguments: color vertex. A stone of the requested color is played at the requested vertex and
+// every action which has to be done is performed.
+func gtpplay(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPColor, GTPVertex }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        color, _ := params[0].(Color)
+        vertex, _ := params[1].(Vertex)
+        if vertex.Pass {
+            obj.env.CurrentGame.B.PlayPass(color)
+            return "", false, nil
+        }
+        //fmt.Printf("gtpplay: coords: (%d,%d)\n", vertex.X, vertex.Y)
+        //fmt.Printf("gtpplay: vertex: %v\n", vertex)
+        if er := obj.env.CurrentGame.B.PlayMove(vertex.X, vertex.Y, color); er != nil {
+            if er.Errno() == ErrIllegalMove {
+                return "illegal move", false, er
+            } else {
+                panic("\n\nBoard.PlayMove returned an error != ErrIllegalMove.\n\n")
+            }
+        }
+        // Everything went fine
+        return "", false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,

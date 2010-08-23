@@ -112,12 +112,13 @@ func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, er
                     argsToPass[i] = ival
                 }
             case GTPVertex:
-                point, ok, _ := gtpVertexToPoint(args[i])
+                point, ok, pass := gtpVertexToPoint(args[i])
                 if !ok {
                     errmsg := fmt.Sprintf("argument %d has to be a vertex", i)
                     return obj.formatErrorResponse(hasId, id, errmsg), false, nil
                 } else {
-                    argsToPass[i] = point
+                    //fmt.Printf("ExecuteCommand: point: %v\n", point)
+                    argsToPass[i] = *NewVertex(point, pass)
                 }
             case GTPString:
                 argsToPass[i] = args[i]
@@ -126,11 +127,11 @@ func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, er
                 panic("\n\nThe signature of " + commandName + " is set erroneous.\n\n")
         }
     }
-    cmdSuccessResponse, retQuit, err := gtpCmd.Func(obj, argsToPass)
+    cmdResponse, retQuit, err := gtpCmd.Func(obj, argsToPass)
     if err != nil {
-        return obj.formatErrorResponse(hasId, id, err.String()), retQuit, nil
+        return obj.formatErrorResponse(hasId, id, cmdResponse), retQuit, nil
     }
-    return obj.formatSuccessResponse(hasId, id, cmdSuccessResponse), retQuit, nil
+    return obj.formatSuccessResponse(hasId, id, cmdResponse), retQuit, nil
 }
 
 // Returns the error response.
@@ -229,13 +230,18 @@ func NewGTPObject(e *Environment) *GTPObject {
     ret.commands["clear_board"] = gtpclear_board(ret)
     ret.commands["known_command"] = gtpknown_command(ret)
     ret.commands["komi"] = gtpkomi(ret)
-    ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
     ret.commands["list_commands"] = gtplist_commands(ret)
     ret.commands["name"] = gtpname(ret)
+    ret.commands["play"] = gtpplay(ret)
     ret.commands["protocol_version"] = gtpprotocol_version(ret)
     ret.commands["quit"] = gtpquit(ret)
     ret.commands["showboard"] = gtpshowboard(ret)
     ret.commands["version"] = gtpversion(ret)
+
+    // private extensions
+    ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
+    ret.commands["komoku-numgroups"] = gtpkomoku_numgroups(ret)
+
     return ret
 }
 
@@ -246,6 +252,7 @@ func NewUnacceptableBoardSizeError() (err Error) {
 // ################################################################################
 // #################### Function for running the GTP-mode #########################
 // ################################################################################
+
 func RunGTPMode() {
     // Set up the global environment
     board := NewBoard(DefaultBoardSize)

@@ -72,6 +72,13 @@ func (gm *GroupMap) Append(group *Group) GroupIndexType {
     return ret
 }
 
+// Do calls f for each key, value pair of the GroupMap
+func (gm *GroupMap) Do(f func(key GroupIndexType, group *Group)) {
+    for key, value := range gm.mapping {
+        f(key, value)
+    }
+}
+
 func (gm *GroupMap) Get(index GroupIndexType) (group *Group) {
     return gm.mapping[index]
 }

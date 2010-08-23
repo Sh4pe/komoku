@@ -99,7 +99,7 @@ func TestParseLine(t *testing.T) {
         },
     }
 
-    obj := NewGTPObject()
+    obj := NewGTPObject(nil)
     for _, testCase := range cases {
         failed := false
         empty, hasId, id, commandName, args := obj.parseLine(testCase.Line)

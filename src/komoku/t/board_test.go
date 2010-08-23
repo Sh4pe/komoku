@@ -221,6 +221,40 @@ func TestNeighbours(t *testing.T) {
     }
 }
 
+type testNumGroupsCase struct {
+    seqBlack, seqWhite []Point
+    eNumBlack, eNumWhite int
+}
+
+var testNumGroups9 = []testNumGroupsCase {
+    testNumGroupsCase {
+        seqBlack: []Point {
+            Point{0,3}, Point{0,4},
+        },
+        seqWhite: nil,
+        eNumBlack: 1,
+        eNumWhite: 0,
+    },
+}
+
+func TestNumGroups(t *testing.T) {
+    // on a 9x9 board
+    for _, tc := range testNumGroups9 {
+        b := NewBoard(9)
+        for _, p := range tc.seqBlack {
+            b.PlayMove(p.X, p.Y, Black)
+        }
+        for _, p := range tc.seqWhite {
+            b.PlayMove(p.X, p.Y, White)
+        }
+        nblack, nwhite := b.numberOfGroups()
+        if nblack != tc.eNumBlack || nwhite != tc.eNumWhite {
+            t.Fatalf("expected (b%d,w%d), got (b%d,w%d)", tc.eNumBlack, tc.eNumWhite, nblack, nwhite)
+        }
+    }
+
+}
+
 func Testsuite() []testing.Test {
     return []testing.Test { testing.Test{"TestCreateGroup", TestCreateGroup},
                             testing.Test{"TestUpdateGroupLiberties", TestUpdateGroupLiberties},
@@ -230,5 +264,6 @@ func Testsuite() []testing.Test {
                             testing.Test{"TestXYToPos", TestXYToPos},
                             testing.Test{"TestPosToXY", TestPosToXY},
                             testing.Test{"TestNeighbours", TestNeighbours},
+                            testing.Test{"TestNumGroups", TestNumGroups},
                          }
 }

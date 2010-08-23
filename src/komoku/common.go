@@ -21,7 +21,7 @@ import (
 
 // ################ constants ####################
 const (
-    DefaultBoardSize = 19 // This should be less than 25, because ui.go.PrintBoard and the GTP protocol 
+    DefaultBoardSize =  9 // This should be less than 25, because ui.go.PrintBoard and the GTP protocol 
                           // will have problems otherwise....
     defaultKomi = 6.5
     komokuVersion = "0.1a"
@@ -53,6 +53,15 @@ type Point struct {
 
 func NewPoint(x, y int) *Point {
     return &Point{ X: x, Y: y }
+}
+
+type Vertex struct {
+    X, Y int
+    Pass bool
+}
+
+func NewVertex(p Point, pass bool) *Vertex {
+    return &Vertex{ X: p.X, Y: p.Y, Pass: pass }
 }
 
 type komokuError struct {
@@ -222,6 +231,7 @@ func gtpColorToColor(c string) (color Color, ok bool) {
 // true. If it is something else, 'ok' is false and 'point' and 'pass' are meaningless.
 
 // TODO: charDigit from ui.go should be in this file...
+// TODO: write tests for this
 func gtpVertexToPoint(c string) (point Point, okay, pass bool) {
     c = strings.ToUpper(c)
     if c == "PASS" {
@@ -229,8 +239,9 @@ func gtpVertexToPoint(c string) (point Point, okay, pass bool) {
     }
     if len(c) > 1 {
         if x, ok := charDigit[c[0:1]]; ok {
-            if y, err := strconv.Atoi(c[1:len(c)]); err != nil {
-                return Point{ X: x, Y: y }, true, false
+            if y, err := strconv.Atoi(c[1:len(c)]); err == nil {
+                //fmt.Printf("gtpVertexToPoint: coords: (%d,%d)\n", x,y)
+                return Point{ X: x, Y: y-1 }, true, false
             }
         }
     }
