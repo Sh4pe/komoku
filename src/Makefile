@@ -20,7 +20,16 @@ COMPILEFIRST_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
 OBJS= main main.6
 
-ALLSOURCE = board.go common.go group.go gtp.go gtpcmd.go intlist.go treenode.go ui.go
+ALLSOURCE  = board.go
+ALLSOURCE += common.go
+ALLSOURCE += environment.go
+ALLSOURCE += game.go
+ALLSOURCE += group.go 
+ALLSOURCE += gtp.go 
+ALLSOURCE += gtpcmd.go 
+ALLSOURCE += intlist.go 
+ALLSOURCE += treenode.go 
+ALLSOURCE += ui.go 
 
 KOMOKUDEPS = $(patsubst %,komoku/%, $(ALLSOURCE))
 

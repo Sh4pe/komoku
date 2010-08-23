@@ -6,5 +6,6 @@ src/komoku/komoku.a
 src/komoku/t/common_test
 src/komoku/t/board_test
 src/komoku/t/intlist_test
+src/komoku/t/gtp_test
 src/komoku/t/ui_test
 src/komoku/b/design_decision_benchmark

@@ -46,6 +46,7 @@ type GTPCommand struct {
 // This object provides the functionality for comunicating via the GTP protocol.
 type GTPObject struct {
     commands map[string]*GTPCommand
+    env *Environment // Points to the global environment
 }
 
 // ##################### GTPObject methods ##########################
@@ -105,7 +106,7 @@ func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, er
             case GTPInt:
                 ival, err := strconv.Atoui(args[i])
                 if err != nil {
-                    errmsg := fmt.Sprintf("argument %d has to be a int", i)
+                    errmsg := fmt.Sprintf("argument %d has to be an int", i)
                     return obj.formatErrorResponse(hasId, id, errmsg), false, nil
                 } else {
                     argsToPass[i] = ival
@@ -125,10 +126,11 @@ func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, er
                 panic("\n\nThe signature of " + commandName + " is set erroneous.\n\n")
         }
     }
-    // TODO: error handling!!
-    cmdResult, retQuit, _ := gtpCmd.Func(obj, argsToPass)
-
-    return obj.formatSuccessResponse(hasId, id, cmdResult), retQuit, nil
+    cmdSuccessResponse, retQuit, err := gtpCmd.Func(obj, argsToPass)
+    if err != nil {
+        return obj.formatErrorResponse(hasId, id, err.String()), retQuit, nil
+    }
+    return obj.formatSuccessResponse(hasId, id, cmdSuccessResponse), retQuit, nil
 }
 
 // Returns the error response.
@@ -218,25 +220,45 @@ func (obj *GTPObject) preprocessLine(input string) (result string) {
 }
 
 // ##################### GTPObject helper functions ##########################
-func NewGTPObject() *GTPObject {
+func NewGTPObject(e *Environment) *GTPObject {
     ret := &GTPObject{ commands: make(map[string]*GTPCommand),
+                       env: e,
                      }
     // Add commands
+    ret.commands["boardsize"] = gtpboardsize(ret)
+    ret.commands["clear_board"] = gtpclear_board(ret)
     ret.commands["known_command"] = gtpknown_command(ret)
+    ret.commands["komi"] = gtpkomi(ret)
     ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
     ret.commands["list_commands"] = gtplist_commands(ret)
     ret.commands["name"] = gtpname(ret)
     ret.commands["protocol_version"] = gtpprotocol_version(ret)
     ret.commands["quit"] = gtpquit(ret)
+    ret.commands["showboard"] = gtpshowboard(ret)
     ret.commands["version"] = gtpversion(ret)
     return ret
+}
+
+func NewUnacceptableBoardSizeError() (err Error) {
+    return NewError(fmt.Sprintf("unacceptable size"), ErrUnacceptableBoardSize)
 }
 
 // ################################################################################
 // #################### Function for running the GTP-mode #########################
 // ################################################################################
 func RunGTPMode() {
-    gtpObject := NewGTPObject()
+    // Set up the global environment
+    board := NewBoard(DefaultBoardSize)
+
+    game := &Game{ B: board,
+                   Komi: defaultKomi,
+                 }
+
+    environment := &Environment{ CurrentGame: game,
+                               }
+
+    // Create the GTPObject and start the input loop
+    gtpObject := NewGTPObject(environment)
     in := bufio.NewReader(os.Stdin)
     for {
         line, err := in.ReadString('\n')

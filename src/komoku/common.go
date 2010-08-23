@@ -21,12 +21,9 @@ import (
 
 // ################ constants ####################
 const (
-    //BoardSize = 19 // ...says that we are playing on a (BoardSize * BoardSize) - board
-                   // We support only quadratic boards at the moment.
-                   // This should be less than 25, because ui.go.PrintBoard will have problems otherwise....
-    DefaultBoardSize = 19 // ...says that we are playing on a (BoardSize * BoardSize) - board
-                          // We support only quadratic boards at the moment.
-                          // This should be less than 25, because ui.go.PrintBoard will have problems otherwise....
+    DefaultBoardSize = 19 // This should be less than 25, because ui.go.PrintBoard and the GTP protocol 
+                          // will have problems otherwise....
+    defaultKomi = 6.5
     komokuVersion = "0.1a"
     komokuProgramName = "komoku"
 )
@@ -37,6 +34,7 @@ const (
     ErrIllegalMove;
     ErrInvalidCoordinateChar;
     ErrInvalidCoordinateDigit;
+    ErrUnacceptableBoardSize;
 )
 
 // ################ interfaces ##############

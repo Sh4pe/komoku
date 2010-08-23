@@ -24,7 +24,16 @@ KOMOKULIB=$(TARG).a
 COMPILE  = $(CC) -o $(@) $(^)
 COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
-ALLSOURCE = board.go common.go group.go gtp.go gtpcmd.go intlist.go treenode.go ui.go 
+ALLSOURCE  = board.go
+ALLSOURCE += common.go
+ALLSOURCE += environment.go
+ALLSOURCE += game.go
+ALLSOURCE += group.go 
+ALLSOURCE += gtp.go 
+ALLSOURCE += gtpcmd.go 
+ALLSOURCE += intlist.go 
+ALLSOURCE += treenode.go 
+ALLSOURCE += ui.go 
 
 #########################################################################################
 ############### Stuff needed for generating test executables ############################

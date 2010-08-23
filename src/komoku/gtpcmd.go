@@ -10,6 +10,11 @@
  * This file contains the GTP commands. It consists of functions of the type
  * gtpcommand_name(*GTPObject) *GTPCommand which return the GTP command
  * "command_name". The command name should always be lower case!
+ *
+ * Portions of the comments are copied word by word from the GTP version 2 
+ * specification, to be found at (in August 2010):
+ * http://www.lysator.liu.se/~gunnar/gtp/    
+ * This specification was written by Gunnar Farnebäck in Oct. 2002.
  */
 
 package komoku
@@ -20,6 +25,42 @@ import (
     //"fmt"
 )
 
+// The board size is changed. The board configuration, number of captured stones, and move history become arbitrary.
+// TODO: not yet implemented completely
+func gtpboardsize(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPInt }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        boardsize, ok := params[0].(uint)
+        if !ok {
+            panic("\n\nType assertion for first parameter of boardsize failed.\n\n")
+        }
+        if boardsize > 25 {
+            return "", false, NewUnacceptableBoardSizeError()
+        }
+
+        // TODO: get rid of this cast
+        object.env.CurrentGame.B = NewBoard(int(boardsize))
+        return result, false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// The board is cleared, the number of captured stones is reset to zero for both colors and the move history is reset to empty.
+// TODO: not yet implemented completely
+func gtpclear_board(obj *GTPObject) *GTPCommand {
+    signature := []int { }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        curSize := object.env.CurrentGame.B.BoardSize()
+        object.env.CurrentGame.B = NewBoard(curSize)
+        return result, false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
 // Expexts one string argument, called 'cmdName'. Prints "true" if the command is known, "false" otherwise.
 func gtpknown_command(obj *GTPObject) *GTPCommand {
     signature := []int { GTPString }
@@ -29,6 +70,22 @@ func gtpknown_command(obj *GTPObject) *GTPCommand {
         if _, ok1 := object.commands[cmdName]; !ok1 {
             result = "false"
         }
+        return result, false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// The komi is changed. 
+func gtpkomi(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPFloat }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        newKomi, ok := params[0].(float)
+        if !ok {
+            panic("\n\nType assertion for first parameter of komi failed.\n\n")
+        }
+        obj.env.CurrentGame.Komi = newKomi
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -124,6 +181,19 @@ func gtpquit(obj *GTPObject) *GTPCommand {
     signature := []int {}
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         return "", true, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Print the board
+func gtpshowboard(obj *GTPObject) *GTPCommand {
+    signature := []int { }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        b := object.env.CurrentGame.B
+        result = "\n" + printBoardPrimitive(b, "", -1, -1)
+        return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
