@@ -9,7 +9,8 @@
 package komoku
 
 import (
-    //"os"
+    "os"
+    "bufio"
     "strings"
     "strconv"
     "fmt"
@@ -30,7 +31,7 @@ const (
 
 // The type of an executable GTP command primitive. 'quit' == true means that komoku has to 
 // quit.
-type GTPCommandFunc func(object *GTPObject, params ...interface{}) (result string, err Error)
+type GTPCommandFunc func(object *GTPObject, params []interface{}) (result string, quit bool, err Error)
 
 // Everything to completely describe a GTP command
 type GTPCommand struct {
@@ -69,43 +70,65 @@ func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, er
     if len(gtpCmd.Signature) != len(args) {
         return obj.formatErrorResponse(hasId, id, "wrong number of arguments"), false, nil
     }
+    argsToPass := make([]interface{}, len(args))
     for i := 0; i < len(args); i++ {
-        // TODO: refactor this!
+        // TODO: refactor this! 
+        // TODO: Do the type conversion (e.g. gtpVertexToPoint) here
         switch gtpCmd.Signature[i] {
             case GTPBool:
                 if args[i] != "true" || args[i] != "false" {
                     errmsg := fmt.Sprintf("argument %d has to be a boolean", i)
                     return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                } else {
+                    val := true
+                    if args[i] == "false" {
+                        val = false
+                    }
+                    argsToPass[i] = val
                 }
             case GTPColor:
-                if _, ok := gtpColorToColor(args[i]); !ok {
+                color, ok := gtpColorToColor(args[i])
+                if !ok {
                     errmsg := fmt.Sprintf("argument %d has to be a color", i)
                     return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                } else {
+                    argsToPass[i] = color
                 }
             case GTPFloat:
-                if _, err := strconv.Atof(args[i]); err != nil {
+                fval, err := strconv.Atof(args[i])
+                if err != nil {
                     errmsg := fmt.Sprintf("argument %d has to be a float", i)
                     return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                } else {
+                    argsToPass[i] = fval
                 }
             case GTPInt:
-                if _, err := strconv.Atoui(args[i]); err != nil {
+                ival, err := strconv.Atoui(args[i])
+                if err != nil {
                     errmsg := fmt.Sprintf("argument %d has to be a int", i)
                     return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                } else {
+                    argsToPass[i] = ival
                 }
             case GTPVertex:
-                if _, ok, _ := gtpVertexToPoint(args[i]); !ok {
+                point, ok, _ := gtpVertexToPoint(args[i])
+                if !ok {
                     errmsg := fmt.Sprintf("argument %d has to be a vertex", i)
                     return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                } else {
+                    argsToPass[i] = point
                 }
+            case GTPString:
+                argsToPass[i] = args[i]
             default:
                 // This should never happen
                 panic("\n\nThe signature of " + commandName + " is set erroneous.\n\n")
         }
     }
     // TODO: error handling!!
-    cmdResult, _ := gtpCmd.Func(obj, args)
+    cmdResult, retQuit, _ := gtpCmd.Func(obj, argsToPass)
 
-    return obj.formatSuccessResponse(hasId, id, cmdResult), false, nil
+    return obj.formatSuccessResponse(hasId, id, cmdResult), retQuit, nil
 }
 
 // Returns the error response.
@@ -199,7 +222,12 @@ func NewGTPObject() *GTPObject {
     ret := &GTPObject{ commands: make(map[string]*GTPCommand),
                      }
     // Add commands
+    ret.commands["known_command"] = gtpknown_command(ret)
     ret.commands["list_commands"] = gtplist_commands(ret)
+    ret.commands["name"] = gtpname(ret)
+    ret.commands["protocol_version"] = gtpprotocol_version(ret)
+    ret.commands["quit"] = gtpquit(ret)
+    ret.commands["version"] = gtpversion(ret)
     return ret
 }
 
@@ -207,6 +235,29 @@ func NewGTPObject() *GTPObject {
 // #################### Function for running the GTP-mode #########################
 // ################################################################################
 func RunGTPMode() {
-    // read from stdin
+    gtpObject := NewGTPObject()
+    in := bufio.NewReader(os.Stdin)
+    for {
+        line, err := in.ReadString('\n')
+        switch err {
+            case nil:
+                // Everything went fine
+                //func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, err Error) {
+                result, quit, execErr := gtpObject.ExecuteCommand(line)
+                if execErr != nil {
+                    fmt.Printf("Error in GTPObject.ExecuteCommand:\n%s\n", execErr)
+                }
+
+                fmt.Printf(result)
+                //fmt.Printf("quit: %s\n", quit)
+                if quit {
+                    return
+                }
+            case os.EOF:
+                break
+            default:
+                panic("\n\nUnexpected case in RunGTPMode.\n\n")
+        }
+    }
 }
 

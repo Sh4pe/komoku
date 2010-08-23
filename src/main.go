@@ -132,6 +132,7 @@ func testMain() {
 }
 
 func main() {
-    testMain()
+    //testMain()
+    komoku.RunGTPMode()
 }
 

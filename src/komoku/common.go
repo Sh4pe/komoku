@@ -23,6 +23,8 @@ const (
     BoardSize = 19 // ...says that we are playing on a (BoardSize * BoardSize) - board
                    // We support only quadratic boards at the moment.
                    // This should be less than 25, because ui.go.PrintBoard will have problems otherwise....
+    komokuVersion = "0.1a"
+    komokuProgramName = "komoku"
 )
 
 // komokus error constants
