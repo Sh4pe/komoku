@@ -9,8 +9,8 @@ package main
 
 import (
     "fmt"
-    "strings"
-    //"container/list"
+    "sort"
+    "container/vector"
     "./komoku/komoku"
 )
 
@@ -34,9 +34,6 @@ type fimpl struct {
 }
 func (i *fimpl) Talk() string {
     return "Father talks"
-}
-func (i *fimpl) Wee() string {
-    return "Father wees"
 }
 
 type cimpl struct {
@@ -76,12 +73,21 @@ func fatherDowntoChild(f father) {
     }
 }
 
-func main() {
+func generalFunc(a interface{}) {
+    if c, ok := a.(child); ok {
+        fmt.Printf("type assertion okay, %s\n", c.Wee())
+    } else {
+        fmt.Println("type assertion not okay")
+    }
+}
+
+func testMain() {
     var f *fimpl
     var c *cimpl
     childAsFather(c)
     fmt.Println()
     fatherDowntoChild(f)
+    generalFunc(c)
 
     for i := 0; i < 5; i++ { fmt.Println("") }
 
@@ -97,14 +103,35 @@ func main() {
 
     for i := 0; i < 5; i++ { fmt.Println("") }
 
-    GTP := komoku.NewGTPObject()
-    //line := "       This is     \t\ttext # and this is behind the hash :-) \n"
-    line := "2 command_name arguments additional_arguments\n"
-    res, _, _ := GTP.ExecuteCommand(line)
-    fmt.Printf("'%v'\n\n", res)
-    resSlice := strings.Split(res, " ", -1)
-    for _, s := range resSlice {
-        fmt.Printf("'%v'\n", s)
+    var v vector.StringVector
+    v.Push("Hans")
+    v.Push("Wurst")
+    v.Push("Käse")
+    v.Push("Adalbert")
+    v.Push("dieter ")
+    v.Do(func (elem string) {
+        fmt.Println(elem)
+    })
+    fmt.Printf("\n\n")
+    sort.SortStrings(sort.StringArray(v))
+    v.Do(func (elem string) {
+        fmt.Println(elem)
+    })
+
+    for i := 0; i < 5; i++ { fmt.Println("") }
+
+    m := make(map[string]bool)
+    m["test"] = true
+    m["hur"] = false
+    for a, b := range m {
+        fmt.Printf("a: %v, b: %v\n", a,b)
     }
+    kette := "Teststring"
+    fmt.Printf("%s\n", kette[0:1])
+    fmt.Printf("%s\n", kette[1:len(kette)])
+}
+
+func main() {
+    testMain()
 }
 

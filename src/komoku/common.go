@@ -14,6 +14,8 @@ package komoku
 
 import (
     "os"
+    "strings"
+    "strconv"
 )
 
 // ################ constants ####################
@@ -203,3 +205,37 @@ func isHoshi(x, y int) bool {
     }
     return false
 }
+
+// If c is one of {white,w}, color is White. If c is one of {black,b}, color is Black. In both cases, ok is true
+// c is not treated case sensitive. If c is something else, color is meaningless and ok is false
+func gtpColorToColor(c string) (color Color, ok bool) {
+    c = strings.ToLower(c)
+    if c == "w" || c == "white" {
+        return White, true
+    }
+    if c == "b" || c == "black" {
+        return Black, true
+    }
+    return color, false
+}
+
+// c is case insensitive. A vertex in the GTP spec is something like "B13" or "a2" or "pass". If it is "pass",
+// 'pass' and 'ok' are true and 'point' is meaningless. If it is a coordinate, 'point' points there and 'ok' is
+// true. If it is something else, 'ok' is false and 'point' and 'pass' are meaningless.
+
+// TODO: charDigit from ui.go should be in this file...
+func gtpVertexToPoint(c string) (point Point, okay, pass bool) {
+    c = strings.ToUpper(c)
+    if c == "PASS" {
+        return Point{0,0}, true, true
+    }
+    if len(c) > 1 {
+        if x, ok := charDigit[c[0:1]]; ok {
+            if y, err := strconv.Atoi(c[1:len(c)]); err != nil {
+                return Point{ X: x, Y: y }, true, false
+            }
+        }
+    }
+    return Point{0,0}, false, false
+}
+

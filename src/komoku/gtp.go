@@ -20,7 +20,7 @@ const (
     GTPColor
     GTPFloat
     GTPInt
-    GTPPoint
+    GTPVertex
     GTPString
 )
 
@@ -28,8 +28,9 @@ const (
 // ########################### GTPCommand et al ###################################
 // ################################################################################
 
-// The type of an executable GTP command primitive
-type GTPCommandFunc func(object *GTPObject, params ...string) (result string, err Error)
+// The type of an executable GTP command primitive. 'quit' == true means that komoku has to 
+// quit.
+type GTPCommandFunc func(object *GTPObject, params ...interface{}) (result string, err Error)
 
 // Everything to completely describe a GTP command
 type GTPCommand struct {
@@ -52,11 +53,83 @@ type GTPObject struct {
 // line 'input', performs everything which has to be done and returns the response string in
 // 'result'. If komoku has to quit after this command (e.g. if the command is "quit"), 'quit'
 // will be true, otherwise false. err is != nil if an error occurs.
+
+// TODO: Write tests for the arg checking
 func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, err Error) {
     empty, hasId, id, commandName, args := obj.parseLine(input)
-    fmt.Printf("input: '%v'\n", input)
-    fmt.Printf("empty: %v\nhasId: %v\nid: %v\ncommandName: %v\nargs: %v\n", empty, hasId, id, commandName, args)
-    return "not implemented", false, nil
+    if empty {
+        return "", false, nil
+    }
+
+    gtpCmd, ok := obj.commands[commandName];
+    if !ok { // This command is not found
+        return obj.formatErrorResponse(hasId, id, "unknown command"), false, nil
+    }
+    // Check the arguments
+    if len(gtpCmd.Signature) != len(args) {
+        return obj.formatErrorResponse(hasId, id, "wrong number of arguments"), false, nil
+    }
+    for i := 0; i < len(args); i++ {
+        // TODO: refactor this!
+        switch gtpCmd.Signature[i] {
+            case GTPBool:
+                if args[i] != "true" || args[i] != "false" {
+                    errmsg := fmt.Sprintf("argument %d has to be a boolean", i)
+                    return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                }
+            case GTPColor:
+                if _, ok := gtpColorToColor(args[i]); !ok {
+                    errmsg := fmt.Sprintf("argument %d has to be a color", i)
+                    return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                }
+            case GTPFloat:
+                if _, err := strconv.Atof(args[i]); err != nil {
+                    errmsg := fmt.Sprintf("argument %d has to be a float", i)
+                    return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                }
+            case GTPInt:
+                if _, err := strconv.Atoui(args[i]); err != nil {
+                    errmsg := fmt.Sprintf("argument %d has to be a int", i)
+                    return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                }
+            case GTPVertex:
+                if _, ok, _ := gtpVertexToPoint(args[i]); !ok {
+                    errmsg := fmt.Sprintf("argument %d has to be a vertex", i)
+                    return obj.formatErrorResponse(hasId, id, errmsg), false, nil
+                }
+            default:
+                // This should never happen
+                panic("\n\nThe signature of " + commandName + " is set erroneous.\n\n")
+        }
+    }
+    // TODO: error handling!!
+    cmdResult, _ := gtpCmd.Func(obj, args)
+
+    return obj.formatSuccessResponse(hasId, id, cmdResult), false, nil
+}
+
+// Returns the error response.
+func (obj *GTPObject) formatErrorResponse(hasId bool, id uint, msg string) string {
+    ret := "?"
+    if hasId {
+        ret += fmt.Sprintf("%d ", id)
+    } else {
+        ret += " "
+    }
+    ret += msg + "\n\n"
+    return ret
+}
+
+// Returns the success response.
+func (obj *GTPObject) formatSuccessResponse(hasId bool, id uint, msg string) string {
+    ret := "="
+    if hasId {
+        ret += fmt.Sprintf("%d ", id)
+    } else {
+        ret += " "
+    }
+    ret += msg + "\n\n"
+    return ret
 }
 
 // Parses a line. A command has one of the following syntaxes:
@@ -66,6 +139,8 @@ func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, er
 // (3) command_name\n
 // If the line does not contain any command, 'empty' is true, false otherwise.
 // The returned 'id' is only meaningful if 'hasId' == true. 'args' is a slice of arguments
+
+// TODO: should args be []interface{} ?
 func (obj *GTPObject) parseLine(line string) (empty, hasId bool, id uint, commandName string, args []string) {
     line = obj.preprocessLine(line)
     empty = false
@@ -123,7 +198,15 @@ func (obj *GTPObject) preprocessLine(input string) (result string) {
 func NewGTPObject() *GTPObject {
     ret := &GTPObject{ commands: make(map[string]*GTPCommand),
                      }
-
+    // Add commands
+    ret.commands["list_commands"] = gtplist_commands(ret)
     return ret
+}
+
+// ################################################################################
+// #################### Function for running the GTP-mode #########################
+// ################################################################################
+func RunGTPMode() {
+    // read from stdin
 }
 

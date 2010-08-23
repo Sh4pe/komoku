@@ -33,6 +33,70 @@ func TestParseLine(t *testing.T) {
                 "argument1",
             },
         },
+        testParseLineCase{
+            Line: "33 command_name argument1 argument2\n",
+            Empty: false,
+            HasId: true,
+            Id: 33,
+            CommandName: "command_name",
+            Args: []string {
+                "argument1",
+                "argument2",
+            },
+        },
+        testParseLineCase{
+            Line: "33 command_name\n",
+            Empty: false,
+            HasId: true,
+            Id: 33,
+            CommandName: "command_name",
+            Args: []string { },
+        },
+        testParseLineCase{
+            Line: "command_name argument1 argument2\n",
+            Empty: false,
+            HasId: false,
+            Id: 0,
+            CommandName: "command_name",
+            Args: []string {
+                "argument1",
+                "argument2",
+            },
+        },
+        testParseLineCase{
+            Line: "command_name argument1 \n",
+            Empty: false,
+            HasId: false,
+            Id: 0,
+            CommandName: "command_name",
+            Args: []string {
+                "argument1",
+            },
+        },
+        testParseLineCase{
+            Line: "command_name \n",
+            Empty: false,
+            HasId: false,
+            Id: 0,
+            CommandName: "command_name",
+            Args: []string { },
+        },
+        testParseLineCase{
+            Line: "\n",
+            Empty: true,
+            HasId: false,
+            Id: 0,
+            CommandName: "",
+            Args: []string { },
+        },
+        testParseLineCase{
+            Line: "23\n",
+            Empty: true,
+            HasId: false,
+            Id: 0,
+            CommandName: "",
+            Args: []string { },
+        },
     }
 
     obj := NewGTPObject()

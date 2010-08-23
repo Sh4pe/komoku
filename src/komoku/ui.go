@@ -9,6 +9,12 @@
 
 // Code for the (text)UI comes here
 // The output these routines generate is inspiered by the output gnugo prints.
+
+
+/*
+ * TODO:
+ *      - move charDigit et al. to common.go
+ */
 package komoku
 
 import (
