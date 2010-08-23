@@ -36,6 +36,46 @@ func gtpknown_command(obj *GTPObject) *GTPCommand {
                       }
 }
 
+// Expexts one string argument, called 'cmdName'. Prints the arguments of this command
+func gtpkomoku_infocmd(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPString }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        result = "komoku-infocmd: "
+        cmdName, _ := params[0].(string) // type checking should have been done before, we assume that this works.
+        if gtpCmd, ok1 := object.commands[cmdName]; !ok1 {
+            result += "unknown command: '" + cmdName + "'"
+        } else {
+            result += cmdName + " "
+            if len(gtpCmd.Signature) == 0 {
+                result += "has 0 arguments"
+            } else {
+                for _, t := range gtpCmd.Signature {
+                    switch t {
+                        case GTPBool:
+                            result += "bool "
+                        case GTPColor:
+                            result += "color "
+                        case GTPFloat:
+                            result += "float "
+                        case GTPInt:
+                            result += "int "
+                        case GTPVertex:
+                            result += "vertex "
+                        case GTPString:
+                            result += "string "
+                        default:
+                            panic("\n\nThe signature of " + cmdName + " is set erroneous.\n\n")
+                    }
+                }
+            }
+        }
+        return result, false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
 // List all commands, one by each line, sorted alphabetically
 func gtplist_commands(obj *GTPObject) *GTPCommand {
     signature := []int {}

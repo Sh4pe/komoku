@@ -223,6 +223,7 @@ func NewGTPObject() *GTPObject {
                      }
     // Add commands
     ret.commands["known_command"] = gtpknown_command(ret)
+    ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
     ret.commands["list_commands"] = gtplist_commands(ret)
     ret.commands["name"] = gtpname(ret)
     ret.commands["protocol_version"] = gtpprotocol_version(ret)
