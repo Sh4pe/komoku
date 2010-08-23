@@ -117,7 +117,7 @@ $(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go group.go intlis
 $(TESTDIR)common_test: $(TESTDIR)common_test.go common.go
 	$(TESTCOMPILE_QUIET)
 
-$(TESTDIR)gtp_test: $(TESTDIR)gtp_test.go common.go gtp.go
+$(TESTDIR)gtp_test: $(TESTDIR)gtp_test.go common.go gtp.go gtpcmd.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)intlist_test: $(TESTDIR)intlist_test.go common.go intlist.go 

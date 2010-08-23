@@ -18,15 +18,15 @@ import (
  */
 
 func TestCreateGroup(t *testing.T) {
-    for x := 0; x < BoardSize; x++ {
-        for y := 0; y < BoardSize; y++ {
-            b := NewBoard()
+    for x := 0; x < DefaultBoardSize; x++ {
+        for y := 0; y < DefaultBoardSize; y++ {
+            b := NewBoard(DefaultBoardSize)
             b.CreateGroup(x,y, Black)
             empty, g := b.GetGroup(x,y)
             if empty {
                 t.Fatalf("Field empty after CreateGroup created a group on it")
             }
-            nbours := neighbours(x,y)
+            nbours := b.neighbours(x,y)
             if len(nbours) != g.Liberties.Length() {
                 t.Fatalf("Different number of liberties (%d) and neighbours (%d)", g.Liberties.Length(), len(nbours))
             }
@@ -35,7 +35,7 @@ func TestCreateGroup(t *testing.T) {
             for it := g.Liberties.First(); it != last; it = it.Next() {
                 found := false
                 for _, p := range nbours {
-                    if xyToPos(p.X, p.Y) == it.Value() {
+                    if b.xyToPos(p.X, p.Y) == it.Value() {
                         found = true
                         break
                     }
@@ -45,7 +45,7 @@ func TestCreateGroup(t *testing.T) {
                 }
             }
 
-            expect := BoardSize*BoardSize - 1
+            expect := b.BoardSize()*b.BoardSize() - 1
             if b.emptyFields.Length() != expect {
                 t.Fatalf("emptyFields has wrong length afterwards, expected %d, got %d", expect, b.emptyFields.Length())
             }
@@ -60,10 +60,10 @@ func TestCreateGroup(t *testing.T) {
 }
 
 func TestUpdateGroupLiberties(t *testing.T) {
-    b := NewBoard()
+    b := NewBoard(DefaultBoardSize)
     // single stones
     p := NewPoint(1,1)
-    pos := xyToPos(p.X, p.Y)
+    pos := b.xyToPos(p.X, p.Y)
     b.CreateGroup(p.X, p.Y, Black)
     _, g := b.GetGroup(p.X, p.Y)
     b.updateGroupLiberties(g)
@@ -72,7 +72,7 @@ func TestUpdateGroupLiberties(t *testing.T) {
     }
     // two stones in a row
     p2 := NewPoint(1,2)
-    pos2 := xyToPos(p2.X, p2.Y)
+    pos2 := b.xyToPos(p2.X, p2.Y)
     b.CreateGroup(p2.X, p2.Y, Black)
     b.joinGroups(b.fields[pos], b.fields[pos2])
     b.updateGroupLiberties(g)
@@ -81,7 +81,7 @@ func TestUpdateGroupLiberties(t *testing.T) {
     }
     // empty triangle - ewww!
     p3 := NewPoint(2,2)
-    pos3 := xyToPos(p3.X, p3.Y)
+    pos3 := b.xyToPos(p3.X, p3.Y)
     b.CreateGroup(p3.X, p3.Y, Black)
     b.joinGroups(b.fields[pos], b.fields[pos3])
     b.updateGroupLiberties(g)
@@ -91,31 +91,31 @@ func TestUpdateGroupLiberties(t *testing.T) {
 }
 
 func TestJoinGroups(t *testing.T) {
-    b := NewBoard()
+    b := NewBoard(DefaultBoardSize)
     t1 := []*Point{ NewPoint(1,1), NewPoint(1,2), NewPoint(2,2) }
     t2 := []*Point{ NewPoint(1,3), NewPoint(1,4), NewPoint(2,4) }
 
     ref := t1
-    refpos := xyToPos(ref[0].X, ref[0].Y)
+    refpos := b.xyToPos(ref[0].X, ref[0].Y)
     t1pos := refpos
     b.CreateGroup(ref[0].X, ref[0].Y, Black)
     for i := 1; i < len(ref); i++ {
         p := ref[i]
         b.CreateGroup(p.X, p.Y, Black)
-        b.joinGroups(b.fields[refpos], b.fields[xyToPos(p.X, p.Y)])
+        b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
     if b.groupMap.Length() != 1 {
         t.Fatalf("(Created 1st group) Wrong number of groups, got %d, want 1", b.groupMap.Length())
     }
 
     ref = t2
-    refpos = xyToPos(ref[0].X, ref[0].Y)
+    refpos = b.xyToPos(ref[0].X, ref[0].Y)
     t2pos := refpos
     b.CreateGroup(ref[0].X, ref[0].Y, Black)
     for i := 1; i < len(ref); i++ {
         p := ref[i]
         b.CreateGroup(p.X, p.Y, Black)
-        b.joinGroups(b.fields[refpos], b.fields[xyToPos(p.X, p.Y)])
+        b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
     if b.groupMap.Length() != 2 {
         t.Fatalf("(Created 2nd group) Wrong number of groups, got %d, want 2", b.groupMap.Length())
@@ -134,7 +134,7 @@ func TestJoinGroups(t *testing.T) {
 
 func TestGetEnvironment(t *testing.T) {
     // Produce a ponnuki and get the environment inside of it
-    b := NewBoard()
+    b := NewBoard(DefaultBoardSize)
     points := []*Point{ NewPoint(1,1), NewPoint(2,2), NewPoint(0,2), NewPoint(1,3) }
     for _, p := range points {
         b.CreateGroup(p.X, p.Y, Black)
@@ -146,20 +146,78 @@ func TestGetEnvironment(t *testing.T) {
 }
 
 func TestRemoveGroup(t *testing.T) {
-    b := NewBoard()
+    b := NewBoard(DefaultBoardSize)
 
     t1 := []*Point{ NewPoint(1,1), NewPoint(1,2), NewPoint(2,2) }
     ref := t1
-    refpos := xyToPos(ref[0].X, ref[0].Y)
+    refpos := b.xyToPos(ref[0].X, ref[0].Y)
     b.CreateGroup(ref[0].X, ref[0].Y, Black)
     for i := 1; i < len(ref); i++ {
         p := ref[i]
         b.CreateGroup(p.X, p.Y, Black)
-        b.joinGroups(b.fields[refpos], b.fields[xyToPos(p.X, p.Y)])
+        b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
     b.RemoveGroup(1,1)
-    if b.emptyFields.Length() != BoardSize*BoardSize {
+    if b.emptyFields.Length() != b.BoardSize()*b.BoardSize() {
         t.Fatalf("Board.RemoveGroup does not completely remove the group")
+    }
+}
+
+func TestXYToPos(t *testing.T) {
+    b := NewBoard(DefaultBoardSize)
+    sz := b.BoardSize()
+    for x := 0; x < sz; x++ {
+        for y := 0; y < sz; y++ {
+            rx, ry := b.posToXY(b.xyToPos(x, y))
+            if rx != x || ry != y {
+                t.Fatalf("expected (%d, %d), got (%d, %d)", x, y, rx, ry)
+            }
+        }
+    }
+}
+
+func TestPosToXY(t *testing.T) {
+    b := NewBoard(DefaultBoardSize)
+    for i := 0; i<b.BoardSize()*b.BoardSize(); i++ {
+        x, y := b.posToXY(i)
+        retPos := b.xyToPos(x,y)
+        if retPos != i {
+            t.Fatalf("expected %d, got %d", i, retPos)
+        }
+    }
+}
+
+func TestNeighbours(t *testing.T) {
+    b := NewBoard(DefaultBoardSize)
+    for row := 0; row < b.BoardSize(); row++ {
+        for col := 0; col < b.BoardSize(); col++ {
+            expectedLen := 4
+            if row == 0 || row == b.BoardSize()-1 {
+                expectedLen--
+            }
+            if col == 0 || col == b.BoardSize()-1 {
+                expectedLen--
+            }
+            n := b.neighbours(col, row)
+            if len(n) != expectedLen {
+                t.Fatalf("expected %d, got %d", expectedLen, len(n))
+            }
+            for _, ni := range n {
+                // Each neighbour on same row or same column?
+                if (ni.X != col) && (ni.Y != row) {
+                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) not on same row/column", col, row, ni.X, ni.Y)
+                }
+                // Each neighbour has the right distance?
+                dx := (ni.X-col)*(ni.X-col)
+                dy := (ni.Y-row)*(ni.Y-row)
+                // one of dx, dy has to be 1, the other 0
+                if (dx - dy)*(dx - dy) != 1 {
+                    //t.Logf("dx^2: %d", dx)
+                    //t.Logf("dy^2: %d", dy)
+                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) has the wrong distance", col, row, ni.X, ni.Y)
+                }
+            }
+        }
     }
 }
 
@@ -169,5 +227,8 @@ func Testsuite() []testing.Test {
                             testing.Test{"TestJoinGroups", TestJoinGroups},
                             testing.Test{"TestGetEnvironment", TestGetEnvironment},
                             testing.Test{"TestRemoveGroup", TestRemoveGroup},
-                          }
+                            testing.Test{"TestXYToPos", TestXYToPos},
+                            testing.Test{"TestPosToXY", TestPosToXY},
+                            testing.Test{"TestNeighbours", TestNeighbours},
+                         }
 }

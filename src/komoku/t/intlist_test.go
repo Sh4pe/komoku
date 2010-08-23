@@ -29,7 +29,7 @@ func TestIntListRemove(t *testing.T) {
 
 // Tests wheather Remove and Append yield consistend IntLists of correct length
 func TestRemoveAndAppendWork(t *testing.T) {
-    for testLen := 3; testLen < BoardSize*BoardSize + 10; testLen++ {
+    for testLen := 3; testLen < DefaultBoardSize*DefaultBoardSize + 10; testLen++ {
         il := NewIntList()
         for i := 0; i < testLen; i++ {
             il.Append(i)

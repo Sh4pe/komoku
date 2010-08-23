@@ -34,18 +34,23 @@ import (
 
 // This object is responsible for recording a current state of a game.
 type Board struct {
-    fields [BoardSize*BoardSize]GroupIndexType // Stores the indices for groupMap
+    fields []GroupIndexType // Stores the indices for groupMap
     groupMap *GroupMap // Maps fields to groups
     legalBlackMoves *IntList // Indices of fields at which it is legal to play a black stone.
     legalWhiteMoves *IntList // Indices of fields at which it is legal to play a white stone.
     emptyFields *IntList // indices of empty fields
     ko *Point // if not nil, this points to where you can't play because of the ko rule
-    actionOnNextMove [BoardSize*BoardSize]func() // This stores the appropriate code which has to be run if a move is played on a field
+    actionOnNextMove []func() // This stores the appropriate code which has to be run if a move is played on a field
     colorOfNextPlay Color
+    boardSize int
 }
 
 // ##################### Board methods ##########################
 
+// Returns the board size.
+func (b *Board) BoardSize() int {
+    return b.boardSize
+}
 
 // Calculates if a move of 'color' at (x,y) is legal. Does not use 
 // b.legal{Black,White}Moves for this. Also, this method returnsthe appropriate
@@ -60,7 +65,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
             return false, nil
         }
     }
-    pos := xyToPos(x,y)
+    pos := b.xyToPos(x,y)
     nFree, adjSameColor, adjOtherColor := b.GetEnvironment(x,y)
     //fmt.Printf("Board.calculateIfLegal: environment: nFree: %d, adjSameColor: %v, adjOtherColor: %v\n", nFree, adjSameColor, adjOtherColor)
     if color == White {
@@ -120,7 +125,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                 if enemiesInAtari.Length() == 1 && firstGroup.Fields.Length() == 1 {
                     // It's a ko, so remove the group, play the stone, update the liberties
                     // and set b.ko to the right point.
-                    koX, koY := posToXY(firstGroup.Fields.First().Value())
+                    koX, koY := b.posToXY(firstGroup.Fields.First().Value())
                     action = func() {
                         //fmt.Printf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, ko case\n")
                         removeGroupsFunc()
@@ -235,12 +240,12 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
 // This method does not perform any legality checks or liberty updates for other groups.
 // TODO: unexport this?
 func (b *Board) CreateGroup(x, y int, color Color) {
-    pos := xyToPos(x,y)
+    pos := b.xyToPos(x,y)
     newGroup := NewGroup(color)
     newGroup.Fields.Append(pos)
-    nbours := neighbours(x,y)
+    nbours := b.neighbours(x,y)
     for _, p := range nbours {
-        npos := xyToPos(p.X, p.Y)
+        npos := b.xyToPos(p.X, p.Y)
         if b.fields[npos].Empty() {
             newGroup.Liberties.Append(npos)
         }
@@ -274,11 +279,11 @@ func (b *Board) determineGroupsAtariStatus(groups *IntList) (inAtari, notinAtari
 // and IntLists 'adj{Black,White}' containing instances of GroupIndexTypes of adjacent {black,white} groups.
 // TODO: unexport this?
 func (b *Board) GetEnvironment(x,y int) (nFree int, adjBlack, adjWhite *IntList) {
-    nbours := neighbours(x,y)
+    nbours := b.neighbours(x,y)
     adjBlack = NewIntList()
     adjWhite = NewIntList()
     for _, p := range nbours {
-        npos := xyToPos(p.X, p.Y)
+        npos := b.xyToPos(p.X, p.Y)
         if b.fields[npos].Empty() {
             nFree++
         } else {
@@ -299,14 +304,14 @@ func (b *Board) GetEnvironment(x,y int) (nFree int, adjBlack, adjWhite *IntList)
 // TODO: write tests for this...
 // TODO: unexport this?
 func (b *Board) GetEnvironmentByPos(pos int) (nFree int, adjBlack, adjWhite *IntList) {
-    x, y := posToXY(pos)
+    x, y := b.posToXY(pos)
     return b.GetEnvironment(x,y)
 }
 
 // If the field (x,y) is empty, this method returns (false, nil).
 // If the field is not empty, it returns (true, 'pointer to group')...
 func (b *Board) GetGroup(x,y int) (empty bool, group *Group) {
-    index := xyToPos(x,y)
+    index := b.xyToPos(x,y)
     gindex := b.fields[index]
     if gindex.Empty() {
         return true, nil
@@ -322,7 +327,7 @@ func (b *Board) IsLegalMove(x, y int, color Color) bool {
     if color == White {
         indices = b.legalWhiteMoves
     }
-    pos := xyToPos(x,y)
+    pos := b.xyToPos(x,y)
     last := indices.Last()
     for it := indices.First(); it != last; it = it.Next() {
         if it.Value() == pos {
@@ -348,12 +353,50 @@ func (b *Board) joinGroups(into, from GroupIndexType) {
     b.groupMap.Remove(from)
 }
 
+// Returns the neighbours of a field (x,y) as a slice of Points.
+func (b *Board) neighbours(x, y int) []Point {
+    // TODO: can this be implemented better?
+    ret := make([]Point, 4)
+    count := 0
+    switch x {
+        case 0:
+            ret[count] = Point{ 1, y }
+            count++
+        case b.BoardSize()-1:
+            ret[count] = Point{ b.BoardSize()-2, y }
+            count++
+        default:
+            ret[count] = Point{ x-1, y }
+            count++
+            ret[count] = Point{ x+1, y }
+            count++
+    }
+    switch y {
+        case 0:
+            ret[count] = Point{ x, 1 }
+            count++
+        case b.BoardSize()-1:
+            ret[count] = Point{ x, b.BoardSize()-2 }
+            count++
+        default:
+            ret[count] = Point{ x, y-1 }
+            count++
+            ret[count] = Point{ x, y+1 }
+            count++
+    }
+    return ret[0:count]
+}
+
+// TODO: use point!
+func (b *Board) posToXY(pos int) (x, y int) {
+    return pos%b.BoardSize(), pos/b.BoardSize()
+}
 
 // Removes the group which occupies (x,y), if there is any, and updates b.emptyFields.
 // This method does not alter legalWhiteMoves or legalBlackMoves.
 // TODO(david): Do I really want to export this?
 func (b *Board) RemoveGroup(x,y int) {
-    pos := xyToPos(x,y)
+    pos := b.xyToPos(x,y)
     if !b.fields[pos].Empty() {
         b.removeGroupByGroupIndex(b.fields[pos])
     }
@@ -370,10 +413,10 @@ func (b *Board) removeGroupByGroupIndex(gid GroupIndexType) {
     for e := g.Fields.First(); e != last; e = e.Next() {
         // Collect adjacend groups so that we can update their liberties later
         pos := e.Value()
-        x, y := posToXY(pos)
-        nbours := neighbours(x,y)
+        x, y := b.posToXY(pos)
+        nbours := b.neighbours(x,y)
         for _, p := range nbours {
-            npos := xyToPos(p.X, p.Y)
+            npos := b.xyToPos(p.X, p.Y)
             if !b.fields[npos].Empty() && b.fields[npos] != gid {
                 adjGroups.AppendUnique( int(b.fields[npos]) )
             }
@@ -395,7 +438,7 @@ func (b *Board) removeGroupByGroupIndex(gid GroupIndexType) {
 // TODO: write tests for this...
 func (b *Board) TurnPlayMove(x, y int) (err Error) {
     //fmt.Printf("Board.Play(%d, %d)\n", x, y)
-    pos := xyToPos(x,y)
+    pos := b.xyToPos(x,y)
     if !b.fields[pos].Empty() {
         return NewFieldOccupiedError(x,y)
     }
@@ -407,7 +450,7 @@ func (b *Board) TurnPlayMove(x, y int) (err Error) {
     // Clear the actionOnNextMove array. 
     // David: This is really important so that the GC can free the closures with all the
     // associated contexts. Am I right?
-    for i := 0; i < BoardSize*BoardSize; i++ {
+    for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
         b.actionOnNextMove[i] = nil
     }
     b.colorOfNextPlay = !b.colorOfNextPlay
@@ -418,7 +461,7 @@ func (b *Board) TurnPlayMove(x, y int) (err Error) {
 
 // The player, whose turn it is, plays a pass.
 func (b *Board) TurnPlayPass() {
-    for i := 0; i < BoardSize*BoardSize; i++ {
+    for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
         b.actionOnNextMove[i] = nil
     }
     b.colorOfNextPlay = !b.colorOfNextPlay
@@ -432,10 +475,10 @@ func (b *Board) updateGroupLiberties(group *Group) {
     group.Liberties.Clear()
     last := group.Fields.Last()
     for it := group.Fields.First(); it != last; it = it.Next() {
-        x, y := posToXY(it.Value())
-        nbours := neighbours(x,y)
+        x, y := b.posToXY(it.Value())
+        nbours := b.neighbours(x,y)
         for _, p := range nbours {
-            npos := xyToPos(p.X, p.Y)
+            npos := b.xyToPos(p.X, p.Y)
             if b.fields[npos].Empty() {
                 group.Liberties.AppendUnique(npos)
             }
@@ -451,7 +494,7 @@ func (b *Board) updateLegalMoves() {
     last := b.emptyFields.Last()
     for it := b.emptyFields.First(); it != last; it = it.Next() {
         pos := it.Value()
-        x, y := posToXY(pos)
+        x, y := b.posToXY(pos)
         isLegal, action := b.calculateIfLegal(x,y, b.colorOfNextPlay)
         if isLegal {
             if b.colorOfNextPlay == Black {
@@ -464,21 +507,29 @@ func (b *Board) updateLegalMoves() {
     }
 }
 
+// TODO: use point!
+func (b *Board) xyToPos(x, y int) int {
+    return b.BoardSize()*y + x
+}
+
 // ##################### Board helper functions ##########################
-// Creates a new, initial board
-func NewBoard() *Board {
-    ret := &Board{ legalWhiteMoves: NewIntList(),
+// Creates a new, initial board of size 'boardsize'.
+func NewBoard(boardsize int) *Board {
+    ret := &Board{ fields: make([]GroupIndexType, boardsize*boardsize),
+                   actionOnNextMove: make([]func(), boardsize*boardsize),
+                   legalWhiteMoves: NewIntList(),
                    legalBlackMoves: NewIntList(),
                    emptyFields: NewIntList(),
                    groupMap: NewGroupMap(),
                    colorOfNextPlay: Black,
+                   boardSize: boardsize,
                  }
-    for i := 0; i < BoardSize*BoardSize; i++ {
+    for i := 0; i < boardsize*boardsize; i++ {
         ret.legalWhiteMoves.Append(i)
         ret.legalBlackMoves.Append(i)
         ret.emptyFields.Append(i)
         // set the initial actions for playing a field
-        x, y := posToXY(i)
+        x, y := ret.posToXY(i)
         ret.actionOnNextMove[i] = func() {
             ret.CreateGroup(x, y, ret.colorOfNextPlay)
         }

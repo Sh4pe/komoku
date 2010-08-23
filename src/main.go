@@ -91,7 +91,7 @@ func testMain() {
 
     for i := 0; i < 5; i++ { fmt.Println("") }
 
-    b := komoku.NewBoard()
+    b := komoku.NewBoard(komoku.DefaultBoardSize)
     b.TurnPlayMove(3,3)
     b.TurnPlayMove(3,4)
     b.TurnPlayMove(2,4)
@@ -132,7 +132,7 @@ func testMain() {
 }
 
 func main() {
-    //testMain()
-    komoku.RunGTPMode()
+    testMain()
+    //komoku.RunGTPMode()
 }
 

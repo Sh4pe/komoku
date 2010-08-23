@@ -15,14 +15,18 @@ package komoku
 import (
     "os"
     "strings"
+    "fmt"
     "strconv"
 )
 
 // ################ constants ####################
 const (
-    BoardSize = 19 // ...says that we are playing on a (BoardSize * BoardSize) - board
+    //BoardSize = 19 // ...says that we are playing on a (BoardSize * BoardSize) - board
                    // We support only quadratic boards at the moment.
                    // This should be less than 25, because ui.go.PrintBoard will have problems otherwise....
+    DefaultBoardSize = 19 // ...says that we are playing on a (BoardSize * BoardSize) - board
+                          // We support only quadratic boards at the moment.
+                          // This should be less than 25, because ui.go.PrintBoard will have problems otherwise....
     komokuVersion = "0.1a"
     komokuProgramName = "komoku"
 )
@@ -134,60 +138,54 @@ func NewFieldWhite() *Field {
 }
 
 // ###########################################
+// ################ own conversions ##########
+// ###########################################
+// TODO: get rid of this or make it less ugly at least
+var charDigit = map[string]int {
+    "A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7, "J": 8, "K": 9, "L": 10,
+    "M": 11, "N": 12, "O": 13, "P": 14, "Q": 15, "R": 16, "S": 17, "T": 18, "U": 19, "V": 20, "W": 21,
+    "X": 22, "Y": 23, "Z": 24,
+}
+
+var coordinateChars string = "ABCDEFGHJKLMNOPQRSTUVWXYZ"
+
+// TODO: there must be a better way to do this...
+func CharToDigit(c string) (digit int, err Error) {
+    digit, ok := charDigit[c]
+    if !ok {
+        return -1, NewInvalidCoordinateCharError(c)
+    }
+    return
+}
+
+// TODO: ...and for this also...
+func DigitToChar(digit int) (char string, err Error) {
+    if digit < 0 || digit > len(coordinateChars) {
+        return "", NewInvalidCoordinateDigitError(digit)
+    }
+    return coordinateChars[digit:digit+1], err
+}
+
+func NewInvalidCoordinateCharError(char string) (err Error) {
+    return NewError(fmt.Sprintf("'%s' is not a valid character for a coordinate", char), ErrInvalidCoordinateChar)
+}
+
+func NewInvalidCoordinateDigitError(digit int) (err Error) {
+    return NewError(fmt.Sprintf("%d is not a valid coordinate digit", digit), ErrInvalidCoordinateDigit)
+}
+
+// ###########################################
 // ################ helper functions #########
 // ###########################################
 
-// TODO: use point!
-func posToXY(pos int) (x, y int) {
-    return pos%BoardSize, pos/BoardSize
-}
-
-// TODO: use point!
-func xyToPos(x, y int) int {
-    return BoardSize*y + x
-}
-
-// Returns the neighbours of a field (x,y) as a slice of Points.
-func neighbours(x, y int) []Point {
-    // TODO: can this be implemented better?
-    ret := make([]Point, 4)
-    count := 0
-    switch x {
-        case 0:
-            ret[count] = Point{ 1, y }
-            count++
-        case BoardSize-1:
-            ret[count] = Point{ BoardSize-2, y }
-            count++
-        default:
-            ret[count] = Point{ x-1, y }
-            count++
-            ret[count] = Point{ x+1, y }
-            count++
-    }
-    switch y {
-        case 0:
-            ret[count] = Point{ x, 1 }
-            count++
-        case BoardSize-1:
-            ret[count] = Point{ x, BoardSize-2 }
-            count++
-        default:
-            ret[count] = Point{ x, y-1 }
-            count++
-            ret[count] = Point{ x, y+1 }
-            count++
-    }
-    return ret[0:count]
-}
 
 // Returns true if (x,y) is a hoshi point. 
 // Currently, the only supported board sizes are 9, 13 and 19. 
 // For other sizes, this function returns false for all (x,y).
 // Right now, this function is only used by printing functions in ui.go, so this
 // is not a 'very important' function
-func isHoshi(x, y int) bool {
-    switch BoardSize {
+func isHoshi(x, y, boardsize int) bool {
+    switch boardsize {
         case 19:
             if (x == 3) || (x == 9) || (x == 15)  {
                 return (y == 3) || (y == 9) || (y == 15)

@@ -21,39 +21,6 @@ import (
     "fmt"
 )
 
-var charDigit = map[string]int {
-    "A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7, "J": 8, "K": 9, "L": 10,
-    "M": 11, "N": 12, "O": 13, "P": 14, "Q": 15, "R": 16, "S": 17, "T": 18, "U": 19, "V": 20, "W": 21,
-    "X": 22, "Y": 23, "Z": 24,
-}
-
-var coordinateChars string = "ABCDEFGHJKLMNOPQRSTUVWXYZ"
-
-// TODO: there must be a better way to do this...
-func CharToDigit(c string) (digit int, err Error) {
-    digit, ok := charDigit[c]
-    if !ok {
-        return -1, NewInvalidCoordinateCharError(c)
-    }
-    return
-}
-
-// TODO: ...and for this also...
-func DigitToChar(digit int) (char string, err Error) {
-    if digit < 0 || digit > len(coordinateChars) {
-        return "", NewInvalidCoordinateDigitError(digit)
-    }
-    return coordinateChars[digit:digit+1], err
-}
-
-func NewInvalidCoordinateCharError(char string) (err Error) {
-    return NewError(fmt.Sprintf("'%s' is not a valid character for a coordinate", char), ErrInvalidCoordinateChar)
-}
-
-func NewInvalidCoordinateDigitError(digit int) (err Error) {
-    return NewError(fmt.Sprintf("%d is not a valid coordinate digit", digit), ErrInvalidCoordinateDigit)
-}
-
 // ################################################################################
 // ####################### Functions for printing boards #########################$
 // ################################################################################
@@ -81,10 +48,10 @@ func printBoardPrimitive(b *Board,
     // print coordinates at the header
     line := leftOffset
     line += " "
-    if BoardSize > 9 {
+    if b.BoardSize() > 9 {
         line += " "
     }
-    for i := 0; i < BoardSize; i++ {
+    for i := 0; i < b.BoardSize(); i++ {
         char, err := DigitToChar(i)
         if err != nil {
             fmt.Printf("Error in printBoardPrimitive. Error:\n%s\n", err)
@@ -94,15 +61,15 @@ func printBoardPrimitive(b *Board,
     }
     s += line + "\n"
     // print the board
-    //for y := 0; y < BoardSize; y++ {
-    for y := BoardSize-1; y >= 0; y-- {
+    //for y := 0; y < b.BoardSize(); y++ {
+    for y := b.BoardSize()-1; y >= 0; y-- {
         lineNumber := fmt.Sprintf("%d", y+1)
-        if BoardSize > 9 {
+        if b.BoardSize() > 9 {
             lineNumber = fmt.Sprintf("%2d", y+1)
         }
         line = leftOffset + lineNumber
         rightSpace := ""
-        for x := 0; x < BoardSize; x++ {
+        for x := 0; x < b.BoardSize(); x++ {
             //fmt.Printf("(%d,%d)\n",x,y)
             //field := b.GetField(x,y)
             empty, group := b.GetGroup(x,y)
@@ -110,7 +77,7 @@ func printBoardPrimitive(b *Board,
             //fmt.Printf("empty: %v, group: %v\n", empty, group)
             if empty {
                 // is this a hoshi?
-                if isHoshi(x,y) {
+                if isHoshi(x,y, b.BoardSize()) {
                     fieldChar = "+"
                 } else {
                     fieldChar = "."
@@ -142,10 +109,10 @@ func printBoardPrimitive(b *Board,
     // and print the footer
     line = leftOffset
     line += " "
-    if BoardSize > 9 {
+    if b.BoardSize() > 9 {
         line += " "
     }
-    for i := 0; i < BoardSize; i++ {
+    for i := 0; i < b.BoardSize(); i++ {
         char, err := DigitToChar(i)
         if err != nil {
             fmt.Printf("Error in printBoardPrimitive. Error:\n%s\n", err)
