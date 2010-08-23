@@ -11,8 +11,11 @@ package main
 import (
     "SUBSTITUTE_THIS"
     "testing"
+    "fmt"
 )
 
 func main() {
-    testing.Main(komoku.Testsuite())
+    testsuite := komoku.Testsuite()
+    fmt.Printf("Running %d tests in SUBSTITUTE_THIS...\n", len(testsuite))
+    testing.Main(testsuite)
 }

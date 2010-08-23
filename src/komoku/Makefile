@@ -132,7 +132,6 @@ tests_compile: $(ALLTESTS)
 tests_run: $(KOMOKULIB) $(ALLTESTS)
 	@for targ in $(^); do \
 		 if test x"$$targ" != x"$(KOMOKULIB)"; then \
-		 	echo "Running $$targ..."; \
 			$$targ; \
 		 fi \
 	done;
