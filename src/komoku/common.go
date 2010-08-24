@@ -35,6 +35,7 @@ const (
     ErrInvalidCoordinateChar;
     ErrInvalidCoordinateDigit;
     ErrUnacceptableBoardSize;
+    ErrGTPSyntaxError;
 )
 
 // ################ interfaces ##############
@@ -62,6 +63,15 @@ type Vertex struct {
 
 func NewVertex(p Point, pass bool) *Vertex {
     return &Vertex{ X: p.X, Y: p.Y, Pass: pass }
+}
+
+type Move struct {
+    Color Color
+    Point Point
+}
+
+func NewMove(p Point, c Color) *Move {
+    return &Move{ Point: Point{X: p.X, Y:p.Y}, Color: c }
 }
 
 type komokuError struct {

@@ -26,6 +26,7 @@ COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
 ALLSOURCE  = board.go
 ALLSOURCE += common.go
+ALLSOURCE += debug.go
 ALLSOURCE += environment.go
 ALLSOURCE += game.go
 ALLSOURCE += group.go 
@@ -120,19 +121,19 @@ $(TARG).6: $(ALLSOURCE)
 
 #################### tests ################
 
-$(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go group.go intlist.go ui.go
+$(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go debug.go group.go intlist.go ui.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)common_test: $(TESTDIR)common_test.go common.go
 	$(TESTCOMPILE_QUIET)
 
-$(TESTDIR)gtp_test: $(TESTDIR)gtp_test.go board.go common.go environment.go game.go gtp.go gtpcmd.go group.go intlist.go ui.go
+$(TESTDIR)gtp_test: $(TESTDIR)gtp_test.go board.go common.go debug.go environment.go game.go gtp.go gtpcmd.go group.go intlist.go ui.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)intlist_test: $(TESTDIR)intlist_test.go common.go intlist.go 
 	$(TESTCOMPILE_QUIET)
 
-$(TESTDIR)ui_test: $(TESTDIR)ui_test.go board.go common.go group.go intlist.go ui.go 
+$(TESTDIR)ui_test: $(TESTDIR)ui_test.go board.go common.go debug.go group.go intlist.go ui.go 
 	$(TESTCOMPILE_QUIET)
 
 .PHONY: tests_compile

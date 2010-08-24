@@ -239,14 +239,20 @@ func NewGTPObject(e *Environment) *GTPObject {
     ret.commands["version"] = gtpversion(ret)
 
     // private extensions
+    ret.commands["komoku-getenv"] = gtpkomoku_getenv(ret)
     ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
     ret.commands["komoku-numgroups"] = gtpkomoku_numgroups(ret)
+    ret.commands["komoku-numstones"] = gtpkomoku_numstones(ret)
 
     return ret
 }
 
 func NewUnacceptableBoardSizeError() (err Error) {
-    return NewError(fmt.Sprintf("unacceptable size"), ErrUnacceptableBoardSize)
+    return NewError(fmt.Sprintf("unacceptable size"), ErrGTPSyntaxError)
+}
+
+func NewGTPSyntaxError(msg string) (err Error) {
+    return NewError(fmt.Sprintf(msg), ErrUnacceptableBoardSize)
 }
 
 // ################################################################################

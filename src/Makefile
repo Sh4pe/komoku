@@ -22,6 +22,7 @@ OBJS= main main.6
 
 ALLSOURCE  = board.go
 ALLSOURCE += common.go
+ALLSOURCE += debug.go
 ALLSOURCE += environment.go
 ALLSOURCE += game.go
 ALLSOURCE += group.go 

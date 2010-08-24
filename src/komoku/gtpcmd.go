@@ -35,7 +35,7 @@ func gtpboardsize(obj *GTPObject) *GTPCommand {
             panic("\n\nType assertion for first parameter of boardsize failed.\n\n")
         }
         if boardsize > 25 {
-            return "", false, NewUnacceptableBoardSizeError()
+            return "unacceptable size", false, NewUnacceptableBoardSizeError()
         }
 
         // TODO: get rid of this cast
@@ -93,6 +93,34 @@ func gtpkomi(obj *GTPObject) *GTPCommand {
                       }
 }
 
+// Shows all legal moves of the specified color
+func gtpkomoku_alllegal(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPColor }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        return "", false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Calls Board.GetEnvironment for the specified point
+func gtpkomoku_getenv(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPVertex }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        vertex := params[0].(Vertex)
+        if vertex.Pass {
+            emsg := "argument 0 has to be a vertex other than pass"
+            return emsg, false, NewGTPSyntaxError(emsg)
+        }
+        nFree, adjBlack, adjWhite := obj.env.CurrentGame.B.GetEnvironment(vertex.X, vertex.Y)
+        return fmt.Sprintf("nFree: %d, len(adjBlack): %d, len(adjWhite): %d", nFree, adjBlack.Length(), adjWhite.Length()), false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
 // Expexts one string argument, called 'cmdName'. Prints the arguments of this command
 func gtpkomoku_infocmd(obj *GTPObject) *GTPCommand {
     signature := []int { GTPString }
@@ -138,6 +166,18 @@ func gtpkomoku_numgroups(obj *GTPObject) *GTPCommand {
     signature := []int {}
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         nblack, nwhite := obj.env.CurrentGame.B.numberOfGroups()
+        return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Prints the number of stones in this format: "#black: <number>, #white: <number>"
+func gtpkomoku_numstones(obj *GTPObject) *GTPCommand {
+    signature := []int {}
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        nblack, nwhite := obj.env.CurrentGame.B.numberOfStones()
         return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -232,7 +272,7 @@ func gtpshowboard(obj *GTPObject) *GTPCommand {
     signature := []int { }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         b := object.env.CurrentGame.B
-        result = "\n" + printBoardPrimitive(b, "", -1, -1)
+        result = "\n" + printBoardPrimitive(b, "", -1, -1, nil)
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,

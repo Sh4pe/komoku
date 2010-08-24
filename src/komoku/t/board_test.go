@@ -132,16 +132,46 @@ func TestJoinGroups(t *testing.T) {
     }
 }
 
+type testGetEnvironmentCase struct {
+    sequence []Move
+    where Point
+    enFree, eadjBlackLen, eadjWhiteLen int
+}
+
+var testGetEnvironment9 = []testGetEnvironmentCase{
+    testGetEnvironmentCase {
+        sequence: []Move{
+            Move{ Color: Black, Point: Point{1,1} },
+            Move{ Color: Black, Point: Point{2,2} },
+            Move{ Color: Black, Point: Point{0,2} },
+            Move{ Color: Black, Point: Point{1,3} },
+        },
+        where: Point{1,2},
+        enFree: 0,
+        eadjBlackLen: 4,
+        eadjWhiteLen: 0,
+    },
+    testGetEnvironmentCase {
+        sequence: []Move{
+            Move{ Color: White, Point: Point{0,3} },
+            Move{ Color: White, Point: Point{0,4} },
+            Move{ Color: Black, Point: Point{8,3} },
+        },
+        where: Point{8,4},
+        enFree: 2,
+        eadjBlackLen: 1,
+        eadjWhiteLen: 0,
+    },
+}
+
 func TestGetEnvironment(t *testing.T) {
-    // Produce a ponnuki and get the environment inside of it
-    b := NewBoard(DefaultBoardSize)
-    points := []*Point{ NewPoint(1,1), NewPoint(2,2), NewPoint(0,2), NewPoint(1,3) }
-    for _, p := range points {
-        b.CreateGroup(p.X, p.Y, Black)
-    }
-    nFree, adjBlack, adjWhite := b.GetEnvironment(1,2)
-    if nFree != 0 || adjBlack.Length() != 4 || adjWhite.Length() != 0 {
-        t.Fatalf("Board.GetEnvironment returns wront results inside a ponnuki")
+    for i, tc := range testGetEnvironment9 {
+        b := NewBoard(9)
+        b.playSequence(tc.sequence)
+        nFree, adjBlack, adjWhite := b.GetEnvironment(tc.where.X, tc.where.Y)
+        if nFree != tc.enFree || adjBlack.Length() != tc.eadjBlackLen || adjWhite.Length() != tc.eadjWhiteLen {
+            t.Fatalf("Board.GetEnvironment fails test case %d", i)
+        }
     }
 }
 
@@ -221,25 +251,130 @@ func TestNeighbours(t *testing.T) {
     }
 }
 
+
 type testNumGroupsCase struct {
-    seqBlack, seqWhite []Point
+    sequence []Move
     eNumBlack, eNumWhite int
 }
 
 var testNumGroups9 = []testNumGroupsCase {
     testNumGroupsCase {
-        seqBlack: []Point {
-            Point{0,3}, Point{0,4},
+        sequence: []Move{
+            Move{ Color: Black, Point: Point{0,3} },
+            Move{ Color: Black, Point: Point{0,4} },
         },
-        seqWhite: nil,
         eNumBlack: 1,
         eNumWhite: 0,
+    },
+    testNumGroupsCase {
+        sequence: []Move{
+            Move{ Color: White, Point: Point{0,3} },
+            Move{ Color: White, Point: Point{0,4} },
+            Move{ Color: Black, Point: Point{8,3} },
+            Move{ Color: Black, Point: Point{8,4} },
+        },
+        eNumBlack: 1,
+        eNumWhite: 1,
+    },
+    testNumGroupsCase {
+        sequence: []Move{
+            Move{ Color: Black, Point: Point{8,3} },
+            Move{ Color: Black, Point: Point{8,4} },
+            Move{ Color: White, Point: Point{0,3} },
+            Move{ Color: White, Point: Point{0,4} },
+        },
+        eNumBlack: 1,
+        eNumWhite: 1,
     },
 }
 
 func TestNumGroups(t *testing.T) {
     // on a 9x9 board
-    for _, tc := range testNumGroups9 {
+    for i, tc := range testNumGroups9 {
+        b := NewBoard(9)
+        b.playSequence(tc.sequence)
+        nblack, nwhite := b.numberOfGroups()
+        if nblack != tc.eNumBlack || nwhite != tc.eNumWhite {
+            t.Fatalf("testcase %d: expected (b%d,w%d), got (b%d,w%d)", i, tc.eNumBlack, tc.eNumWhite, nblack, nwhite)
+        }
+    }
+}
+
+var testNumStones9 = []testNumGroupsCase {
+    testNumGroupsCase {
+        sequence: []Move{
+            Move{ Color: Black, Point: Point{0,3} },
+            Move{ Color: Black, Point: Point{0,4} },
+        },
+        eNumBlack: 2,
+        eNumWhite: 0,
+    },
+}
+
+func TestNumStones(t *testing.T) {
+    // on a 9x9 board
+    for _, tc := range testNumStones9 {
+        b := NewBoard(9)
+        b.playSequence(tc.sequence)
+        nblack, nwhite := b.numberOfStones()
+        if nblack != tc.eNumBlack || nwhite != tc.eNumWhite {
+            t.Fatalf("expected (b%d,w%d), got (b%d,w%d)", tc.eNumBlack, tc.eNumWhite, nblack, nwhite)
+        }
+    }
+}
+
+type testGroupGeometryCase struct {
+    seqBlack, seqWhite []Point
+    blackGroupPivot, whiteGroupPivot *Point
+    eBlackPoints, eWhitePoints []Point
+}
+
+var testGroupGeometry9 = []testGroupGeometryCase {
+    testGroupGeometryCase {
+        seqBlack: []Point {
+            Point{0,3}, Point{0,4},
+        },
+        seqWhite: nil,
+        blackGroupPivot: &Point{0,4},
+        whiteGroupPivot: nil,
+        eBlackPoints: []Point{ Point{0,3}, Point{0,4} },
+        eWhitePoints: nil,
+    },
+}
+
+func TestGroupGeometry(t *testing.T) {
+
+    tester := func(number int, t *testing.T, b *Board, setPoints []Point, color Color) {
+        for _, p := range setPoints {
+            empty, grp := b.GetGroup(p.X,p.Y)
+            if empty {
+                t.Fatalf("Failed testcase %d (%s), there seems to be no group at (%d,%d)", number, color, p.X, p.Y)
+            }
+            if grp.Color != color {
+                t.Fatalf("Failed testcase %d (%s), stone has the wrong color", number, color)
+            }
+        }
+        _, grp := b.GetGroup(setPoints[0].X, setPoints[0].Y)
+        if len(setPoints) != grp.Fields.Length() {
+            t.Fatalf("Failed testcase %d (%s), group has wrong number of stones, got %d, wanted %d", number, color, grp.Fields.Length(), len(setPoints))
+        }
+        all := make(map[int]bool)
+        for _, p := range setPoints {
+            pos := b.xyToPos(p.X, p.Y)
+            all[pos] = true
+        }
+        last := grp.Fields.Last()
+        for it := grp.Fields.First(); it != last; it = it.Next() {
+            all[it.Value()] = false, false
+        }
+        if len(all) != 0 {
+            t.Fatalf("Failed testcase %d (%s), expected black fields and white fields seem to differ", number, color)
+        }
+
+    }
+
+    // on a 9x9 board
+    for i, tc := range testGroupGeometry9 {
         b := NewBoard(9)
         for _, p := range tc.seqBlack {
             b.PlayMove(p.X, p.Y, Black)
@@ -247,12 +382,13 @@ func TestNumGroups(t *testing.T) {
         for _, p := range tc.seqWhite {
             b.PlayMove(p.X, p.Y, White)
         }
-        nblack, nwhite := b.numberOfGroups()
-        if nblack != tc.eNumBlack || nwhite != tc.eNumWhite {
-            t.Fatalf("expected (b%d,w%d), got (b%d,w%d)", tc.eNumBlack, tc.eNumWhite, nblack, nwhite)
+        if tc.seqBlack != nil {
+            tester(i, t, b, tc.seqBlack, Black)
+        }
+        if tc.seqWhite != nil {
+            tester(i, t, b, tc.seqWhite, White)
         }
     }
-
 }
 
 func Testsuite() []testing.Test {
@@ -265,5 +401,7 @@ func Testsuite() []testing.Test {
                             testing.Test{"TestPosToXY", TestPosToXY},
                             testing.Test{"TestNeighbours", TestNeighbours},
                             testing.Test{"TestNumGroups", TestNumGroups},
+                            testing.Test{"TestNumStones", TestNumStones},
+                            testing.Test{"TestGroupGeometry", TestGroupGeometry},
                          }
 }

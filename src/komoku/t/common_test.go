@@ -11,8 +11,11 @@ import (
     "testing"
 )
 
+func dummyTest(t *testing.T) {
+}
 
 func Testsuite() []testing.Test {
-    return []testing.Test {  }
+    return []testing.Test { testing.Test{"dummyTest", dummyTest},
+                          }
 }
 
