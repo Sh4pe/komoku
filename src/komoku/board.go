@@ -415,22 +415,23 @@ func (b *Board) legalMovesNeedUpdate() {
 }
 
 // Returns a slice of legal moves of color 'color'
-func (b *Board) ListLegalMoves(color Color) []*Point {
+func (b *Board) ListLegalPoints(color Color) []Point {
     upToDate := b.acBlackMoveUpToDate
     legalMoves := b.legalBlackMoves
     if color == White {
         upToDate = b.acWhiteMoveUpToDate
         legalMoves = b.legalWhiteMoves
     }
-    var ret []*Point
     if !upToDate {
         b.updateLegalMoves(color)
     }
     last := legalMoves.Last()
+    var ret []Point = make([]Point, legalMoves.Length())
     i := 0
     for it := legalMoves.First(); it != last; it = it.Next() {
         x, y := b.posToXY(it.Value())
-        ret[i] = NewPoint(x,y)
+        ret[i] = *NewPoint(x,y)
+        i++
     }
     return ret
 }

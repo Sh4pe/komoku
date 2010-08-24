@@ -35,26 +35,13 @@ func PrintBoard(b *Board) {
 func printBoardPrimitive(b *Board,
                          leftOffset string, // printed on the very beginning of each line
                          lastX, lastY int, // Marks the last played move. Negative values indicate that no last move is provided.
-                         marks []*Point, // nil means "no marks". Marked points will be displayed as an !
+                         marks []Point, // nil means "no marks". Marked points will be displayed as an !
                         ) (s string) {
     // so that the values of lastX, lastY don't interfere with our algorithm...
     // Now we can assume that lastX, lastY are valid or 'too small'
     if lastX < 0 || lastY < 0 {
         lastX = -10
         lastY = -10
-    }
-
-    // Determines if (x,y) is in marks
-    pointInMarks := func(x, y int) bool { return false }
-    if marks != nil {
-        pointInMarks = func(x, y int) bool {
-            for _, p := range marks {
-                if p.X == x && p.Y == y {
-                    return true
-                }
-            }
-            return false
-        }
     }
 
     // print coordinates at the header
@@ -88,7 +75,14 @@ func printBoardPrimitive(b *Board,
             fieldChar := ""
             //fmt.Printf("empty: %v, group: %v\n", empty, group)
             if empty {
-                if pointInMarks(x,y) {
+                inMarks := false
+                for _, p := range marks {
+                    if p.X == x && p.Y == y {
+                        inMarks = true
+                        break
+                    }
+                }
+                if inMarks {
                     fieldChar = "!"
                 } else if isHoshi(x,y, b.BoardSize()) {
                     fieldChar = "+"

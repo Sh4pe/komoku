@@ -23,6 +23,8 @@ import (
     "sort"
     "container/vector"
     "fmt"
+    "rand"
+    "os"
 )
 
 // The board size is changed. The board configuration, number of captured stones, and move history become arbitrary.
@@ -55,6 +57,27 @@ func gtpclear_board(obj *GTPObject) *GTPCommand {
         curSize := object.env.CurrentGame.B.BoardSize()
         object.env.CurrentGame.B = NewBoard(curSize)
         return result, false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Generate a move of the requested color. This is where the AI kicks in.
+func gtpgenmove(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPColor }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        color, _ := params[0].(Color)
+        legalMoves := object.env.CurrentGame.B.ListLegalPoints(color)
+        sec, nsec, _ := os.Time()
+        random := rand.New(rand.NewSource(sec+nsec))
+        randomMove := legalMoves[random.Intn(len(legalMoves))]
+        obj.env.CurrentGame.B.PlayMove(randomMove.X, randomMove.Y, color)
+        r, ok := pointToGTPVertex(randomMove)
+        if !ok {
+            panic("\n\nThe random move is a malformed coordinate.\n\n")
+        }
+        return r, false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
@@ -97,7 +120,10 @@ func gtpkomi(obj *GTPObject) *GTPCommand {
 func gtpkomoku_alllegal(obj *GTPObject) *GTPCommand {
     signature := []int { GTPColor }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        return "", false, nil
+        color, _ := params[0].(Color)
+        b := obj.env.CurrentGame.B
+        legalPoints := b.ListLegalPoints(color)
+        return printBoardPrimitive(b, "", -1, -1, legalPoints) , false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,

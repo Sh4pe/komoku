@@ -258,3 +258,15 @@ func gtpVertexToPoint(c string) (point Point, okay, pass bool) {
     return Point{0,0}, false, false
 }
 
+// Returns strings as "E5"...
+func pointToGTPVertex(p Point) (ret string, ok bool) {
+    ret = ""
+    digit, err := DigitToChar(p.X)
+    if err != nil {
+        return "", false
+    }
+    ret += digit
+    ret += fmt.Sprintf("%d",p.Y + 1)
+    return ret, true
+}
+

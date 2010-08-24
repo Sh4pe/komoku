@@ -228,6 +228,7 @@ func NewGTPObject(e *Environment) *GTPObject {
     // Add commands
     ret.commands["boardsize"] = gtpboardsize(ret)
     ret.commands["clear_board"] = gtpclear_board(ret)
+    ret.commands["genmove"] = gtpgenmove(ret)
     ret.commands["known_command"] = gtpknown_command(ret)
     ret.commands["komi"] = gtpkomi(ret)
     ret.commands["list_commands"] = gtplist_commands(ret)
@@ -239,6 +240,7 @@ func NewGTPObject(e *Environment) *GTPObject {
     ret.commands["version"] = gtpversion(ret)
 
     // private extensions
+    ret.commands["komoku-alllegal"] = gtpkomoku_alllegal(ret)
     ret.commands["komoku-getenv"] = gtpkomoku_getenv(ret)
     ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
     ret.commands["komoku-numgroups"] = gtpkomoku_numgroups(ret)
