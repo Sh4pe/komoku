@@ -14,6 +14,7 @@ package komoku
 
 import (
     "os"
+    "path"
     "strings"
     "fmt"
     "strconv"
@@ -36,6 +37,7 @@ const (
     ErrInvalidCoordinateDigit;
     ErrUnacceptableBoardSize;
     ErrGTPSyntaxError;
+    ErrIOError;
 )
 
 // ################ interfaces ##############
@@ -67,11 +69,11 @@ func NewVertex(p Point, pass bool) *Vertex {
 
 type Move struct {
     Color Color
-    Point Point
+    Vertex Vertex
 }
 
-func NewMove(p Point, c Color) *Move {
-    return &Move{ Point: Point{X: p.X, Y:p.Y}, Color: c }
+func NewMove(p Point, c Color, pass bool) *Move {
+    return &Move{ Vertex: *NewVertex(p, pass), Color: c }
 }
 
 type komokuError struct {
@@ -92,6 +94,10 @@ func (e *komokuError) Errno() int {
 // Create a new Error
 func NewError(s string, errno int) Error {
     return &komokuError{ s, errno }
+}
+
+func NewIOError(err os.Error) Error {
+    return NewError(err.String(), ErrIOError)
 }
 
 
@@ -236,6 +242,13 @@ func gtpColorToColor(c string) (color Color, ok bool) {
     return color, false
 }
 
+func colorToGTPColor(c Color) string {
+    if c == Black {
+        return "B"
+    }
+    return "W"
+}
+
 // c is case insensitive. A vertex in the GTP spec is something like "B13" or "a2" or "pass". If it is "pass",
 // 'pass' and 'ok' are true and 'point' is meaningless. If it is a coordinate, 'point' points there and 'ok' is
 // true. If it is something else, 'ok' is false and 'point' and 'pass' are meaningless.
@@ -268,5 +281,21 @@ func pointToGTPVertex(p Point) (ret string, ok bool) {
     ret += digit
     ret += fmt.Sprintf("%d",p.Y + 1)
     return ret, true
+}
+
+// Rel is a path relative to the executable which is run. This func returns the absolute path.
+func relPathToAbs(rel string) string {
+    wd, _ := os.Getwd()
+    //fmt.Println("wdir", wd)
+    execDir := os.Getenv("_")
+    //fmt.Println("execDir", execDir)
+    base := path.Base(execDir)
+    execDir = execDir[0:len(execDir)-len(base)]
+    fname := wd + "/" + execDir + "/" + rel
+    // zsh tweak (possibly for other shells too?)
+    if strings.Index(execDir, wd) != -1 {
+        fname = execDir + "/" + rel
+    }
+    return path.Clean(fname)
 }
 

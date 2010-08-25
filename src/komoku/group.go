@@ -14,7 +14,7 @@ package komoku
 
 type Group struct {
     Color Color
-    Fields *IntList
+    Fields *IntList // The fields which are occupied by the group
     Liberties *IntList
 }
 

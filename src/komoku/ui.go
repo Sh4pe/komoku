@@ -74,17 +74,17 @@ func printBoardPrimitive(b *Board,
             empty, group := b.GetGroup(x,y)
             fieldChar := ""
             //fmt.Printf("empty: %v, group: %v\n", empty, group)
-            if empty {
-                inMarks := false
-                for _, p := range marks {
-                    if p.X == x && p.Y == y {
-                        inMarks = true
-                        break
-                    }
+            inMarks := false
+            for _, p := range marks {
+                if p.X == x && p.Y == y {
+                    inMarks = true
+                    break
                 }
-                if inMarks {
-                    fieldChar = "!"
-                } else if isHoshi(x,y, b.BoardSize()) {
+            }
+            if inMarks {
+                fieldChar = "!"
+            } else if empty {
+                if isHoshi(x,y, b.BoardSize()) {
                     fieldChar = "+"
                 } else {
                     fieldChar = "."

@@ -6,6 +6,11 @@
  * that can be found in the LICENSE file.
  */
 
+/*
+ * TODO:
+ *      - use an io.Writer for ExecuteCommand and RunGTPMode..
+ */
+
 package komoku
 
 import (
@@ -242,9 +247,12 @@ func NewGTPObject(e *Environment) *GTPObject {
     // private extensions
     ret.commands["komoku-alllegal"] = gtpkomoku_alllegal(ret)
     ret.commands["komoku-getenv"] = gtpkomoku_getenv(ret)
+    ret.commands["komoku-getgroup"] = gtpkomoku_getgroup(ret)
     ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
     ret.commands["komoku-numgroups"] = gtpkomoku_numgroups(ret)
     ret.commands["komoku-numstones"] = gtpkomoku_numstones(ret)
+    ret.commands["komoku-source"] = gtpkomoku_source(ret)
+    ret.commands["komoku-sourcen"] = gtpkomoku_sourcen(ret)
 
     return ret
 }
@@ -265,8 +273,8 @@ func RunGTPMode() {
     // Set up the global environment
     board := NewBoard(DefaultBoardSize)
 
-    game := &Game{ B: board,
-                   Komi: defaultKomi,
+    game := &Game{ Board: board,
+                   komi: defaultKomi,
                  }
 
     environment := &Environment{ CurrentGame: game,
@@ -287,7 +295,6 @@ func RunGTPMode() {
                 }
 
                 fmt.Printf(result)
-                //fmt.Printf("quit: %s\n", quit)
                 if quit {
                     return
                 }

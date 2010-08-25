@@ -9,7 +9,10 @@ package komoku
 
 import (
     "testing"
-    //"fmt"
+    "os"
+    "rand"
+    "time"
+    "fmt"
 )
 
 /*
@@ -141,10 +144,10 @@ type testGetEnvironmentCase struct {
 var testGetEnvironment9 = []testGetEnvironmentCase{
     testGetEnvironmentCase {
         sequence: []Move{
-            Move{ Color: Black, Point: Point{1,1} },
-            Move{ Color: Black, Point: Point{2,2} },
-            Move{ Color: Black, Point: Point{0,2} },
-            Move{ Color: Black, Point: Point{1,3} },
+            Move{ Color: Black, Vertex: *NewVertex(Point{1,1}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{2,2}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{0,2}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{1,3}, false) },
         },
         where: Point{1,2},
         enFree: 0,
@@ -153,9 +156,9 @@ var testGetEnvironment9 = []testGetEnvironmentCase{
     },
     testGetEnvironmentCase {
         sequence: []Move{
-            Move{ Color: White, Point: Point{0,3} },
-            Move{ Color: White, Point: Point{0,4} },
-            Move{ Color: Black, Point: Point{8,3} },
+            Move{ Color: White, Vertex: *NewVertex(Point{0,3}, false) },
+            Move{ Color: White, Vertex: *NewVertex(Point{0,4}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{8,3}, false) },
         },
         where: Point{8,4},
         enFree: 2,
@@ -260,28 +263,28 @@ type testNumGroupsCase struct {
 var testNumGroups9 = []testNumGroupsCase {
     testNumGroupsCase {
         sequence: []Move{
-            Move{ Color: Black, Point: Point{0,3} },
-            Move{ Color: Black, Point: Point{0,4} },
+            Move{ Color: Black, Vertex: *NewVertex(Point{0,3}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{0,4}, false) },
         },
         eNumBlack: 1,
         eNumWhite: 0,
     },
     testNumGroupsCase {
         sequence: []Move{
-            Move{ Color: White, Point: Point{0,3} },
-            Move{ Color: White, Point: Point{0,4} },
-            Move{ Color: Black, Point: Point{8,3} },
-            Move{ Color: Black, Point: Point{8,4} },
+            Move{ Color: White, Vertex: *NewVertex(Point{0,3}, false) },
+            Move{ Color: White, Vertex: *NewVertex(Point{0,4}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{8,3}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{8,4}, false) },
         },
         eNumBlack: 1,
         eNumWhite: 1,
     },
     testNumGroupsCase {
         sequence: []Move{
-            Move{ Color: Black, Point: Point{8,3} },
-            Move{ Color: Black, Point: Point{8,4} },
-            Move{ Color: White, Point: Point{0,3} },
-            Move{ Color: White, Point: Point{0,4} },
+            Move{ Color: Black, Vertex: *NewVertex(Point{8,3}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{8,4}, false) },
+            Move{ Color: White, Vertex: *NewVertex(Point{0,3}, false) },
+            Move{ Color: White, Vertex: *NewVertex(Point{0,4}, false) },
         },
         eNumBlack: 1,
         eNumWhite: 1,
@@ -303,8 +306,8 @@ func TestNumGroups(t *testing.T) {
 var testNumStones9 = []testNumGroupsCase {
     testNumGroupsCase {
         sequence: []Move{
-            Move{ Color: Black, Point: Point{0,3} },
-            Move{ Color: Black, Point: Point{0,4} },
+            Move{ Color: Black, Vertex: *NewVertex(Point{0,3}, false) },
+            Move{ Color: Black, Vertex: *NewVertex(Point{0,4}, false) },
         },
         eNumBlack: 2,
         eNumWhite: 0,
@@ -391,6 +394,93 @@ func TestGroupGeometry(t *testing.T) {
     }
 }
 
+type writeStringer interface {
+    WriteString(s string) (ret int, err os.Error)
+}
+
+// Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersec
+// already occupied points
+func TestListLegalPoints(t *testing.T) {
+    numGames := 50 // Number of games this test should play
+    gamesLen := 50 // Number of random moves to play
+    boardsize := 9
+    dumpFile := relPathToAbs("../../../data/tmp/TestListLegalPoints.GTPsequence.tmp")
+    for nGame := 0; nGame < numGames; nGame++ {
+        game := NewGame(boardsize)
+        var currentColor Color = Black
+        for nMove := 0; nMove < gamesLen; nMove++ {
+
+            fail := func(w writeStringer, nGame, nMove int, color Color, illegalPoint Point) {
+                // TODO: clean this up!
+                // The sequence is dumped into a file which can be used as input for komoku in the GTP mode
+                //os.Remove(dumpFile)
+                //file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666)
+                secondLine := fmt.Sprintf("The sequence was dumped into %s", dumpFile)
+                time := time.LocalTime()
+                _, werr := w.WriteString(fmt.Sprintf("# These moves lead to an illegal position. %s\n", time))
+                _, werr = w.WriteString(fmt.Sprintf("  boardsize %d\n", game.Board.BoardSize()))
+                if werr != nil {
+                    secondLine = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
+                    secondLine += fmt.Sprintf("The error was: %s\n", werr)
+                } else {
+                    for _, mv := range game.sequence {
+                        m, _ := mv.(Move)
+                        vertex, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
+                        line := fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
+                        if _, werr = w.WriteString(line); werr != nil {
+                            secondLine = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
+                            secondLine += fmt.Sprintf("The error was: %s\n", werr)
+                        }
+                    }
+                    illegalVertex, _ := pointToGTPVertex(illegalPoint)
+                    line := fmt.Sprintf("# play %s %s # this is the illegal move\n", colorToGTPColor(color), illegalVertex)
+                    if _, werr = w.WriteString(line); werr != nil {
+                        secondLine = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
+                        secondLine += fmt.Sprintf("The error was: %s\n", werr)
+                    }
+
+                }
+                t.Fatalf("In game #%d there was an illegal %s move after %d moves.\n%s", nGame, color, nMove, secondLine)
+            }
+
+            legalBlack := game.Board.ListLegalPoints(Black)
+            legalWhite := game.Board.ListLegalPoints(White)
+            for _, p := range legalBlack {
+                if empty, _ := game.Board.GetGroup(p.X, p.Y); !empty {
+                    os.Remove(dumpFile)
+                    if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
+                        fail(file, nGame, nMove, Black, p)
+                    } else {
+                        t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
+                    }
+                }
+            }
+            for _, p := range legalBlack {
+                if empty, _ := game.Board.GetGroup(p.X, p.Y); !empty {
+                    os.Remove(dumpFile)
+                    if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
+                        fail(file, nGame, nMove, White, p)
+                    } else {
+                        t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
+                    }
+                }
+            }
+            var legal []Point
+            if currentColor == Black {
+                legal = legalBlack
+            } else {
+                legal = legalWhite
+            }
+            // Play a random move
+            sec, nsec, _ := os.Time()
+            random := rand.New(rand.NewSource(sec+nsec))
+            randomMove := legal[random.Intn(len(legal))]
+            game.PlayMove(randomMove.X, randomMove.Y, currentColor)
+            currentColor = !currentColor
+        }
+    }
+}
+
 func Testsuite() []testing.Test {
     return []testing.Test { testing.Test{"TestCreateGroup", TestCreateGroup},
                             testing.Test{"TestUpdateGroupLiberties", TestUpdateGroupLiberties},
@@ -403,5 +493,6 @@ func Testsuite() []testing.Test {
                             testing.Test{"TestNumGroups", TestNumGroups},
                             testing.Test{"TestNumStones", TestNumStones},
                             testing.Test{"TestGroupGeometry", TestGroupGeometry},
+                            testing.Test{"TestListLegalPoints", TestListLegalPoints},
                          }
 }

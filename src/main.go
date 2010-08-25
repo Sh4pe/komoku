@@ -12,6 +12,8 @@ import (
     "sort"
     "container/vector"
     "./komoku/komoku"
+    "path"
+    "os"
 )
 
 const (
@@ -129,6 +131,17 @@ func testMain() {
     kette := "Teststring"
     fmt.Printf("%s\n", kette[0:1])
     fmt.Printf("%s\n", kette[1:len(kette)])
+
+    for i := 0; i < 5; i++ { fmt.Println("") }
+
+    wd, _ := os.Getwd()
+    fname := wd + "../../../data/tmp/TestListLegalPoints.GTPsequence.tmp"
+    fname = path.Clean(fname)
+    fmt.Println(fname)
+
+    for i := 0; i < 5; i++ { fmt.Println("") }
+
+    fmt.Printf("%s\n", os.Envs)
 }
 
 func main() {

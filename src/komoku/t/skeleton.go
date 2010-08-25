@@ -16,6 +16,11 @@ import (
 
 func main() {
     testsuite := komoku.Testsuite()
-    fmt.Printf("Running %d tests in SUBSTITUTE_THIS...\n", len(testsuite))
+    numTests := len(testsuite)
+    if numTests > 1 || numTests == 0 {
+        fmt.Printf("Running %d tests in SUBSTITUTE_THIS...\n", numTests)
+    } else {
+        fmt.Printf("Running %d test in SUBSTITUTE_THIS...\n", numTests)
+    }
     testing.Main(testsuite)
 }

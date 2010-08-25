@@ -11,15 +11,56 @@
  * with one game
  */
 
-
 package komoku
+
+import (
+    "container/vector"
+)
 
 // ################################################################################
 // ########################### Game struct ########################################
 // ################################################################################
 type Game struct {
-    B *Board // The current board
-    Komi float
+    Board *Board // The current board
+    komi float
+    sequence vector.Vector // the sequence of moves
+}
+
+// ##################### Game methods ##########################
+
+func (g *Game) GetKomi() float {
+    return g.komi
+}
+
+// Returns the last move.
+func (g *Game) LastMove() *Move {
+    if g.sequence.Len() == 0 {
+        return nil
+    }
+    ret, _ := g.sequence.At(g.sequence.Len()-1).(Move)
+    return &ret
+}
+
+func (g *Game) PlayMove(x, y int, color Color) (err Error) {
+    g.sequence.Push(*NewMove(*NewPoint(x,y), color, false))
+    return g.Board.PlayMove(x,y,color)
+}
+
+func (g *Game) PlayPass(color Color) {
+    g.sequence.Push(*NewMove(*NewPoint(0,0), color, true))
+    g.Board.PlayPass(color)
+}
+
+func (g *Game) SetKomi(newKomi float) {
+    g.komi = newKomi
+}
+
+
+// ##################### Game helper functions ##########################
+func NewGame(boardsize int) *Game {
+    return &Game{ Board: NewBoard(boardsize),
+                  komi: defaultKomi,
+                }
 }
 
 

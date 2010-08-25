@@ -54,7 +54,7 @@ TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created fi
 # the command for doing this quietly with a nice output
 TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
 
-ALLTESTS_TARGS = board_test common_test gtp_test intlist_test ui_test 
+ALLTESTS_TARGS = common_test board_test gtp_test intlist_test ui_test 
 ALLTESTS = $(patsubst %,$(TESTDIR)%,$(ALLTESTS_TARGS))
 
 
@@ -121,7 +121,7 @@ $(TARG).6: $(ALLSOURCE)
 
 #################### tests ################
 
-$(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go debug.go group.go intlist.go ui.go
+$(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go debug.go game.go group.go intlist.go ui.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)common_test: $(TESTDIR)common_test.go common.go

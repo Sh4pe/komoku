@@ -25,6 +25,7 @@ import (
     "fmt"
     "rand"
     "os"
+    "bufio"
 )
 
 // The board size is changed. The board configuration, number of captured stones, and move history become arbitrary.
@@ -41,7 +42,7 @@ func gtpboardsize(obj *GTPObject) *GTPCommand {
         }
 
         // TODO: get rid of this cast
-        object.env.CurrentGame.B = NewBoard(int(boardsize))
+        object.env.CurrentGame.Board = NewBoard(int(boardsize))
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -54,8 +55,8 @@ func gtpboardsize(obj *GTPObject) *GTPCommand {
 func gtpclear_board(obj *GTPObject) *GTPCommand {
     signature := []int { }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        curSize := object.env.CurrentGame.B.BoardSize()
-        object.env.CurrentGame.B = NewBoard(curSize)
+        curSize := object.env.CurrentGame.Board.BoardSize()
+        object.env.CurrentGame.Board = NewBoard(curSize)
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -68,11 +69,19 @@ func gtpgenmove(obj *GTPObject) *GTPCommand {
     signature := []int { GTPColor }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         color, _ := params[0].(Color)
-        legalMoves := object.env.CurrentGame.B.ListLegalPoints(color)
+        legalMoves := object.env.CurrentGame.Board.ListLegalPoints(color)
+        if len(legalMoves) == 0 {
+            return "pass", false, nil
+        }
+        if lastMove := obj.env.CurrentGame.LastMove(); lastMove != nil {
+            if lastMove.Vertex.Pass {
+                return "pass", false, nil
+            }
+        }
         sec, nsec, _ := os.Time()
         random := rand.New(rand.NewSource(sec+nsec))
         randomMove := legalMoves[random.Intn(len(legalMoves))]
-        obj.env.CurrentGame.B.PlayMove(randomMove.X, randomMove.Y, color)
+        obj.env.CurrentGame.PlayMove(randomMove.X, randomMove.Y, color)
         r, ok := pointToGTPVertex(randomMove)
         if !ok {
             panic("\n\nThe random move is a malformed coordinate.\n\n")
@@ -108,7 +117,7 @@ func gtpkomi(obj *GTPObject) *GTPCommand {
         if !ok {
             panic("\n\nType assertion for first parameter of komi failed.\n\n")
         }
-        obj.env.CurrentGame.Komi = newKomi
+        obj.env.CurrentGame.SetKomi(newKomi)
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -121,9 +130,9 @@ func gtpkomoku_alllegal(obj *GTPObject) *GTPCommand {
     signature := []int { GTPColor }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         color, _ := params[0].(Color)
-        b := obj.env.CurrentGame.B
+        b := obj.env.CurrentGame.Board
         legalPoints := b.ListLegalPoints(color)
-        return printBoardPrimitive(b, "", -1, -1, legalPoints) , false, nil
+        return "\n" + printBoardPrimitive(b, "", -1, -1, legalPoints) , false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
@@ -139,8 +148,28 @@ func gtpkomoku_getenv(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        nFree, adjBlack, adjWhite := obj.env.CurrentGame.B.GetEnvironment(vertex.X, vertex.Y)
+        nFree, adjBlack, adjWhite := obj.env.CurrentGame.Board.GetEnvironment(vertex.X, vertex.Y)
         return fmt.Sprintf("nFree: %d, len(adjBlack): %d, len(adjWhite): %d", nFree, adjBlack.Length(), adjWhite.Length()), false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Prints information about the group on the requested vertex, or "empty", or "argument 0 has to be a vertex other than pass"
+func gtpkomoku_getgroup(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPVertex }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        vertex := params[0].(Vertex)
+        if vertex.Pass {
+            emsg := "argument 0 has to be a vertex other than pass"
+            return emsg, false, NewGTPSyntaxError(emsg)
+        }
+        empty, grp := obj.env.CurrentGame.Board.GetGroup(vertex.X, vertex.Y)
+        if empty {
+            return "empty", false, nil
+        }
+        return fmt.Sprintf("color: %s, #stones: %d", grp.Color, grp.Fields.Length()), false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
@@ -191,7 +220,7 @@ func gtpkomoku_infocmd(obj *GTPObject) *GTPCommand {
 func gtpkomoku_numgroups(obj *GTPObject) *GTPCommand {
     signature := []int {}
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        nblack, nwhite := obj.env.CurrentGame.B.numberOfGroups()
+        nblack, nwhite := obj.env.CurrentGame.Board.numberOfGroups()
         return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -203,13 +232,82 @@ func gtpkomoku_numgroups(obj *GTPObject) *GTPCommand {
 func gtpkomoku_numstones(obj *GTPObject) *GTPCommand {
     signature := []int {}
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        nblack, nwhite := obj.env.CurrentGame.B.numberOfStones()
+        nblack, nwhite := obj.env.CurrentGame.Board.numberOfStones()
         return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
                       }
 }
+
+// Takes the lines of the specified file as input of the GTP command line. 
+func gtpkomoku_source(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPString }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        filename, _ := params[0].(string)
+        file, er := os.Open(filename, os.O_RDONLY, 0)
+        if er != nil {
+            return fmt.Sprintf("error: '%s'", err), false, NewIOError(er)
+        }
+        input := bufio.NewReader(file)
+        line, er := input.ReadString('\n')
+        for er != os.EOF {
+            fmt.Printf(line)
+            lineResult, lineQuit, _ := obj.ExecuteCommand(line)
+            fmt.Printf(lineResult)
+            if lineQuit {
+                return "", true, nil
+            }
+            line, er = input.ReadString('\n')
+        }
+        return "", false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// As gtpkomoku_source, except that it comments out the last 'n' lines, where 'n' is the second required parameter
+// BUG: if the first line is a comment, it gets printed twice...
+func gtpkomoku_sourcen(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPString, GTPInt }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        filename, _ := params[0].(string)
+        n := int(params[1].(uint))
+        file, er := os.Open(filename, os.O_RDONLY, 0)
+        if er != nil {
+            return fmt.Sprintf("error: '%s'", err), false, NewIOError(er)
+        }
+        input := bufio.NewReader(file)
+        var lines vector.StringVector
+        line, er := input.ReadString('\n')
+        lines.Push(line)
+        for er != os.EOF {
+            lines.Push(line)
+            line, er = input.ReadString('\n')
+        }
+        length := lines.Len()
+        line = ""
+        for i := 0; i < length; i++ {
+            line = lines.At(i)
+            if length - i <= n {
+                line = "#" + line
+            }
+            fmt.Printf(line)
+            lineResult, lineQuit, _ := obj.ExecuteCommand(line)
+            fmt.Printf(lineResult)
+            if lineQuit {
+                return "", true, nil
+            }
+        }
+        fmt.Println("\nend komoku-sourcen")
+        return "", false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
 
 // List all commands, one by each line, sorted alphabetically
 func gtplist_commands(obj *GTPObject) *GTPCommand {
@@ -251,16 +349,16 @@ func gtpplay(obj *GTPObject) *GTPCommand {
         color, _ := params[0].(Color)
         vertex, _ := params[1].(Vertex)
         if vertex.Pass {
-            obj.env.CurrentGame.B.PlayPass(color)
+            obj.env.CurrentGame.PlayPass(color)
             return "", false, nil
         }
         //fmt.Printf("gtpplay: coords: (%d,%d)\n", vertex.X, vertex.Y)
         //fmt.Printf("gtpplay: vertex: %v\n", vertex)
-        if er := obj.env.CurrentGame.B.PlayMove(vertex.X, vertex.Y, color); er != nil {
+        if er := obj.env.CurrentGame.PlayMove(vertex.X, vertex.Y, color); er != nil {
             if er.Errno() == ErrIllegalMove {
                 return "illegal move", false, er
             } else {
-                panic("\n\nBoard.PlayMove returned an error != ErrIllegalMove.\n\n")
+                panic("\n\nGame.PlayMove returned an error != ErrIllegalMove.\n\n")
             }
         }
         // Everything went fine
@@ -297,7 +395,7 @@ func gtpquit(obj *GTPObject) *GTPCommand {
 func gtpshowboard(obj *GTPObject) *GTPCommand {
     signature := []int { }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        b := object.env.CurrentGame.B
+        b := object.env.CurrentGame.Board
         result = "\n" + printBoardPrimitive(b, "", -1, -1, nil)
         return result, false, nil
     }

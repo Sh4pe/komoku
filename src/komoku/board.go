@@ -60,7 +60,7 @@ func (b *Board) BoardSize() int {
 // of legal{Black,White}Moves... 
 // Note that this method assumes that (x,y) is empty.
 func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action func()) {
-    //fmt.Printf("Board.calculateIfLegal(%d, %d, %v)\n", x,y,color)
+    //printDbgMsgf("Board.calculateIfLegal(%d, %d, %v)\n", x,y,color)
     // Is this move prohibited because of a ko?
     if b.ko != nil {
         if b.ko.X == x && b.ko.Y == y {
@@ -72,8 +72,13 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
     if color == White {
         adjSameColor, adjOtherColor = adjOtherColor, adjSameColor
     }
-    //printDbgMsgf("Board.calculateIfLegal(%d,%d,%s): environment: nFree: %d, adjSameColor: %v, adjOtherColor: %v\n", // <DBG>
-                 //x,y,color,nFree,adjSameColor,adjOtherColor) // </DBG>
+    /*func() { // <DBG>
+        printDbgMsgf("Board.calculateIfLegal(%d,%d,%s): environment: nFree: %d, adjSameColor: %v, adjOtherColor: %v\n",
+                     x,y,color,nFree,adjSameColor,adjOtherColor)
+        if !b.fields[b.xyToPos(x,y)].Empty() {
+            printDbgMsgf("This field is not empty! This is a panic situation!\n")
+        }
+    }() // </DBG>*/
     enemiesInAtari, enemiesNotInAtari := b.determineGroupsAtariStatus(adjOtherColor)
     // func for capturing groups, if there are any.
     removeGroupsFunc := func() {}
@@ -116,6 +121,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
         }() // <DBG>*/
         firstGroup.Fields.Append(pos)
         b.fields[pos] = firstIndex
+        b.emptyFields.Remove(pos)
         /*func() { // <DBG>
             dbgMsg := "Fields after: "
             dbgLast := firstGroup.Fields.Last()
@@ -165,7 +171,11 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                         removeGroupsFunc()
                         b.CreateGroup(x,y,color)
                         updateLiberyFunc()
-                        b.ko.X, b.ko.Y = koX, koY
+                        if b.ko == nil {
+                            b.ko = NewPoint(koX, koY)
+                        } else {
+                            b.ko.X, b.ko.Y = koX, koY
+                        }
                     }
                 } else {
                     // It's not a ko
@@ -344,6 +354,7 @@ func (b *Board) GetEnvironmentByPos(pos int) (nFree int, adjBlack, adjWhite *Int
 
 // If the field (x,y) is empty, this method returns (false, nil).
 // If the field is not empty, it returns (true, 'pointer to group')...
+// TODO: change the return values to (group,empty)?
 func (b *Board) GetGroup(x,y int) (empty bool, group *Group) {
     index := b.xyToPos(x,y)
     gindex := b.fields[index]
@@ -385,28 +396,6 @@ func (b *Board) joinGroups(into, from GroupIndexType) {
     }
     ginto.Fields.JoinUnique(gfrom.Fields)
     b.groupMap.Remove(from)
-}
-
-// Returns slice of points containing the coordinates where it is legal to play a stone of color 'color'.
-func (b *Board) LegalMovesByColor(color Color) []Point {
-    if color != b.colorOfNextPlay {
-        // updateLegalMoves only updates the legal moves of colorOfNextPlay, as it is most likely
-        // that the legal moves of the other color will not be needed often.
-        b.updateLegalMoves(color)
-    }
-    lm := b.legalWhiteMoves
-    if color == Black {
-        lm = b.legalBlackMoves
-    }
-    ret := make([]Point, lm.Length())
-    last := lm.Last()
-    i := 0
-    for it := lm.First(); it != last; it = it.Next() {
-        x, y := b.posToXY(it.Value())
-        ret[i].X, ret[i].Y = x, y
-        i++
-    }
-    return ret
 }
 
 func (b *Board) legalMovesNeedUpdate() {
@@ -555,7 +544,11 @@ func (b *Board) PlayPass(color Color) {
 // Plays out the sequence 'seq' of moves
 func (b *Board) playSequence(seq []Move) {
     for _, m := range seq {
-        b.PlayMove(m.Point.X, m.Point.Y, m.Color)
+        if m.Vertex.Pass {
+            b.PlayPass(m.Color)
+        } else {
+            b.PlayMove(m.Vertex.X, m.Vertex.Y, m.Color)
+        }
     }
 }
 
