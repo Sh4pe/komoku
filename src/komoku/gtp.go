@@ -73,8 +73,9 @@ func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, er
         return obj.formatErrorResponse(hasId, id, "unknown command"), false, nil
     }
     // Check the arguments
-    if len(gtpCmd.Signature) != len(args) {
-        return obj.formatErrorResponse(hasId, id, "wrong number of arguments"), false, nil
+    signatureLen := len(gtpCmd.Signature)
+    if signatureLen != len(args) {
+        return obj.formatErrorResponse(hasId, id, fmt.Sprintf("wrong number of arguments, %d argument(s) expected", signatureLen)), false, nil
     }
     argsToPass := make([]interface{}, len(args))
     for i := 0; i < len(args); i++ {

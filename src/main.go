@@ -141,7 +141,10 @@ func testMain() {
 
     for i := 0; i < 5; i++ { fmt.Println("") }
 
-    fmt.Printf("%s\n", os.Envs)
+    var slice = []string{ "hello", "this", "is", "slice" }
+    for s := range slice {
+        fmt.Printf("%s\n", s)
+    }
 }
 
 func main() {

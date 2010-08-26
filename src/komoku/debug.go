@@ -16,6 +16,7 @@ import (
     "strings"
     "fmt"
     "os"
+    "runtime/pprof"
 )
 
 const (
@@ -42,4 +43,26 @@ func printDbgMsgf(format string, a ...interface{}) {
     callerFile := splitPath[len(splitPath) - 1]
     prefix := fmt.Sprintf("[%s:%d] ", callerFile, callerLine)
     fmt.Fprintf(os.Stderr, prefix+format, a)
+}
+
+func ProfileInfoToFile(profFile string) {
+    file, err := os.Open(profFile, os.O_CREATE | os.O_RDWR, 0666)
+    if err != nil {
+        fmt.Printf("unable to open .prof file %s\nerror: %s\n", profFile, err)
+    }
+    if err := pprof.WriteHeapProfile(file); err != nil {
+        fmt.Printf("error in WriteHeapProfile: %s", err)
+    }
+}
+
+func ProfileInfoToFileByRelPath(profFile string) {
+    profFile = relPathToAbs(profFile)
+    os.Remove(profFile)
+    file, err := os.Open(profFile, os.O_CREATE | os.O_RDWR, 0666)
+    if err != nil {
+        fmt.Printf("unable to open .prof file %s\nerror: %s\n", profFile, err)
+    }
+    if err := pprof.WriteHeapProfile(file); err != nil {
+        fmt.Printf("error in WriteHeapProfile: %s", err)
+    }
 }

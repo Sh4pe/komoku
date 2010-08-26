@@ -13,7 +13,7 @@
 #########################################################################################
 CC=6g
 TARG=main
-LINK=6l
+LINK=6l -e
 
 COMPILEFIRST  = $(CC) -o $(@) $(<)
 COMPILEFIRST_QUIET = @echo '  6g $(@)'; $(COMPILE)

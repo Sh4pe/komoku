@@ -17,7 +17,9 @@
 CC=6g
 TARG=komoku
 PACK=gopack
-LINK=6l
+LINK=6l -e
+PROFILER=sudo 6prof
+GOPPROF=gopprof
 
 KOMOKULIB=$(TARG).a
 
@@ -73,6 +75,7 @@ TESTOBJS += ui_test.6
 ############### Stuff needed for generating benchmark executables #######################
 #########################################################################################
 BENCHMARKDIR = b/
+PROFDIR = ../../data/prof/
 
 # The command for compiling benchmarks. Mostly analogous to $(TESTCOMPILE)
 BENCHMARKCOMPILE  = $(CC) -o $(@).6 $(^);
@@ -90,13 +93,21 @@ BENCHMARKREGEX = [a-zA-Z]*
 # Command for running benchmarks
 BENCHMARKRUN  = @echo Running $(patsubst %_run,%, $(@));
 BENCHMARKRUN += ./$(patsubst %_run,%, $(@)) -benchmarks='$(BENCHMARKREGEX)';
+# Commands for profiling benchmarks
+BENCHMARKPROFILE  = @echo Profiling $(patsubst %_profile,%,$(@));
+BENCHMARKPROFILE += echo "OSX needs root rights for this";
+BENCHMARKPROFILE += $(PROFILER) -P $(PROFDIR)$(patsubst $(BENCHMARKDIR)%_profile,%,$(@)).prof ./$(patsubst %_profile,%, $(@)) -benchmarks='$(BENCHMARKREGEX)';
+BENCHMARKPROFILE += $(GOPPROF) ./$(patsubst %_profile,%, $(@)) $(PROFDIR)$(patsubst $(BENCHMARKDIR)%_profile,%,$(@)).prof;
 
-ALLBENCHMARKS_TARGS = design_decision_benchmark
+ALLBENCHMARKS_TARGS = design_decision_benchmark board_benchmark
 ALLBENCHMARKS = $(patsubst %,$(BENCHMARKDIR)%,$(ALLBENCHMARKS_TARGS))
 
 
 BENCHMARKOBJS += design_decision_benchmark
 BENCHMARKOBJS += design_decision_benchmark.6
+BENCHMARKOBJS += board_benchmark
+BENCHMARKOBJS += board_benchmark.6
+
 
 
 #########################################################################################
@@ -105,6 +116,7 @@ BENCHMARKOBJS += design_decision_benchmark.6
 
 OBJS  = $(TARG).6 $(TARG).a $(patsubst %,$(TESTDIR)%,$(TESTOBJS)) 
 OBJS += $(patsubst %,$(BENCHMARKDIR)%,$(BENCHMARKOBJS))
+OBJS += $(PROFDIR)*.prof
 
 #########################################################################################
 ####################### build rules #####################################################
@@ -153,6 +165,16 @@ $(BENCHMARKDIR)design_decision_benchmark: $(BENCHMARKDIR)design_decision_benchma
 $(BENCHMARKDIR)design_decision_benchmark_run: $(BENCHMARKDIR)design_decision_benchmark
 	$(BENCHMARKRUN)
 
+$(BENCHMARKDIR)board_benchmark: $(BENCHMARKDIR)board_benchmark.go board.go common.go debug.go group.go intlist.go
+	$(BENCHMARKCOMPILE_QUIET)
+
+.PHONY: $(BENCHMARKDIR)board_benchmark_run
+$(BENCHMARKDIR)board_benchmark_run: $(BENCHMARKDIR)board_benchmark
+	$(BENCHMARKRUN)
+
+.PHONY: $(BENCHMARKDIR)board_benchmark_profile
+$(BENCHMARKDIR)board_benchmark_profile: $(BENCHMARKDIR)board_benchmark
+	$(BENCHMARKPROFILE)
 
 .PHONY: benchmarks_compile
 benchmarks_compile: $(ALLBENCHMARKS)

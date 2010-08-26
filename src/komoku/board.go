@@ -280,6 +280,11 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
     return false, nil
 }
 
+// Returns the color of the player who plays the next turn
+func (b *Board) ColorOfNextPlay() Color {
+    return b.colorOfNextPlay
+}
+
 // Create a new, one-stone-group of 'color' at (x,y) and sets its liberties appropriately. 
 // This method does not perform any legality checks or liberty updates for other groups.
 // TODO: unexport this?
