@@ -60,6 +60,7 @@ func (b *Board) BoardSize() int {
 // of legal{Black,White}Moves... 
 // Note that this method assumes that (x,y) is empty.
 func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action func()) {
+    //this is called too often. Change the concept so that it is called less
     //printDbgMsgf("Board.calculateIfLegal(%d, %d, %v)\n", x,y,color)
     // Is this move prohibited because of a ko?
     if b.ko != nil {
@@ -148,6 +149,23 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
         }() // <DBG>*/
         b.updateGroupLiberties(firstGroup)
     }
+    // Func for clearing the appropriate actionOnNextMove array. 
+    // David: This is really important so that the GC can free the closures with all the
+    // associated contexts. Am I right?
+    var clearNextActionsFunc func()
+    if color == Black {
+        clearNextActionsFunc = func() {
+            for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
+                b.actionOnNextWhiteMove[i] = nil
+            }
+        }
+    } else {
+        clearNextActionsFunc = func() {
+            for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
+                b.actionOnNextBlackMove[i] = nil
+            }
+        }
+    }
 
     if adjSameColor.Length() == 0 {
         if nFree == 0 {
@@ -176,6 +194,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                         } else {
                             b.ko.X, b.ko.Y = koX, koY
                         }
+                        clearNextActionsFunc()
+                        b.updateLegalMoves(!color)
                     }
                 } else {
                     // It's not a ko
@@ -185,6 +205,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                         b.CreateGroup(x,y,color)
                         updateLiberyFunc()
                         b.ko = nil
+                        clearNextActionsFunc()
+                        b.updateLegalMoves(!color)
                     }
                 }
                 return true, action
@@ -199,6 +221,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                     b.CreateGroup(x,y,color)
                     updateLiberyFunc()
                     b.ko = nil
+                    clearNextActionsFunc()
+                    b.updateLegalMoves(!color)
                 }
             } else {
                 action = func() {
@@ -206,6 +230,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                     b.CreateGroup(x,y,color)
                     updateLiberyFunc()
                     b.ko = nil
+                    clearNextActionsFunc()
+                    b.updateLegalMoves(!color)
                 }
             }
             return true, action
@@ -221,6 +247,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                     joinGroupsFunc()
                     updateLiberyFunc()
                     b.ko = nil
+                    clearNextActionsFunc()
+                    b.updateLegalMoves(!color)
                 }
                 return true, action
             } else {
@@ -244,6 +272,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                         joinGroupsFunc()
                         updateLiberyFunc()
                         b.ko = nil
+                        clearNextActionsFunc()
+                        b.updateLegalMoves(!color)
                     }
                     return true, action
                 } else {
@@ -262,6 +292,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                     joinGroupsFunc()
                     updateLiberyFunc()
                     b.ko = nil
+                    clearNextActionsFunc()
+                    b.updateLegalMoves(!color)
                 }
             } else {
                 action = func() {
@@ -269,6 +301,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action fun
                     joinGroupsFunc()
                     updateLiberyFunc()
                     b.ko = nil
+                    clearNextActionsFunc()
+                    b.updateLegalMoves(!color)
                 }
             }
             return true, action
@@ -509,20 +543,20 @@ func (b *Board) PlayMove(x, y int, color Color) (err Error) {
     }
 
     actions := b.actionOnNextBlackMove
-    nextActions := b.actionOnNextWhiteMove
+    //nextActions := b.actionOnNextWhiteMove
     if color == White {
         actions = b.actionOnNextWhiteMove
-        nextActions = b.actionOnNextBlackMove
+        //nextActions = b.actionOnNextBlackMove
     }
     actions[pos]()
     // Clear the appropriate actionOnNextMove array. 
     // David: This is really important so that the GC can free the closures with all the
     // associated contexts. Am I right?
-    for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
+    /*for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
         nextActions[i] = nil
     }
     b.colorOfNextPlay = !color
-    b.updateLegalMoves(b.colorOfNextPlay)
+    b.updateLegalMoves(b.colorOfNextPlay)*/
 
     if color == Black {
         b.acBlackMoveUpToDate = false

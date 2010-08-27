@@ -96,7 +96,7 @@ BENCHMARKRUN += ./$(patsubst %_run,%, $(@)) -benchmarks='$(BENCHMARKREGEX)';
 # Commands for profiling benchmarks
 BENCHMARKPROFILE  = @echo Profiling $(patsubst %_profile,%,$(@));
 BENCHMARKPROFILE += echo "OSX needs root rights for this";
-BENCHMARKPROFILE += $(PROFILER) -P $(PROFDIR)$(patsubst $(BENCHMARKDIR)%_profile,%,$(@)).prof ./$(patsubst %_profile,%, $(@)) -benchmarks='$(BENCHMARKREGEX)';
+BENCHMARKPROFILE += $(PROFILER) -d 10 -P $(PROFDIR)$(patsubst $(BENCHMARKDIR)%_profile,%,$(@)).prof ./$(patsubst %_profile,%, $(@)) -benchmarks='$(BENCHMARKREGEX)';
 BENCHMARKPROFILE += $(GOPPROF) ./$(patsubst %_profile,%, $(@)) $(PROFDIR)$(patsubst $(BENCHMARKDIR)%_profile,%,$(@)).prof;
 
 ALLBENCHMARKS_TARGS = design_decision_benchmark board_benchmark

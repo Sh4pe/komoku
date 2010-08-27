@@ -401,8 +401,8 @@ type writeStringer interface {
 // Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersec
 // already occupied points
 func TestListLegalPoints(t *testing.T) {
-    numGames := 50 // Number of games this test should play
-    gamesLen := 50 // Number of random moves to play
+    numGames := 100 // Number of games this test should play
+    gamesLen := 100 // Number of random moves to play
     boardsize := 9
     dumpFile := relPathToAbs("../../../data/tmp/TestListLegalPoints.GTPsequence.tmp")
     for nGame := 0; nGame < numGames; nGame++ {
@@ -470,6 +470,10 @@ func TestListLegalPoints(t *testing.T) {
                 legal = legalBlack
             } else {
                 legal = legalWhite
+            }
+            // If there is no legal move for the side whos turn it is, the game is finished
+            if len(legal) == 0 {
+                break
             }
             // Play a random move
             sec, nsec, _ := os.Time()
