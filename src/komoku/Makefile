@@ -159,7 +159,7 @@ tests_run: $(KOMOKULIB) $(ALLTESTS)
 	done;
 
 #################### benchmarks ################
-$(BENCHMARKDIR)design_decision_benchmark: $(BENCHMARKDIR)design_decision_benchmark.go intlist.go
+$(BENCHMARKDIR)design_decision_benchmark: $(BENCHMARKDIR)design_decision_benchmark.go common.go debug.go intlist.go
 	$(BENCHMARKCOMPILE_QUIET)
 
 $(BENCHMARKDIR)design_decision_benchmark_run: $(BENCHMARKDIR)design_decision_benchmark

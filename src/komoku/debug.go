@@ -66,3 +66,48 @@ func ProfileInfoToFileByRelPath(profFile string) {
         fmt.Printf("error in WriteHeapProfile: %s", err)
     }
 }
+
+// ################################################################################
+// ########################### debugHistogram struct ##############################
+// ################################################################################
+type debugHistogram struct {
+    mapping map[string]int
+}
+
+// ######################## debugHistogram methods ####################
+
+func (d *debugHistogram) Print() {
+    if !printDebugOutput {
+        return
+    }
+    if len(d.mapping) == 0 {
+        return
+    }
+    fmt.Fprintf(os.Stderr, "Debug histogram\n")
+    for k, v := range d.mapping {
+        fmt.Fprintf(os.Stderr, "%s: %d\n", k, v)
+    }
+}
+
+func (d *debugHistogram) Score() {
+    _, callerFilePath, callerLine, _ := runtime.Caller(1)
+    splitPath := strings.Split(callerFilePath, "/", -1)
+    callerFile := splitPath[len(splitPath) - 1]
+    str := fmt.Sprintf("%s:%d", callerFile, callerLine)
+    if v, ok := d.mapping[str]; !ok {
+        d.mapping[str] = 1
+    } else {
+        d.mapping[str] = v+1
+    }
+}
+
+// ######################## debugHistogram helpers ####################
+func newDebugHistogram() *debugHistogram {
+    return &debugHistogram{ mapping: make(map[string]int),
+                          }
+}
+
+
+// ######################## debugHistogram helpers ####################
+var DbgHistogram = newDebugHistogram()
+

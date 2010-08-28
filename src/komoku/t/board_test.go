@@ -401,10 +401,11 @@ type writeStringer interface {
 // Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersec
 // already occupied points
 func TestListLegalPoints(t *testing.T) {
-    numGames := 100 // Number of games this test should play
+    numGames := 500 // Number of games this test should play
     gamesLen := 100 // Number of random moves to play
     boardsize := 9
     dumpFile := relPathToAbs("../../../data/tmp/TestListLegalPoints.GTPsequence.tmp")
+    lastMovePass := false
     for nGame := 0; nGame < numGames; nGame++ {
         game := NewGame(boardsize)
         var currentColor Color = Black
@@ -471,16 +472,24 @@ func TestListLegalPoints(t *testing.T) {
             } else {
                 legal = legalWhite
             }
-            // If there is no legal move for the side whos turn it is, the game is finished
+            // If there is no legal move for the side whos turn it is, this side passes.
+            // If there are two passes in a row, finish the game.
             if len(legal) == 0 {
-                break
+                if lastMovePass {
+                    break
+                } else {
+                    game.PlayPass(currentColor)
+                    lastMovePass = true
+                }
+            } else {
+                // Play a random move
+                sec, nsec, _ := os.Time()
+                random := rand.New(rand.NewSource(sec+nsec))
+                randomMove := legal[random.Intn(len(legal))]
+                game.PlayMove(randomMove.X, randomMove.Y, currentColor)
+                currentColor = !currentColor
+                lastMovePass = false
             }
-            // Play a random move
-            sec, nsec, _ := os.Time()
-            random := rand.New(rand.NewSource(sec+nsec))
-            randomMove := legal[random.Intn(len(legal))]
-            game.PlayMove(randomMove.X, randomMove.Y, currentColor)
-            currentColor = !currentColor
         }
     }
 }

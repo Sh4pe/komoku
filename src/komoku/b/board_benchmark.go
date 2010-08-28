@@ -15,8 +15,6 @@ import (
 
 
 func BenchmarkRandomGame(b *testing.B) {
-    //profiling: erst 6prof mit root-rechten, dann gopprof...
-    //ProfileInfoToFile(relPathToAbs("../../../data/prof/BenchmarkRandomGame.prof"))
     b.StopTimer()
     boardSize := 19
     board := NewBoard(boardSize)
