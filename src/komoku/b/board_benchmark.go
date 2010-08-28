@@ -32,6 +32,7 @@ func BenchmarkRandomGame(b *testing.B) {
             board.TurnPlayMove(randomMove.X, randomMove.Y)
         }
     }
+    DbgHistogram.Print()
 }
 
 func Benchmarks() []testing.Benchmark {

@@ -75,6 +75,17 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
     }
     pos := b.xyToPos(x,y)
     nFree, adjSameColor, adjOtherColor := b.GetEnvironment(x,y)
+    // use this for changing IntList - maybe.
+    /*if adjSameColor.Length() == 0 {
+        DbgHistogram.Score()
+    } else {
+        DbgHistogram.Score()
+    }
+    if adjOtherColor.Length() == 0 {
+        DbgHistogram.Score()
+    } else {
+        DbgHistogram.Score()
+    }*/
     if color == White {
         adjSameColor, adjOtherColor = adjOtherColor, adjSameColor
     }
@@ -461,7 +472,7 @@ func (b *Board) ListLegalPoints(color Color) []Point {
     i := 0
     for it := legalMoves.First(); it != last; it = it.Next() {
         x, y := b.posToXY(it.Value())
-        ret[i] = *NewPoint(x,y)
+        ret[i].X, ret[i].Y = x, y
         i++
     }
     return ret
