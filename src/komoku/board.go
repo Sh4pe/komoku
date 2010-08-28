@@ -65,8 +65,8 @@ func (b *Board) BoardSize() int {
 // of legal{Black,White}Moves... 
 // Note that this method assumes that (x,y) is empty.
 func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action actionFunc) {
-    //this is called too often. Change the concept so that it is called less
     //printDbgMsgf("Board.calculateIfLegal(%d, %d, %v)\n", x,y,color)
+
     // Is this move prohibited because of a ko?
     if b.ko != nil {
         if b.ko.X == x && b.ko.Y == y {
@@ -78,13 +78,6 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
     if color == White {
         adjSameColor, adjOtherColor = adjOtherColor, adjSameColor
     }
-    /*func() { // <DBG>
-        printDbgMsgf("Board.calculateIfLegal(%d,%d,%s): environment: nFree: %d, adjSameColor: %v, adjOtherColor: %v\n",
-                     x,y,color,nFree,adjSameColor,adjOtherColor)
-        if !b.fields[b.xyToPos(x,y)].Empty() {
-            printDbgMsgf("This field is not empty! This is a panic situation!\n")
-        }
-    }() // </DBG>*/
     enemiesInAtari, enemiesNotInAtari := b.determineGroupsAtariStatus(adjOtherColor)
     // func for capturing groups, if there are any.
     removeGroupsFunc := func() {}
@@ -107,55 +100,6 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
             b.updateGroupLiberties(b.groupMap.Get( GroupIndexType(it.Value()) ))
         }
     }
-    // func to join all the adjacent groups of the same color by playing a stone of color 'color'
-    // at (x,y). This func is _not_safe to call if there are no groups to join!
-    joinGroupsFunc := func() {
-        // Add the stone at (x,y) to the first group.
-        first := adjSameColor.First()
-        firstIndex := GroupIndexType(first.Value())
-        firstGroup := b.groupMap.Get(firstIndex)
-        /*func() { // <DBG>
-            dbgX, dbgY := b.posToXY(pos)
-            printDbgMsgf("firstGroup.Fields.Append at (%d,%d)\n", dbgX, dbgY)
-            dbgMsg := "Fields before: "
-            dbgLast := firstGroup.Fields.Last()
-            for di := firstGroup.Fields.First(); di != dbgLast; di=di.Next() {
-                dbgXX, dbgYY := b.posToXY(di.Value())
-                dbgMsg += fmt.Sprintf("(%d,%d), ", dbgXX, dbgYY)
-            }
-            printDbgMsg(dbgMsg)
-        }() // <DBG>*/
-        firstGroup.Fields.Append(pos)
-        b.fields[pos] = firstIndex
-        b.emptyFields.Remove(pos)
-        b.legalBlackMoves.Remove(pos)
-        b.legalWhiteMoves.Remove(pos)
-        /*func() { // <DBG>
-            dbgMsg := "Fields after: "
-            dbgLast := firstGroup.Fields.Last()
-            for di := firstGroup.Fields.First(); di != dbgLast; di=di.Next() {
-                dbgXX, dbgYY := b.posToXY(di.Value())
-                dbgMsg += fmt.Sprintf("(%d,%d), ", dbgXX, dbgYY)
-            }
-            printDbgMsg(dbgMsg)
-        }() // <DBG>*/
-
-        // Then join the other groups into the first group
-        last := adjSameColor.Last()
-        for it := first.Next(); it != last; it = it.Next() {
-            b.joinGroups(firstIndex, GroupIndexType(it.Value()))
-        }
-        /*func() { // <DBG>
-            dbgMsg := "Fields after every other friendly group is joined in: "
-            dbgLast := firstGroup.Fields.Last()
-            for di := firstGroup.Fields.First(); di != dbgLast; di=di.Next() {
-                dbgXX, dbgYY := b.posToXY(di.Value())
-                dbgMsg += fmt.Sprintf("(%d,%d), ", dbgXX, dbgYY)
-            }
-            printDbgMsg(dbgMsg)
-        }() // <DBG>*/
-        b.updateGroupLiberties(firstGroup)
-    }
 
     if adjSameColor.Length() == 0 {
         if nFree == 0 {
@@ -174,7 +118,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     // It's a ko, so remove the group, play the stone, update the liberties
                     // and set b.ko to the right point.
                     koX, koY := b.posToXY(firstGroup.Fields.First().Value())
-                    action = func() (updateBlack, updateWhite bool) {
+                    action = func() (blackUpToDate, whiteUpToDate bool) {
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, ko case.\n") // <DBG>
                         //DbgHistogram.Score() // </DBG>
                         removeGroupsFunc()
@@ -189,7 +133,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     }
                 } else {
                     // It's not a ko
-                    action = func() (updateBlack, updateWhite bool) {
+                    action = func() (blackUpToDate, whiteUpToDate bool) {
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, not ko case.\n") // <DBG>
                         //DbgHistogram.Score() // </DBG>
                         removeGroupsFunc()
@@ -205,7 +149,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
             // There are no adjacent friendly groups, but free neighbour fields, so this move
             // is always legal. Remove adjacent enemy groups if necessary and create a new group.
             if removeGroups {
-               action = func() (updateBlack, updateWhite bool){
+               action = func() (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = true.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
                     removeGroupsFunc()
@@ -216,51 +160,14 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                 }
             } else {
                 action = func() (blackUpToDate, whiteUpToDate bool) {
-                    // 1st
+                    // Experiments show that this case is run the most often
+
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = false.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
-                    /*b.CreateGroup(x,y,color)
-                    updateLiberyFunc()
-                    b.ko = nil
-                    return false, false*/
-
                     b.CreateGroup(x,y,color)
                     updateLiberyFunc()
-                    // update legality for free neighbours
-                    nbours := b.neighbours(x,y)
-                    for _, p := range nbours {
-                        npos := b.xyToPos(p.X, p.Y)
-                        if b.fields[npos].Empty() {
-                            var legalBlack, legalWhite bool
-                            legalBlack, b.actionOnNextBlackMove[npos] = b.calculateIfLegal(p.X, p.Y, Black)
-                            legalWhite, b.actionOnNextWhiteMove[npos] = b.calculateIfLegal(p.X, p.Y, White)
-                            if !legalBlack {
-                                b.legalBlackMoves.Remove(npos)
-                            }
-                            if !legalWhite {
-                                b.legalWhiteMoves.Remove(npos)
-                            }
-                        }
-                    }
-                    // update legality for adjacent enemy groups
-                    otherLast := adjOtherColor.Last()
-                    for otherIt := adjOtherColor.First(); otherIt != otherLast; otherIt = otherIt.Next() {
-                        grp := b.groupMap.Get( GroupIndexType(otherIt.Value()) )
-                        lastLib := grp.Liberties.Last()
-                        for itLib := grp.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
-                            lpos := itLib.Value()
-                            pX, pY := b.posToXY(lpos)
-                            var legalBlack, legalWhite bool
-                            legalBlack, b.actionOnNextBlackMove[lpos] = b.calculateIfLegal(pX, pY, Black)
-                            legalWhite, b.actionOnNextWhiteMove[lpos] = b.calculateIfLegal(pX, pY, White)
-                            if !legalBlack {
-                                b.legalBlackMoves.Remove(lpos)
-                            }
-                            if !legalWhite {
-                                b.legalWhiteMoves.Remove(lpos)
-                            }
-                        }
-                    }
+                    b.updateLegalityForFreeNeighboursOf(x,y)
+                    b.updateLegalityForAdjacentGroups(adjOtherColor)
                     b.ko = nil
                     return true, true
                 }
@@ -272,11 +179,11 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
             if removeGroups {
                 // This move captures stones and thus produces empty fields, so it is legal. Capture
                 // the stones first and then join the adjacent groups of the same color.
-                action = func() (updateBlack, updateWhite bool) {
+                action = func() (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree == 0, removeGroups = true.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
                     removeGroupsFunc()
-                    joinGroupsFunc()
+                    b.joinGroupsByPlayAt(pos, adjSameColor)
                     updateLiberyFunc()
                     b.ko = nil
                     return false, false
@@ -298,53 +205,16 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                 if oneHasTwo {
                     // If we join the groups, the resulting group has at least one liberty, so this move is legal.
                     // Since there are no groups to capture, simply join the adjacient groups of color 'color'.
-                    action = func() (updateBlack, updateWhite bool) {
-                        // 3rd
+                    action = func() (blackUpToDate, whiteUpToDate bool) {
+                        // Experiments show that this case is run the 3rd most often
+
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree == 0, removeGroups = false, oneHasTwo = true.\n") // <DBG>
                         //DbgHistogram.Score() // </DBG>
-                        /*joinGroupsFunc()
-                        updateLiberyFunc()
-                        b.ko = nil
-                        return false, false*/
 
-                        joinGroupsFunc()
-
-                        // update legality for adjacent enemy groups
-                        otherLast := adjOtherColor.Last()
-                        for otherIt := adjOtherColor.First(); otherIt != otherLast; otherIt = otherIt.Next() {
-                            grp := b.groupMap.Get( GroupIndexType(otherIt.Value()) )
-                            lastLib := grp.Liberties.Last()
-                            for itLib := grp.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
-                                lpos := itLib.Value()
-                                pX, pY := b.posToXY(lpos)
-                                var legalBlack, legalWhite bool
-                                legalBlack, b.actionOnNextBlackMove[lpos] = b.calculateIfLegal(pX, pY, Black)
-                                legalWhite, b.actionOnNextWhiteMove[lpos] = b.calculateIfLegal(pX, pY, White)
-                                if !legalBlack {
-                                    b.legalBlackMoves.Remove(lpos)
-                                }
-                                if !legalWhite {
-                                    b.legalWhiteMoves.Remove(lpos)
-                                }
-                            }
-                        }
-                        // update legality for the newly joined group (which is created by joinGroupsFunc).
-                        // This new group is located at pos
-                        newGrp := b.groupMap.Get(b.fields[pos])
-                        lastLib := newGrp.Liberties.Last()
-                        for itLib := newGrp.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
-                            lpos := itLib.Value()
-                            pX, pY := b.posToXY(lpos)
-                            var legalBlack, legalWhite bool
-                            legalBlack, b.actionOnNextBlackMove[lpos] = b.calculateIfLegal(pX, pY, Black)
-                            legalWhite, b.actionOnNextWhiteMove[lpos] = b.calculateIfLegal(pX, pY, White)
-                            if !legalBlack {
-                                b.legalBlackMoves.Remove(lpos)
-                            }
-                            if !legalWhite {
-                                b.legalWhiteMoves.Remove(lpos)
-                            }
-                        }
+                        b.joinGroupsByPlayAt(pos, adjSameColor)
+                        b.updateLegalityForAdjacentGroups(adjOtherColor)
+                        // update legality for the newly joined group, which is at pos
+                        b.updateLegalityForLibertiesOf(b.groupMap.Get(b.fields[pos]))
 
                         b.ko = nil
                         return true, true
@@ -360,85 +230,28 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
             // There are free neighbour fields, so this move is always legal. Capture adjacent enemy groups if necessary, 
             // then join groups and update liberties
             if removeGroups {
-                action = func() (updateBlack, updateWhite bool) {
+                action = func() (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree > 0, removeGroups = true.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
                     removeGroupsFunc()
-                    joinGroupsFunc()
+                    //joinGroupsFunc()
+                    b.joinGroupsByPlayAt(pos, adjSameColor)
                     updateLiberyFunc()
                     b.ko = nil
                     return false, false
                 }
             } else {
-                action = func() (updateBlack, updateWhite bool) {
-                    // 2nd
+                action = func() (blackUpToDate, whiteUpToDate bool) {
+                    // Experiments show that this case is run the 2nd most often
+
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree > 0, removeGroups = false.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
-                    /*joinGroupsFunc()
+                    b.joinGroupsByPlayAt(pos, adjSameColor)
                     updateLiberyFunc()
-                    b.ko = nil
-                    return false, false*/
-
-                    joinGroupsFunc()
-                    updateLiberyFunc()
-
-                    //look into this!
-                    // update legality for free neighbours
-                    nbours := b.neighbours(x,y)
-                    //printDbgMsgf("neighbours of (%d,%d) considered\n", x,y)
-                    for _, p := range nbours {
-                        npos := b.xyToPos(p.X, p.Y)
-                        if b.fields[npos].Empty() {
-                            //printDbgMsgf("empty: (%d, %d)\n", p.X, p.Y)
-                            var legalBlack, legalWhite bool
-                            legalBlack, b.actionOnNextBlackMove[npos] = b.calculateIfLegal(p.X, p.Y, Black)
-                            legalWhite, b.actionOnNextWhiteMove[npos] = b.calculateIfLegal(p.X, p.Y, White)
-                            if !legalBlack {
-                                //printDbgMsgf("remove legal black at (%d,%d)\n", p.X, p.Y)
-                                b.legalBlackMoves.Remove(npos)
-                            }
-                            if !legalWhite {
-                                //printDbgMsgf("remove legal white at (%d,%d)\n", p.X, p.Y)
-                                b.legalWhiteMoves.Remove(npos)
-                            }
-                        }
-                    }
-                    // update legality for adjacent enemy groups
-                    otherLast := adjOtherColor.Last()
-                    for otherIt := adjOtherColor.First(); otherIt != otherLast; otherIt = otherIt.Next() {
-                        grp := b.groupMap.Get( GroupIndexType(otherIt.Value()) )
-                        lastLib := grp.Liberties.Last()
-                        for itLib := grp.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
-                            lpos := itLib.Value()
-                            pX, pY := b.posToXY(lpos)
-                            var legalBlack, legalWhite bool
-                            legalBlack, b.actionOnNextBlackMove[lpos] = b.calculateIfLegal(pX, pY, Black)
-                            legalWhite, b.actionOnNextWhiteMove[lpos] = b.calculateIfLegal(pX, pY, White)
-                            if !legalBlack {
-                                b.legalBlackMoves.Remove(lpos)
-                            }
-                            if !legalWhite {
-                                b.legalWhiteMoves.Remove(lpos)
-                            }
-                        }
-                    }
-                    // update legality for the newly joined group (which is created by joinGroupsFunc).
-                    // This new group is located at pos
-                    newGrp := b.groupMap.Get(b.fields[pos])
-                    lastLib := newGrp.Liberties.Last()
-                    for itLib := newGrp.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
-                        lpos := itLib.Value()
-                        pX, pY := b.posToXY(lpos)
-                        var legalBlack, legalWhite bool
-                        legalBlack, b.actionOnNextBlackMove[lpos] = b.calculateIfLegal(pX, pY, Black)
-                        legalWhite, b.actionOnNextWhiteMove[lpos] = b.calculateIfLegal(pX, pY, White)
-                        if !legalBlack {
-                            b.legalBlackMoves.Remove(lpos)
-                        }
-                        if !legalWhite {
-                            b.legalWhiteMoves.Remove(lpos)
-                        }
-                    }
+                    b.updateLegalityForFreeNeighboursOf(x,y)
+                    b.updateLegalityForAdjacentGroups(adjOtherColor)
+                    // update legality for the newly joined group, which is at pos
+                    b.updateLegalityForLibertiesOf(b.groupMap.Get(b.fields[pos]))
 
                     b.ko = nil
                     return true, true
@@ -574,6 +387,57 @@ func (b *Board) joinGroups(into, from GroupIndexType) {
     }
     ginto.Fields.JoinUnique(gfrom.Fields)
     b.groupMap.Remove(from)
+}
+
+// This is a helper function for Board.calculateIfLegal. It joint the adjacent
+// groups in 'adjSameColor' by playing a stone of the same color at posToXY(playPos)
+// This func is _not_safe to call if there are no groups to join (i.e. adjSameColor empty)
+func (b *Board) joinGroupsByPlayAt(playPos int, adjSameColor *IntList) {
+    // Add the stone at posToXY(playPos) to the first group.
+    first := adjSameColor.First()
+    firstIndex := GroupIndexType(first.Value())
+    firstGroup := b.groupMap.Get(firstIndex)
+    /*func() { // <DBG>
+        dbgX, dbgY := b.posToXY(playPos)
+        printDbgMsgf("firstGroup.Fields.Append at (%d,%d)\n", dbgX, dbgY)
+        dbgMsg := "Fields before: "
+        dbgLast := firstGroup.Fields.Last()
+        for di := firstGroup.Fields.First(); di != dbgLast; di=di.Next() {
+            dbgXX, dbgYY := b.posToXY(di.Value())
+            dbgMsg += fmt.Sprintf("(%d,%d), ", dbgXX, dbgYY)
+        }
+        printDbgMsg(dbgMsg)
+    }() // <DBG>*/
+    firstGroup.Fields.Append(playPos)
+    b.fields[playPos] = firstIndex
+    b.emptyFields.Remove(playPos)
+    b.legalBlackMoves.Remove(playPos)
+    b.legalWhiteMoves.Remove(playPos)
+    /*func() { // <DBG>
+        dbgMsg := "Fields after: "
+        dbgLast := firstGroup.Fields.Last()
+        for di := firstGroup.Fields.First(); di != dbgLast; di=di.Next() {
+            dbgXX, dbgYY := b.posToXY(di.Value())
+            dbgMsg += fmt.Sprintf("(%d,%d), ", dbgXX, dbgYY)
+        }
+        printDbgMsg(dbgMsg)
+    }() // <DBG>*/
+
+    // Then join the other groups into the first group
+    last := adjSameColor.Last()
+    for it := first.Next(); it != last; it = it.Next() {
+        b.joinGroups(firstIndex, GroupIndexType(it.Value()))
+    }
+    /*func() { // <DBG>
+        dbgMsg := "Fields after every other friendly group is joined in: "
+        dbgLast := firstGroup.Fields.Last()
+        for di := firstGroup.Fields.First(); di != dbgLast; di=di.Next() {
+            dbgXX, dbgYY := b.posToXY(di.Value())
+            dbgMsg += fmt.Sprintf("(%d,%d), ", dbgXX, dbgYY)
+        }
+        printDbgMsg(dbgMsg)
+    }() // <DBG>*/
+    b.updateGroupLiberties(firstGroup)
 }
 
 func (b *Board) legalMovesNeedUpdate() {
@@ -734,6 +598,18 @@ func (b *Board) posToXY(pos int) (x, y int) {
     return pos%b.BoardSize(), pos/b.BoardSize()
 }
 
+// Helper method for Board.calculateIfLegal. Removes all groups in 'enemiesInAtari', if
+// there are any
+/*func (b *Board) removeInAtari(enemiesInAtari *IntList) {
+    if enemiesInAtari.Length() == 0 {
+        return
+    }
+    rmLast := enemiesInAtari.Last()
+    for rmIt := enemiesInAtari.First(); rmIt != rmLast; rmIt = rmIt.Next() {
+        b.removeGroupByGroupIndex( GroupIndexType(rmIt.Value()) )
+    }
+}*/
+
 // Removes the group which occupies (x,y), if there is any, and updates b.emptyFields.
 // This method does not alter legalWhiteMoves or legalBlackMoves.
 // TODO(david): Do I really want to export this?
@@ -774,6 +650,7 @@ func (b *Board) removeGroupByGroupIndex(gid GroupIndexType) {
     b.groupMap.Remove(gid)
 }
 
+
 // The player whose turn it is plays a stone (x,y). If an error occurs (such as that 
 // this place is already occupied) this error is returned. This method assumes that 
 // b.actionOnNextMove is correcty set
@@ -801,6 +678,65 @@ func (b *Board) updateGroupLiberties(group *Group) {
             if b.fields[npos].Empty() {
                 group.Liberties.AppendUnique(npos)
             }
+        }
+    }
+}
+
+// Helper method for Board.calculateIfLegal. Does what it name indicates.
+func (b *Board) updateLegalityForAdjacentGroups(adjGroups *IntList) {
+    adjLast := adjGroups.Last()
+    for adjIt := adjGroups.First(); adjIt != adjLast; adjIt = adjIt.Next() {
+        grp := b.groupMap.Get( GroupIndexType(adjIt.Value()) )
+        lastLib := grp.Liberties.Last()
+        for itLib := grp.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
+            lpos := itLib.Value()
+            pX, pY := b.posToXY(lpos)
+            var legalBlack, legalWhite bool
+            legalBlack, b.actionOnNextBlackMove[lpos] = b.calculateIfLegal(pX, pY, Black)
+            legalWhite, b.actionOnNextWhiteMove[lpos] = b.calculateIfLegal(pX, pY, White)
+            if !legalBlack {
+                b.legalBlackMoves.Remove(lpos)
+            }
+            if !legalWhite {
+                b.legalWhiteMoves.Remove(lpos)
+            }
+        }
+    }
+}
+
+// Helper method for Board.calculateIfLegal. Does what it name indicates.
+func (b *Board) updateLegalityForFreeNeighboursOf(x,y int) {
+    nbours := b.neighbours(x,y)
+    for _, p := range nbours {
+        npos := b.xyToPos(p.X, p.Y)
+        if b.fields[npos].Empty() {
+            var legalBlack, legalWhite bool
+            legalBlack, b.actionOnNextBlackMove[npos] = b.calculateIfLegal(p.X, p.Y, Black)
+            legalWhite, b.actionOnNextWhiteMove[npos] = b.calculateIfLegal(p.X, p.Y, White)
+            if !legalBlack {
+                b.legalBlackMoves.Remove(npos)
+            }
+            if !legalWhite {
+                b.legalWhiteMoves.Remove(npos)
+            }
+        }
+    }
+}
+
+// Helper method for Board.calculateIfLegal. Does what it name indicates.
+func (b *Board) updateLegalityForLibertiesOf(group *Group) {
+    lastLib := group.Liberties.Last()
+    for itLib := group.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
+        lpos := itLib.Value()
+        pX, pY := b.posToXY(lpos)
+        var legalBlack, legalWhite bool
+        legalBlack, b.actionOnNextBlackMove[lpos] = b.calculateIfLegal(pX, pY, Black)
+        legalWhite, b.actionOnNextWhiteMove[lpos] = b.calculateIfLegal(pX, pY, White)
+        if !legalBlack {
+            b.legalBlackMoves.Remove(lpos)
+        }
+        if !legalWhite {
+            b.legalWhiteMoves.Remove(lpos)
         }
     }
 }

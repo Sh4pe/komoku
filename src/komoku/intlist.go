@@ -62,6 +62,14 @@ func (il *IntList) Clear() {
     il.length = 0
 }
 
+// Do calls f for each entry in 'il'
+func (il *IntList) Do(f func(val int)) {
+    last := il.last
+    for it := il.first.next; it != last; it = it.next {
+        f(it.value)
+    }
+}
+
 func (il *IntList) First() *IntListNode {
     return il.first.next
 }

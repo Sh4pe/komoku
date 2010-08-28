@@ -82,6 +82,38 @@ func BenchmarkIntCast(b *testing.B) {
     }
 }
 
+func BenchmarkIntListIteratorLoop(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        b.StopTimer()
+        il := NewIntList()
+        for k := 0; k < 10; k++ {
+            il.Append(k)
+        }
+        b.StartTimer()
+        last := il.Last()
+        for it := il.First(); it != last; it = it.Next() {
+            v := it.Value()
+            v++
+        }
+    }
+}
+
+func BenchmarkIntListDoLoop(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        b.StopTimer()
+        il := NewIntList()
+        for k := 0; k < 10; k++ {
+            il.Append(k)
+        }
+        b.StartTimer()
+        eachFunc := func(val int) {
+            local := val
+            local++
+        }
+        il.Do(eachFunc)
+    }
+}
+
 func Benchmarks() []testing.Benchmark {
     return []testing.Benchmark { testing.Benchmark{"BenchmarkGenericVector", BenchmarkGenericVector},
                                  testing.Benchmark{"BenchmarkIntVector", BenchmarkIntVector},
@@ -89,5 +121,7 @@ func Benchmarks() []testing.Benchmark {
                                  testing.Benchmark{"BenchmarkCreationValueAssign", BenchmarkCreationValueAssign},
                                  testing.Benchmark{"BenchmarkIntAssignment", BenchmarkIntAssignment},
                                  testing.Benchmark{"BenchmarkIntCast", BenchmarkIntCast},
+                                 testing.Benchmark{"BenchmarkIntListIteratorLoop", BenchmarkIntListIteratorLoop},
+                                 testing.Benchmark{"BenchmarkIntListDoLoop", BenchmarkIntListDoLoop},
                                }
 }

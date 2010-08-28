@@ -145,6 +145,17 @@ func testMain() {
     for s := range slice {
         fmt.Printf("%s\n", s)
     }
+
+    for i := 0; i < 5; i++ { fmt.Println("") }
+
+    testIl := komoku.NewIntList()
+    for k := 0; k < 100; k++ {
+        testIl.Append(k)
+    }
+    eachFunc := func(val int) {
+        fmt.Println(val)
+    }
+    testIl.Do(eachFunc)
 }
 
 func main() {
