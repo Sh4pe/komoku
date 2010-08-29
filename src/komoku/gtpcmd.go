@@ -169,7 +169,7 @@ func gtpkomoku_getgroup(obj *GTPObject) *GTPCommand {
         if empty {
             return "empty", false, nil
         }
-        return fmt.Sprintf("color: %s, #stones: %d", grp.Color, grp.Fields.Length()), false, nil
+        return fmt.Sprintf("color: %s, #stones: %d, #liberties: %d", grp.Color, grp.Fields.Length(), grp.Liberties.Length()), false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
@@ -234,6 +234,34 @@ func gtpkomoku_numstones(obj *GTPObject) *GTPCommand {
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         nblack, nwhite := obj.env.CurrentGame.Board.numberOfStones()
         return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Prints the liberties of the specified group (as vertices) or "empty"
+func gtpkomoku_showliberties(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPVertex }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        vertex := params[0].(Vertex)
+        if vertex.Pass {
+            emsg := "argument 0 has to be a vertex other than pass"
+            return emsg, false, NewGTPSyntaxError(emsg)
+        }
+        empty, group := obj.env.CurrentGame.Board.GetGroup(vertex.X, vertex.Y)
+        if empty {
+            return "there is no group", false, nil
+        }
+        libPoints := make([]Point, group.Liberties.Length())
+        i := 0
+        group.Liberties.Do(func(val int) {
+            pX, pY := obj.env.CurrentGame.Board.posToXY(val)
+            libPoints[i] = *NewPoint(pX, pY)
+            i++
+        })
+        ret := "\n" + printBoardPrimitive(obj.env.CurrentGame.Board, "", -1, -1, libPoints)
+        return ret, false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,

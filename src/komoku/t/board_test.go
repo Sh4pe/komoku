@@ -401,6 +401,7 @@ type writeStringer interface {
 // Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersec
 // already occupied points
 func TestListLegalPoints(t *testing.T) {
+    //write a test if the legal moves and the occupied spaces exhaust the whole board
     numGames := 500 // Number of games this test should play
     gamesLen := 100 // Number of random moves to play
     boardsize := 9
@@ -411,11 +412,23 @@ func TestListLegalPoints(t *testing.T) {
         var currentColor Color = Black
         for nMove := 0; nMove < gamesLen; nMove++ {
 
+            //fmt.Printf("move %d\n", nMove)
+            dumpSequence := func(w writeStringer) {
+                for _, mv := range game.sequence {
+                    m, _ := mv.(Move)
+                    vertex, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
+                    line := fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
+                    if _, werr := w.WriteString(line); werr != nil {
+                        secondLine := fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
+                        secondLine += fmt.Sprintf("The error was: %s\n", werr)
+                        t.Fatalf(secondLine)
+                    }
+                }
+            }
+
             fail := func(w writeStringer, nGame, nMove int, color Color, illegalPoint Point) {
                 // TODO: clean this up!
                 // The sequence is dumped into a file which can be used as input for komoku in the GTP mode
-                //os.Remove(dumpFile)
-                //file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666)
                 secondLine := fmt.Sprintf("The sequence was dumped into %s", dumpFile)
                 time := time.LocalTime()
                 _, werr := w.WriteString(fmt.Sprintf("# These moves lead to an illegal position. %s\n", time))
@@ -441,31 +454,82 @@ func TestListLegalPoints(t *testing.T) {
                     }
 
                 }
-                t.Fatalf("In game #%d there was an illegal %s move after %d moves.\n%s", nGame, color, nMove, secondLine)
+                t.Fatalf("In game #%d there was an illegal %s move/position after %d moves.\n%s", nGame, color, nMove, secondLine)
+            }
+
+            fileFail := func(p Point) {
+                os.Remove(dumpFile)
+                if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
+                    fail(file, nGame, nMove, Black, p)
+                } else {
+                    t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
+                }
             }
 
             legalBlack := game.Board.ListLegalPoints(Black)
             legalWhite := game.Board.ListLegalPoints(White)
             for _, p := range legalBlack {
                 if empty, _ := game.Board.GetGroup(p.X, p.Y); !empty {
-                    os.Remove(dumpFile)
-                    if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
-                        fail(file, nGame, nMove, Black, p)
-                    } else {
-                        t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
-                    }
+                    fileFail(p)
                 }
             }
             for _, p := range legalBlack {
                 if empty, _ := game.Board.GetGroup(p.X, p.Y); !empty {
+                    fileFail(p)
+                }
+            }
+            // check that no groups have 0 liberties
+            gmEach := func(key GroupIndexType, grp *Group) {
+                if grp.Liberties.Length() == 0 {
                     os.Remove(dumpFile)
                     if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
-                        fail(file, nGame, nMove, White, p)
+                        dumpSequence(file)
+                        gX, gY := game.Board.posToXY(grp.Fields.First().Value())
+                        vertex, _ := pointToGTPVertex(*NewPoint(gX, gY))
+                        file.WriteString(fmt.Sprintf("# the group with 0 libs is around %s\n", vertex))
+                        t.Fatalf("in game %d, there were groups with 0 liberties after %d moves.\nSeq dumped into %s", nGame, nMove, dumpFile)
                     } else {
                         t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
                     }
                 }
             }
+            game.Board.groupMap.Do(gmEach)
+            // check if the legal moves and the occupied fields completely exhaust the whole board
+            allmap := make(map[int]bool)
+            for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
+                allmap[i] = true
+            }
+            for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
+                if !game.Board.fields[i].Empty() {
+                    allmap[i] = false, false
+                }
+            }
+            for _, p := range legalBlack {
+                pos := game.Board.xyToPos(p.X, p.Y)
+                allmap[pos] = false, false
+            }
+            for _, p := range legalWhite {
+                pos := game.Board.xyToPos(p.X, p.Y)
+                allmap[pos] = false, false
+            }
+            if len(allmap) != 0 {
+                os.Remove(dumpFile)
+                if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
+                    dumpSequence(file)
+                    file.WriteString("# the fields which are neither occupied nor legal are:\n")
+                    invalidFields := ""
+                    for fpos, _ := range allmap {
+                        fx, fy := game.Board.posToXY(fpos)
+                        vertex, _ := pointToGTPVertex(*NewPoint(fx, fy))
+                        invalidFields += "# " + vertex
+                    }
+                    file.WriteString(invalidFields + "\n")
+                    t.Fatalf("in game %d, there were fields which were neigher empty nor legal for any color.\nSeq dumped into %s", nGame, dumpFile)
+                } else {
+                    t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
+                }
+            }
+
             var legal []Point
             if currentColor == Black {
                 legal = legalBlack

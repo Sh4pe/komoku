@@ -102,7 +102,8 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
             }
         }
     }
-    // func for updating liberties for each adjacent enemy group which is not catpured.
+    // func for updating liberties for each adjacent enemy group which is not captured.
+    // This func is used if some stones are captured so that we have to walk over the entire groups.
     // This func is safe to call even if there are no groups whose liberties need to be
     // updated.
     updateLiberyFunc := func() {
@@ -176,7 +177,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = false.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
                     b.CreateGroup(x,y,color)
-                    updateLiberyFunc()
+                    b.dropLibertyFromEach(pos, adjOtherColor)
                     b.updateLegalityForFreeNeighboursOf(x,y)
                     b.updateLegalityForAdjacentGroups(adjOtherColor)
                     b.ko = nil
@@ -223,6 +224,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                         //DbgHistogram.Score() // </DBG>
 
                         b.joinGroupsByPlayAt(pos, adjSameColor)
+                        b.dropLibertyFromEach(pos, adjOtherColor)
                         b.updateLegalityForAdjacentGroups(adjOtherColor)
                         // update legality for the newly joined group, which is at pos
                         b.updateLegalityForLibertiesOf(b.groupMap.Get(b.fields[pos]))
@@ -319,6 +321,16 @@ func (b *Board) determineGroupsAtariStatus(groups *IntList) (inAtari, notinAtari
         }
     }
     return
+}
+
+// Helper for Board.calculateIfLegal. Takes each group (identified by one index) in adjGroups and drops
+// the liberty posToXY(libertyPos) from it
+func (b *Board) dropLibertyFromEach(libertyPos int, adjGroups *IntList) {
+    last := adjGroups.Last()
+    for it := adjGroups.First(); it != last; it = it.Next() {
+        grp := b.groupMap.Get( GroupIndexType(it.Value()) )
+        grp.Liberties.Remove(libertyPos)
+    }
 }
 
 // Returns the `environment` of (x,y), i.e. the number 'nFree' of free neighbours
