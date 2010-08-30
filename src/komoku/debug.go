@@ -31,7 +31,7 @@ func printDbgMsg(msg string) {
     _, callerFilePath, callerLine, _ := runtime.Caller(1)
     splitPath := strings.Split(callerFilePath, "/", -1)
     callerFile := splitPath[len(splitPath) - 1]
-    fmt.Fprintf(os.Stderr, "[%s:%d] %s\n", callerFile, callerLine, msg)
+    fmt.Fprintf(os.Stderr, "[%s:%d] %s", callerFile, callerLine, msg)
 }
 
 func printDbgMsgf(format string, a ...interface{}) {

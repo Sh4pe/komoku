@@ -398,6 +398,89 @@ type writeStringer interface {
     WriteString(s string) (ret int, err os.Error)
 }
 
+// Tests a simple ko and tenuki situation
+func TestKo(t *testing.T) {
+    board := NewBoard(9)
+    sequence := []Move{
+        Move{ Color: Black, Vertex: *NewVertex(Point{3,4}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{4,5}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{5,4}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{4,3}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{3,5}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{4,6}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{5,5}, false) },
+    }
+    board.playSequence(sequence)
+    board.PlayMove(4,4,White)
+    legalWhite, _ := board.calculateIfLegal(4,5, White)
+    legalBlack, _ := board.calculateIfLegal(4,5, Black)
+    if !legalWhite {
+        t.Fatalf("expected legal white move at (%d,%d)", 4,5)
+    }
+    if legalBlack {
+        t.Fatalf("expected that a black move at (%d,%d) is illegal", 4,5)
+    }
+    board.PlayMove(1,1,Black)
+    legalWhite, _ = board.calculateIfLegal(4,5, White)
+    legalBlack, _ = board.calculateIfLegal(4,5, Black)
+    if !legalWhite {
+        t.Fatalf("after tennuki: expected legal white move at (%d,%d)", 4,5)
+    }
+    if !legalBlack {
+        t.Fatalf("after tennuki: expected that a black move at (%d,%d) is now illegal", 4,5)
+    }
+
+}
+
+// Tests two kos at one board
+func TestDoubleKo(t *testing.T) {
+    board := NewBoard(9)
+    sequence := []Move{
+        Move{ Color: Black, Vertex: *NewVertex(Point{3,4}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{4,5}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{5,4}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{4,3}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{3,5}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{4,6}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{5,5}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{2,3}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{3,2}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{1,2}, false) },
+        Move{ Color: White, Vertex: *NewVertex(Point{2,1}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{3,1}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{1,1}, false) },
+        Move{ Color: Black, Vertex: *NewVertex(Point{2,0}, false) },
+    }
+    board.playSequence(sequence)
+    legalBlack, _ := board.calculateIfLegal(4,4,Black)
+    legalWhite, _ := board.calculateIfLegal(4,4,White)
+    if !legalBlack || !legalWhite {
+        t.Fatalf("wrong legality status at (%d,%d)", 4,4)
+    }
+    legalBlack, _ = board.calculateIfLegal(2,2,Black)
+    legalWhite, _ = board.calculateIfLegal(2,2,White)
+    if !legalBlack || !legalWhite {
+        t.Fatalf("wrong legality status at (%d,%d)", 2,2)
+    }
+    board.PlayMove(4,4,White)
+    legalBlack, _ = board.calculateIfLegal(4,5,Black)
+    legalWhite, _ = board.calculateIfLegal(4,5,White)
+    if legalBlack || !legalWhite {
+        t.Fatalf("wrong legality status at (%d,%d)", 4,5)
+    }
+    board.PlayMove(2,2,Black)
+    legalBlack, _ = board.calculateIfLegal(2,1,Black)
+    legalWhite, _ = board.calculateIfLegal(2,1,White)
+    if !legalBlack || legalWhite {
+        t.Fatalf("wrong legality status at (%d,%d)", 2,1)
+    }
+    legalBlack, _ = board.calculateIfLegal(4,5,Black)
+    legalWhite, _ = board.calculateIfLegal(4,5,White)
+    if !legalBlack || !legalWhite {
+        t.Fatalf("after 2nd ko: wrong legality status at (%d,%d)", 4,5)
+    }
+}
+
 // Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersec
 // already occupied points
 func TestListLegalPoints(t *testing.T) {
@@ -558,6 +641,7 @@ func TestListLegalPoints(t *testing.T) {
     }
 }
 
+
 func Testsuite() []testing.Test {
     return []testing.Test { testing.Test{"TestCreateGroup", TestCreateGroup},
                             testing.Test{"TestUpdateGroupLiberties", TestUpdateGroupLiberties},
@@ -570,6 +654,8 @@ func Testsuite() []testing.Test {
                             testing.Test{"TestNumGroups", TestNumGroups},
                             testing.Test{"TestNumStones", TestNumStones},
                             testing.Test{"TestGroupGeometry", TestGroupGeometry},
+                            testing.Test{"TestKo", TestKo},
+                            testing.Test{"TestDoubleKo", TestDoubleKo},
                             testing.Test{"TestListLegalPoints", TestListLegalPoints},
                          }
 }

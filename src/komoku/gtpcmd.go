@@ -424,7 +424,12 @@ func gtpshowboard(obj *GTPObject) *GTPCommand {
     signature := []int { }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         b := object.env.CurrentGame.Board
-        result = "\n" + printBoardPrimitive(b, "", -1, -1, nil)
+        lastX, lastY := -1,-1
+        if len(object.env.CurrentGame.sequence) != 0 {
+            lastMove := object.env.CurrentGame.sequence.Last().(Move)
+            lastX, lastY = lastMove.Vertex.X, lastMove.Vertex.Y
+        }
+        result = "\n" + printBoardPrimitive(b, "", lastX, lastY , nil)
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
