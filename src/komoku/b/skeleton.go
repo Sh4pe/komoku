@@ -32,6 +32,5 @@ func main() {
         return
     }
     testing.RunBenchmarks(b)
-    komoku.DbgHistogram.Print()
 }
 

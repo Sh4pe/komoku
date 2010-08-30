@@ -16,6 +16,8 @@ import (
     "strings"
     "fmt"
     "os"
+    "container/vector"
+    "sort"
     "runtime/pprof"
 )
 
@@ -86,6 +88,32 @@ func (d *debugHistogram) Print() {
     fmt.Fprintf(os.Stderr, "Debug histogram\n")
     for k, v := range d.mapping {
         fmt.Fprintf(os.Stderr, "%s: %d\n", k, v)
+    }
+}
+
+func (d *debugHistogram) PrintSorted() {
+    if !printDebugOutput {
+        return
+    }
+    if len(d.mapping) == 0 {
+        return
+    }
+    var scores vector.IntVector
+    inverseMapping := make(map[int]string)
+    sum := 0
+    for key, value := range d.mapping {
+        inverseMapping[value] = key
+        scores.Push(value)
+        sum += value
+    }
+    scoresArray := sort.IntArray(scores)
+    scoresArray.Sort()
+
+    fmt.Fprintf(os.Stderr, "Debug histogram - sorted:\n")
+    length := len(scoresArray)
+    for i := 0; i < length; i++ {
+        current := scoresArray[length - i-1]
+        fmt.Fprintf(os.Stderr, "%s: %d (%2.1f%%)\n", inverseMapping[current], current, float(current)/float(sum)*100)
     }
 }
 
