@@ -93,14 +93,14 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
     nFree, adjSameColor, adjOtherColor := b.GetEnvironment(x,y)
     // use this for changing IntList - maybe.
     /*if adjSameColor.Length() == 0 {
-        DbgHistogram.Score()
+        DbgHistogram.ScoreTagged("sameColorLen == 0")
     } else {
-        DbgHistogram.Score()
+        DbgHistogram.ScoreTagged("sameColorLen != 0")
     }
     if adjOtherColor.Length() == 0 {
-        DbgHistogram.Score()
+        DbgHistogram.ScoreTagged("otherColorLen == 0")
     } else {
-        DbgHistogram.Score()
+        DbgHistogram.ScoreTagged("otherColorLen != 0")
     }*/
     if color == White {
         adjSameColor, adjOtherColor = adjOtherColor, adjSameColor
@@ -150,7 +150,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     koX, koY := b.posToXY(koPos)
                     action = func() (blackUpToDate, whiteUpToDate bool) {
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, ko case.\n") // <DBG>
-                        DbgHistogram.Score() // </DBG>
+                        //DbgHistogram.Score() // </DBG>
 
                         b.clearKo()
                         // Remove the enemy stone
@@ -201,7 +201,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     // It's not a ko
                     action = func() (blackUpToDate, whiteUpToDate bool) {
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, not ko case.\n") // <DBG>
-                        DbgHistogram.Score() // </DBG>
+                        //DbgHistogram.Score() // </DBG>
                         removeGroupsFunc()
                         b.CreateGroup(x,y,color)
                         updateLiberyFunc()
@@ -218,7 +218,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
             if removeGroups {
                action = func() (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = true.\n") // <DBG>
-                    DbgHistogram.Score() // </DBG>
+                    //DbgHistogram.Score() // </DBG>
                     removeGroupsFunc()
                     b.CreateGroup(x,y,color)
                     updateLiberyFunc()
@@ -230,7 +230,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     // Experiments show that this case is run the most often
 
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = false.\n") // <DBG>
-                    DbgHistogram.Score() // </DBG>
+                    //DbgHistogram.Score() // </DBG>
                     b.clearKo()
                     b.CreateGroup(x,y,color)
                     b.dropLibertyFromEach(pos, adjOtherColor)
@@ -250,7 +250,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                 // the stones first and then join the adjacent groups of the same color.
                 action = func() (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree == 0, removeGroups = true.\n") // <DBG>
-                    DbgHistogram.Score() // </DBG>
+                    //DbgHistogram.Score() // </DBG>
                     removeGroupsFunc()
                     b.joinGroupsByPlayAt(pos, adjSameColor)
                     updateLiberyFunc()
@@ -279,7 +279,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                         // Experiments show that this case is run the 3rd most often
 
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree == 0, removeGroups = false, oneHasTwo = true.\n") // <DBG>
-                        DbgHistogram.Score() // </DBG>
+                        //DbgHistogram.Score() // </DBG>
                         //b.ko = nil
                         b.clearKo()
                         b.joinGroupsByPlayAt(pos, adjSameColor)
@@ -305,7 +305,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
             if removeGroups {
                 action = func() (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree > 0, removeGroups = true.\n") // <DBG>
-                    DbgHistogram.Score() // </DBG>
+                    //DbgHistogram.Score() // </DBG>
                     removeGroupsFunc()
                     //joinGroupsFunc()
                     b.joinGroupsByPlayAt(pos, adjSameColor)
@@ -318,7 +318,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     // Experiments show that this case is run the 2nd most often
 
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree > 0, removeGroups = false.\n") // <DBG>
-                    DbgHistogram.Score() // </DBG>
+                    //DbgHistogram.Score() // </DBG>
                     b.clearKo()
                     b.joinGroupsByPlayAt(pos, adjSameColor)
                     updateLiberyFunc()

@@ -129,6 +129,18 @@ func (d *debugHistogram) Score() {
     }
 }
 
+func (d *debugHistogram) ScoreTagged(tag string) {
+    _, callerFilePath, callerLine, _ := runtime.Caller(1)
+    splitPath := strings.Split(callerFilePath, "/", -1)
+    callerFile := splitPath[len(splitPath) - 1]
+    str := fmt.Sprintf("%s:%d '%s'", callerFile, callerLine, tag)
+    if v, ok := d.mapping[str]; !ok {
+        d.mapping[str] = 1
+    } else {
+        d.mapping[str] = v+1
+    }
+}
+
 // ######################## debugHistogram helpers ####################
 func newDebugHistogram() *debugHistogram {
     return &debugHistogram{ mapping: make(map[string]int),
