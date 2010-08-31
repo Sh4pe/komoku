@@ -136,10 +136,50 @@ func TestJoinUniqueSetwise(t *testing.T) {
     }
 }
 
+// Tests if looping over empty IntLists works as expected.
+func TestEmptyLoops(t *testing.T) {
+    il := NewIntList()
+    i := 0
+    last := il.Last()
+    for it := il.First(); it != last; it = it.Next() {
+        i++
+    }
+    if i != 0 {
+        t.Fatalf("The '.First() .Next()'-loop over an empty IntList seems to be performed more than zero times")
+    }
+    i = 0
+    il.Do(func (val int) {
+        i++
+    })
+    if i != 0 {
+        t.Fatalf("The 'Do'-loop over an empty IntList seems to be performed more than zero times")
+    }
+}
+
+// Tests that for an IntList with 1 element, Remove() means the same as Clear()
+func TestRemoveSingleEntry(t *testing.T) {
+    il := NewIntList()
+    il.Append(31)
+    il.Remove(31)
+    if il.Length() != 0 {
+        t.Fatalf("unexpected length after removing the only entry. Wanted 0, got %d", il.Length())
+    }
+    il.Append(37)
+    il.Append(41)
+    if il.First().Value() != 37 {
+        t.Fatalf("unexpected first element after adding two. Expected 37, got %d", il.First().Value())
+    }
+    if il.First().Next().Value() != 41 {
+        t.Fatalf("unexpected first element after adding two. Expected 41, got %d", il.First().Next().Value())
+    }
+}
+
 func Testsuite() []testing.Test {
     return []testing.Test { testing.Test{"TestIntListRemove", TestIntListRemove},
                             testing.Test{"TestRemoveAndAppendWork", TestRemoveAndAppendWork},
                             testing.Test{"TestJoinUniqueLength", TestJoinUniqueLength},
                             testing.Test{"TestJoinUniqueSetwise", TestJoinUniqueSetwise},
+                            testing.Test{"TestEmptyLoops", TestEmptyLoops},
+                            testing.Test{"TestRemoveSingleEntry", TestRemoveSingleEntry},
                           }
 }
