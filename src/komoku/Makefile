@@ -9,6 +9,7 @@
 #
 
 # TODO:
+#	refactor using eval etc...
 #	
 
 #########################################################################################
@@ -94,10 +95,22 @@ BENCHMARKREGEX = [a-zA-Z]*
 BENCHMARKRUN  = @echo Running $(patsubst %_run,%, $(@));
 BENCHMARKRUN += ./$(patsubst %_run,%, $(@)) -benchmarks='$(BENCHMARKREGEX)';
 # Commands for profiling benchmarks
-BENCHMARKPROFILE  = @echo Profiling $(patsubst %_profile,%,$(@));
+BENCHMARKPROFILE  = $(eval proffile=$(PROFDIR)$(patsubst $(BENCHMARKDIR)%_profile,%,$(@)).prof)
+BENCHMARKPROFILE += $(eval profexec=./$(patsubst %_profile,%, $(@)))
+BENCHMARKPROFILE += @echo Profiling $(profexec);
 BENCHMARKPROFILE += echo "OSX needs root rights for this";
-BENCHMARKPROFILE += $(PROFILER) -d 10 -P $(PROFDIR)$(patsubst $(BENCHMARKDIR)%_profile,%,$(@)).prof ./$(patsubst %_profile,%, $(@)) -benchmarks='$(BENCHMARKREGEX)';
-BENCHMARKPROFILE += $(GOPPROF) ./$(patsubst %_profile,%, $(@)) $(PROFDIR)$(patsubst $(BENCHMARKDIR)%_profile,%,$(@)).prof;
+BENCHMARKPROFILE += $(PROFILER) -d 10 -P $(proffile) $(profexec) -benchmarks='$(BENCHMARKREGEX)';
+BENCHMARKPROFILE += $(GOPPROF) $(profexec) $(proffile);
+
+# This comand runs only one benchmark in the profiler
+BENCHMARKPROFILEONLY  = $(eval benchname=$(lastword $(subst _, ,$(@))))
+BENCHMARKPROFILEONLY += $(eval execname=$(patsubst $(BENCHMARKDIR)%,%,$(patsubst %_profile_,%,$(subst $(benchname),,$(@)))))
+BENCHMARKPROFILEONLY += $(eval proffile=$(PROFDIR)$(execname).prof)
+BENCHMARKPROFILEONLY += $(eval profexec=$(patsubst %_profile_,%,$(subst $(benchname),,$(@))))
+BENCHMARKPROFILEONLY += @echo Profiling benchmark \'$(benchname)\' in \'$(execname)\'...;
+BENCHMARKPROFILEONLY += echo "OSX needs root rights for this";
+BENCHMARKPROFILEONLY += $(PROFILER) -d 10 -P $(proffile) $(profexec) -benchmarks='$(benchname)';
+BENCHMARKPROFILEONLY += $(GOPPROF) $(profexec) $(proffile);
 
 ALLBENCHMARKS_TARGS = design_decision_benchmark board_benchmark
 ALLBENCHMARKS = $(patsubst %,$(BENCHMARKDIR)%,$(ALLBENCHMARKS_TARGS))
@@ -162,8 +175,13 @@ tests_run: $(KOMOKULIB) $(ALLTESTS)
 $(BENCHMARKDIR)design_decision_benchmark: $(BENCHMARKDIR)design_decision_benchmark.go common.go debug.go intlist.go
 	$(BENCHMARKCOMPILE_QUIET)
 
+.PHONY: $(BENCHMARKDIR)design_decision_benchmark_run
 $(BENCHMARKDIR)design_decision_benchmark_run: $(BENCHMARKDIR)design_decision_benchmark
 	$(BENCHMARKRUN)
+
+.PHONY: $(BENCHMARKDIR)design_decision_benchmark_profile_GenericVector
+$(BENCHMARKDIR)design_decision_benchmark_profile_GenericVector: $(BENCHMARKDIR)design_decision_benchmark
+	$(BENCHMARKPROFILEONLY)
 
 $(BENCHMARKDIR)board_benchmark: $(BENCHMARKDIR)board_benchmark.go board.go common.go debug.go group.go intlist.go
 	$(BENCHMARKCOMPILE_QUIET)
