@@ -10,5 +10,6 @@ src/komoku/t/gtp_test
 src/komoku/t/ui_test
 src/komoku/b/design_decision_benchmark
 src/komoku/b/board_benchmark
+src/komoku/b/intlist_benchmark
 data/tmp/*.tmp
 data/prof/*.prof

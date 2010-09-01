@@ -112,7 +112,7 @@ BENCHMARKPROFILEONLY += echo "OSX needs root rights for this";
 BENCHMARKPROFILEONLY += $(PROFILER) -d 10 -P $(proffile) $(profexec) -benchmarks='$(benchname)';
 BENCHMARKPROFILEONLY += $(GOPPROF) $(profexec) $(proffile);
 
-ALLBENCHMARKS_TARGS = design_decision_benchmark board_benchmark
+ALLBENCHMARKS_TARGS = design_decision_benchmark board_benchmark intlist_benchmark
 ALLBENCHMARKS = $(patsubst %,$(BENCHMARKDIR)%,$(ALLBENCHMARKS_TARGS))
 
 
@@ -120,6 +120,8 @@ BENCHMARKOBJS += design_decision_benchmark
 BENCHMARKOBJS += design_decision_benchmark.6
 BENCHMARKOBJS += board_benchmark
 BENCHMARKOBJS += board_benchmark.6
+BENCHMARKOBJS += intlist_benchmark
+BENCHMARKOBJS += intlist_benchmark.6
 
 
 
@@ -193,6 +195,13 @@ $(BENCHMARKDIR)board_benchmark_run: $(BENCHMARKDIR)board_benchmark
 .PHONY: $(BENCHMARKDIR)board_benchmark_profile
 $(BENCHMARKDIR)board_benchmark_profile: $(BENCHMARKDIR)board_benchmark
 	$(BENCHMARKPROFILE)
+
+$(BENCHMARKDIR)intlist_benchmark: $(BENCHMARKDIR)intlist_benchmark.go intlist.go
+	$(BENCHMARKCOMPILE_QUIET)
+
+.PHONY: $(BENCHMARKDIR)intlist_benchmark_run
+$(BENCHMARKDIR)intlist_benchmark_run: $(BENCHMARKDIR)intlist_benchmark
+	$(BENCHMARKRUN)
 
 .PHONY: benchmarks_compile
 benchmarks_compile: $(ALLBENCHMARKS)
