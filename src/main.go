@@ -159,9 +159,8 @@ func testMain() {
 }
 
 func main() {
+    //enhance benchmarks for IntList, then improve the performances... less malloc
     //testMain()
     komoku.RunGTPMode()
-    //see goGUI, if only 1 field is free and all others are of the same color, this move is illegal (says komoku) - thats not true.
-    //write a test that tests if the whole board is exhausted by stones and legal fields.
 }
 
