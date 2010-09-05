@@ -10,8 +10,7 @@ package komoku
 
 /* 
  * TODO:
- *      - .Sequence for IntList?
- *      - Write test for .Clear()
+ *      - for changing the receiver, see for example container/vector/intvector.go:51
  */
 
 // ################################################################################

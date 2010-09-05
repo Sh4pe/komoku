@@ -57,7 +57,7 @@ TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created fi
 # the command for doing this quietly with a nice output
 TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
 
-ALLTESTS_TARGS = common_test board_test gtp_test intlist_test ui_test 
+ALLTESTS_TARGS = common_test group_test gtp_test intlist_test ui_test board_test
 ALLTESTS = $(patsubst %,$(TESTDIR)%,$(ALLTESTS_TARGS))
 
 
@@ -71,6 +71,8 @@ TESTOBJS += intlist_test
 TESTOBJS += intlist_test.6
 TESTOBJS += ui_test
 TESTOBJS += ui_test.6
+TESTOBJS += group_test
+TESTOBJS += group_test.6
 
 #########################################################################################
 ############### Stuff needed for generating benchmark executables #######################
@@ -155,6 +157,9 @@ $(TESTDIR)common_test: $(TESTDIR)common_test.go common.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)gtp_test: $(TESTDIR)gtp_test.go board.go common.go debug.go environment.go game.go gtp.go gtpcmd.go group.go intlist.go ui.go
+	$(TESTCOMPILE_QUIET)
+
+$(TESTDIR)group_test: $(TESTDIR)group_test.go common.go group.go intlist.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)intlist_test: $(TESTDIR)intlist_test.go common.go intlist.go 

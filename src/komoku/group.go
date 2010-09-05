@@ -31,10 +31,11 @@ func (g *Group) NumStones() int {
 
 // Creates a new empty group of color 'c'.
 func NewGroup(c Color) *Group {
-    return &Group{ Color: c,
-                   Fields: NewIntList(),
-                   Liberties: NewIntList(),
-                 }
+    return &Group{
+        Color: c,
+        Fields: NewIntList(),
+        Liberties: NewIntList(),
+    }
 }
 
 // ################################################################################
@@ -56,7 +57,6 @@ func (g *GroupIndexType) Empty() bool {
 // ################################################################################
 // ########################### GroupMap struct ####################################
 // ################################################################################
-
 type GroupMap struct {
     mapping map[GroupIndexType]*Group
     topIndex GroupIndexType
@@ -96,8 +96,48 @@ func (gm *GroupMap) Remove(index GroupIndexType) {
 // ##################### GroupMap helper functions ##########################
 
 func NewGroupMap() *GroupMap {
-    return &GroupMap{ mapping: make(map[GroupIndexType]*Group),
-                      topIndex: 1, // 0 is reserved to represent empty fields
-                    }
+    return &GroupMap{
+        mapping: make(map[GroupIndexType]*Group),
+        topIndex: 1, // 0 is reserved to represent empty fields
+    }
+}
+
+// ################################################################################
+// ########################### GroupSlice struct ##################################
+// ################################################################################
+
+// ##################### constants for GroupSlice ##########################
+const (
+    initialGroupSliceSize = 4
+    groupSliceGrow = 4
+)
+
+// GroupSlice is a reduced version of a vector of *Groups
+type GroupSlice []*Group
+
+// ##################### GroupSlice methods ##########################
+
+// Increases the length of the slice by 1, reallocates if necessary.
+func (g *GroupSlice) grow() {
+    if length := len(*g); length + 1 > cap(*g) {
+        newSlice := make([]*Group, length + 1, length + groupSliceGrow)
+        copy(newSlice, *g)
+        *g = newSlice
+    } else {
+        *g = (*g)[0:length+1]
+    }
+}
+
+// Appends group to the GroupSlice
+func (g *GroupSlice) Push(group *Group) {
+    g.grow()
+    (*g)[len(*g)-1] = group
+}
+
+// ##################### GroupSlice helper functions ##########################
+
+func NewGroupSlice() GroupSlice {
+    gs := make([]*Group, 0, initialGroupSliceSize)
+    return GroupSlice(gs)
 }
 

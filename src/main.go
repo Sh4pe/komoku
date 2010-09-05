@@ -7,160 +7,71 @@
  */
 package main
 
+/*
+ * Plan for this branch:
+ *      Get rid of the GroupIndexType in Board.fields. Use *Group instead, nil can denote empty.
+ *      Get rid of most (if not all) [probably only some] the use of IntList, implement a GroupSlice instead....
+ *      Board.GetEnvironment and .determineGroupsAtariStatus should be refactored in this new context.
+ *      Use vector.IntVector for legal{Black,White}Moves and emptyFields
+ */
+
+
 import (
     "fmt"
-    "sort"
-    "container/vector"
     "./komoku/komoku"
-    "path"
-    "os"
 )
-
-const (
-    a = iota-1;
-    b;
-    c;
-)
-
-type father interface{
-    Talk() string
-}
-
-type child interface{
-    father
-    Wee() string
-}
-
-type fimpl struct {
-    dummyf int
-}
-func (i *fimpl) Talk() string {
-    return "Father talks"
-}
-
-type cimpl struct {
-    dummyc float
-}
-func (i *cimpl) Wee() string {
-    return "Child wees"
-}
-func (i *cimpl) Talk() string {
-    return "Child talks"
-}
-
-func eFather(f father) {
-    fmt.Println(f.Talk())
-}
-
-func eChild(c child) {
-    fmt.Println(c.Wee())
-}
-
-func childAsFather(c child) {
-    fmt.Println("in childAsFather")
-    if f, ok := c.(father); !ok {
-        fmt.Println("type assertion failed")
-    } else {
-        fmt.Println(f.Talk())
-        fatherDowntoChild(f)
-    }
-}
-
-func fatherDowntoChild(f father) {
-    if c, ok := f.(child); ok {
-        fmt.Println("father to child worked")
-        fmt.Println(c.Wee())
-    } else {
-        fmt.Println("father to child didn't work")
-    }
-}
-
-func generalFunc(a interface{}) {
-    if c, ok := a.(child); ok {
-        fmt.Printf("type assertion okay, %s\n", c.Wee())
-    } else {
-        fmt.Println("type assertion not okay")
-    }
-}
 
 func testMain() {
-    var f *fimpl
-    var c *cimpl
-    childAsFather(c)
-    fmt.Println()
-    fatherDowntoChild(f)
-    generalFunc(c)
+    fmt.Println("Testmain")
+    slc := make([]int, 10)
+    slc2 := make([]int, 10, 20)
+    fmt.Printf("slc: %d, slc2: %d\n", len(slc), len(slc2))
 
     for i := 0; i < 5; i++ { fmt.Println("") }
 
-    b := komoku.NewBoard(komoku.DefaultBoardSize)
-    b.TurnPlayMove(3,3)
-    b.TurnPlayMove(3,4)
-    b.TurnPlayMove(2,4)
-    b.TurnPlayMove(8,8)
-    b.TurnPlayMove(3,5)
-    b.TurnPlayMove(9,9)
-    b.TurnPlayMove(4,4)
-    komoku.PrintBoard(b)
-
-    for i := 0; i < 5; i++ { fmt.Println("") }
-
-    var v vector.StringVector
-    v.Push("Hans")
-    v.Push("Wurst")
-    v.Push("Käse")
-    v.Push("Adalbert")
-    v.Push("dieter ")
-    v.Do(func (elem string) {
-        fmt.Println(elem)
-    })
-    fmt.Printf("\n\n")
-    sort.SortStrings(sort.StringArray(v))
-    v.Do(func (elem string) {
-        fmt.Println(elem)
-    })
-
-    for i := 0; i < 5; i++ { fmt.Println("") }
-
-    m := make(map[string]bool)
-    m["test"] = true
-    m["hur"] = false
-    for a, b := range m {
-        fmt.Printf("a: %v, b: %v\n", a,b)
-    }
-    kette := "Teststring"
-    fmt.Printf("%s\n", kette[0:1])
-    fmt.Printf("%s\n", kette[1:len(kette)])
-
-    for i := 0; i < 5; i++ { fmt.Println("") }
-
-    wd, _ := os.Getwd()
-    fname := wd + "../../../data/tmp/TestListLegalPoints.GTPsequence.tmp"
-    fname = path.Clean(fname)
-    fmt.Println(fname)
-
-    for i := 0; i < 5; i++ { fmt.Println("") }
-
-    var slice = []string{ "hello", "this", "is", "slice" }
-    for s := range slice {
-        fmt.Printf("%s\n", s)
+    iPtrs := make([]*int, 10)
+    for i := 0; i < len(iPtrs); i++ {
+        iPtrs[i] = new(int)
+        *iPtrs[i] = i
     }
 
+    iPtrs = iPtrs[0:0]
+    fmt.Println("start")
+    for i := 0; i < len(iPtrs); i++ {
+        fmt.Printf("%v\n", *iPtrs[i])
+    }
+    fmt.Println("stop")
+    iPtrs = iPtrs[0:5]
+    fmt.Println("start")
+    for i := 0; i < len(iPtrs); i++ {
+        fmt.Printf("%v\n", *iPtrs[i])
+    }
+    fmt.Println("stop")
+    iPtrs = iPtrs[0:10]
+    fmt.Println("start")
+    for i := 0; i < len(iPtrs); i++ {
+        fmt.Printf("%v\n", *iPtrs[i])
+    }
+    fmt.Println("stop")
+
     for i := 0; i < 5; i++ { fmt.Println("") }
 
-    testIl := komoku.NewIntList()
-    for k := 0; k < 100; k++ {
-        testIl.Append(k)
+    gs := komoku.NewGroupSlice()
+    const max = 10
+    for i := 0; i < max; i++ {
+        gs.Push(komoku.NewGroup(komoku.Black))
     }
-    eachFunc := func(val int) {
-        fmt.Println(val)
+    for i, g := range gs {
+        fmt.Printf("%d, %v\n", i, g)
     }
-    testIl.Do(eachFunc)
+}
+
+func normalMain() {
+    komoku.RunGTPMode()
 }
 
 func main() {
-    //enhance benchmarks for IntList, then improve the performances... less malloc
-    //testMain()
-    komoku.RunGTPMode()
+    testMain()
+    //komoku.RunGTPMode()
 }
 
