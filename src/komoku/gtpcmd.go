@@ -149,7 +149,7 @@ func gtpkomoku_getenv(obj *GTPObject) *GTPCommand {
             return emsg, false, NewGTPSyntaxError(emsg)
         }
         nFree, adjBlack, adjWhite := obj.env.CurrentGame.Board.GetEnvironment(vertex.X, vertex.Y)
-        return fmt.Sprintf("nFree: %d, len(adjBlack): %d, len(adjWhite): %d", nFree, adjBlack.Length(), adjWhite.Length()), false, nil
+        return fmt.Sprintf("nFree: %d, len(adjBlack): %d, len(adjWhite): %d", nFree, len(adjBlack), len(adjWhite)), false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,

@@ -134,6 +134,16 @@ func (g *GroupSlice) Push(group *Group) {
     (*g)[len(*g)-1] = group
 }
 
+// Appends group to the GroupSlice only if group is not already contained.
+func (g *GroupSlice) PushUnique(group *Group) {
+    for _, grp := range *g {
+        if grp == group {
+            return
+        }
+    }
+    g.Push(group)
+}
+
 // ##################### GroupSlice helper functions ##########################
 
 func NewGroupSlice() GroupSlice {

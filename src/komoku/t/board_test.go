@@ -107,8 +107,10 @@ func TestJoinGroups(t *testing.T) {
         b.CreateGroup(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
-    if b.groupMap.Length() != 1 {
-        t.Fatalf("(Created 1st group) Wrong number of groups, got %d, want 1", b.groupMap.Length())
+    nblack, nwhite := b.numberOfGroups()
+    nall := nblack + nwhite
+    if nall != 1 {
+        t.Fatalf("(Created 1st group) Wrong number of groups, got %d, want 1", nall)
     }
 
     ref = t2
@@ -120,13 +122,18 @@ func TestJoinGroups(t *testing.T) {
         b.CreateGroup(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
-    if b.groupMap.Length() != 2 {
-        t.Fatalf("(Created 2nd group) Wrong number of groups, got %d, want 2", b.groupMap.Length())
+
+    nblack, nwhite = b.numberOfGroups()
+    nall = nblack + nwhite
+    if nall != 2 {
+        t.Fatalf("(Created 2nd group) Wrong number of groups, got %d, want 2", nall)
     }
 
     b.joinGroups(b.fields[t1pos], b.fields[t2pos])
-    if b.groupMap.Length() != 1 {
-        t.Fatalf("(Joined the two groups) Wrong number of groups, got %d, want 1", b.groupMap.Length())
+    nblack, nwhite = b.numberOfGroups()
+    nall = nblack + nwhite
+    if nall != 1 {
+        t.Fatalf("(Joined the two groups) Wrong number of groups, got %d, want 1", nall)
     }
     _, g := b.GetGroup(t1[0].X, t1[0].Y)
     b.updateGroupLiberties(g)
@@ -172,7 +179,7 @@ func TestGetEnvironment(t *testing.T) {
         b := NewBoard(9)
         b.playSequence(tc.sequence)
         nFree, adjBlack, adjWhite := b.GetEnvironment(tc.where.X, tc.where.Y)
-        if nFree != tc.enFree || adjBlack.Length() != tc.eadjBlackLen || adjWhite.Length() != tc.eadjWhiteLen {
+        if nFree != tc.enFree || len(adjBlack) != tc.eadjBlackLen || len(adjWhite) != tc.eadjWhiteLen {
             t.Fatalf("Board.GetEnvironment fails test case %d", i)
         }
     }
@@ -190,7 +197,7 @@ func TestRemoveGroup(t *testing.T) {
         b.CreateGroup(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
-    b.RemoveGroup(1,1)
+    b.RemoveGroupByPos(1,1)
     if b.emptyFields.Length() != b.BoardSize()*b.BoardSize() {
         t.Fatalf("Board.RemoveGroup does not completely remove the group")
     }
@@ -561,8 +568,15 @@ func TestListLegalPoints(t *testing.T) {
                     fileFail(p)
                 }
             }
+            // Assemble the set of all groups in game.Board
+            groupMap := make(map[*Group]bool)
+            for _, grpPtr := range game.Board.fields {
+                if grpPtr != nil {
+                    groupMap[grpPtr] = true
+                }
+            }
             // check that no groups have 0 liberties
-            gmEach := func(key GroupIndexType, grp *Group) {
+            gmEach := func(grp *Group) {
                 if grp.Liberties.Length() == 0 {
                     os.Remove(dumpFile)
                     if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
@@ -576,14 +590,17 @@ func TestListLegalPoints(t *testing.T) {
                     }
                 }
             }
-            game.Board.groupMap.Do(gmEach)
+            for grp, _ := range groupMap {
+                gmEach(grp)
+            }
             // check if the legal moves and the occupied fields completely exhaust the whole board
             allmap := make(map[int]bool)
             for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
                 allmap[i] = true
             }
             for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
-                if !game.Board.fields[i].Empty() {
+                //if !game.Board.fields[i].Empty() {
+                if game.Board.fields[i] != nil {
                     allmap[i] = false, false
                 }
             }
