@@ -165,8 +165,8 @@ func gtpkomoku_getgroup(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        empty, grp := obj.env.CurrentGame.Board.GetGroup(vertex.X, vertex.Y)
-        if empty {
+        grp := obj.env.CurrentGame.Board.GetGroup(vertex.X, vertex.Y)
+        if grp == nil {
             return "empty", false, nil
         }
         return fmt.Sprintf("color: %s, #stones: %d, #liberties: %d", grp.Color, grp.Fields.Length(), grp.Liberties.Length()), false, nil
@@ -249,8 +249,8 @@ func gtpkomoku_showliberties(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        empty, group := obj.env.CurrentGame.Board.GetGroup(vertex.X, vertex.Y)
-        if empty {
+        group := obj.env.CurrentGame.Board.GetGroup(vertex.X, vertex.Y)
+        if group == nil {
             return "there is no group", false, nil
         }
         libPoints := make([]Point, group.Liberties.Length())

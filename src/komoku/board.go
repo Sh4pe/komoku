@@ -400,16 +400,11 @@ func (b *Board) GetEnvironmentByPos(pos int) (nFree int, adjBlack, adjWhite Grou
     return b.GetEnvironment(x,y)
 }
 
-// If the field (x,y) is empty, this method returns (false, nil).
-// If the field is not empty, it returns (true, 'pointer to group')...
-// TODO: change the return values to (group,empty)?
-func (b *Board) GetGroup(x,y int) (empty bool, group *Group) {
+// Returs a pointer to the group which occupies (x,y). Nil means that this 
+// field is empty.
+func (b *Board) GetGroup(x,y int) *Group {
     index := b.xyToPos(x,y)
-    grp := b.fields[index]
-    if grp == nil {
-        return true, nil
-    }
-    return false, grp
+    return b.fields[index]
 }
 
 // Is it legal to play a stone of color 'color' at (x,y)?

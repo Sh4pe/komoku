@@ -25,8 +25,8 @@ func TestCreateGroup(t *testing.T) {
         for y := 0; y < DefaultBoardSize; y++ {
             b := NewBoard(DefaultBoardSize)
             b.CreateGroup(x,y, Black)
-            empty, g := b.GetGroup(x,y)
-            if empty {
+            g := b.GetGroup(x,y)
+            if g == nil {
                 t.Fatalf("Field empty after CreateGroup created a group on it")
             }
             nbours := b.neighbours(x,y)
@@ -68,7 +68,7 @@ func TestUpdateGroupLiberties(t *testing.T) {
     p := NewPoint(1,1)
     pos := b.xyToPos(p.X, p.Y)
     b.CreateGroup(p.X, p.Y, Black)
-    _, g := b.GetGroup(p.X, p.Y)
+    g := b.GetGroup(p.X, p.Y)
     b.updateGroupLiberties(g)
     if g.Liberties.Length() != 4 {
         t.Fatalf("Wrong # of liberties, got %d, want 4", g.Liberties.Length())
@@ -135,7 +135,7 @@ func TestJoinGroups(t *testing.T) {
     if nall != 1 {
         t.Fatalf("(Joined the two groups) Wrong number of groups, got %d, want 1", nall)
     }
-    _, g := b.GetGroup(t1[0].X, t1[0].Y)
+    g := b.GetGroup(t1[0].X, t1[0].Y)
     b.updateGroupLiberties(g)
     if g.Liberties.Length() != 11 {
         t.Fatalf("Wrong number of liberties, got %d, wanted 11", g.Liberties.Length())
@@ -356,15 +356,14 @@ func TestGroupGeometry(t *testing.T) {
 
     tester := func(number int, t *testing.T, b *Board, setPoints []Point, color Color) {
         for _, p := range setPoints {
-            empty, grp := b.GetGroup(p.X,p.Y)
-            if empty {
+            grp := b.GetGroup(p.X,p.Y)
+            if grp == nil {
                 t.Fatalf("Failed testcase %d (%s), there seems to be no group at (%d,%d)", number, color, p.X, p.Y)
-            }
-            if grp.Color != color {
+            } else if grp.Color != color {
                 t.Fatalf("Failed testcase %d (%s), stone has the wrong color", number, color)
             }
         }
-        _, grp := b.GetGroup(setPoints[0].X, setPoints[0].Y)
+        grp := b.GetGroup(setPoints[0].X, setPoints[0].Y)
         if len(setPoints) != grp.Fields.Length() {
             t.Fatalf("Failed testcase %d (%s), group has wrong number of stones, got %d, wanted %d", number, color, grp.Fields.Length(), len(setPoints))
         }
@@ -559,12 +558,12 @@ func TestListLegalPoints(t *testing.T) {
             legalBlack := game.Board.ListLegalPoints(Black)
             legalWhite := game.Board.ListLegalPoints(White)
             for _, p := range legalBlack {
-                if empty, _ := game.Board.GetGroup(p.X, p.Y); !empty {
+                if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
                     fileFail(p)
                 }
             }
             for _, p := range legalBlack {
-                if empty, _ := game.Board.GetGroup(p.X, p.Y); !empty {
+                if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
                     fileFail(p)
                 }
             }
