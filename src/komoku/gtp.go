@@ -273,6 +273,8 @@ func NewGTPSyntaxError(msg string) (err Error) {
 
 func RunGTPMode() {
     // Set up the global environment
+    printDbgMsgCallerf("Test\n")
+    return
     board := NewBoard(DefaultBoardSize)
 
     game := &Game{ Board: board,

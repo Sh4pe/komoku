@@ -47,6 +47,21 @@ func printDbgMsgf(format string, a ...interface{}) {
     fmt.Fprintf(os.Stderr, prefix+format, a)
 }
 
+// like printDbgMsgf, but adds dips one step further into the backtrace
+func printDbgMsgCallerf(format string, a ...interface{}) {
+    if !printDebugOutput {
+        return
+    }
+    _, callerFilePath, callerLine, _ := runtime.Caller(1)
+    _, callerFilePath2, callerLine2, _ := runtime.Caller(2)
+    splitPath := strings.Split(callerFilePath, "/", -1)
+    splitPath2 := strings.Split(callerFilePath2, "/", -1)
+    callerFile := splitPath[len(splitPath) - 1]
+    callerFile2 := splitPath2[len(splitPath2)-1]
+    prefix := fmt.Sprintf("[%s:%d <- %s:%d] ", callerFile, callerLine, callerFile2, callerLine2)
+    fmt.Fprintf(os.Stderr, prefix+format, a)
+}
+
 func ProfileInfoToFile(profFile string) {
     file, err := os.Open(profFile, os.O_CREATE | os.O_RDWR, 0666)
     if err != nil {
