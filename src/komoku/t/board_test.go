@@ -653,7 +653,14 @@ func gameStateCheck(game *Game,
     }
 }
 
-// Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersec
+// used for some panic situations that occur while debugging komoku
+func panicChecks(t *testing.T) {
+    if e := recover(); e != nil {
+        jjjjjjj
+    }
+}
+
+// Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersect
 // already occupied points
 func TestListLegalPoints(t *testing.T) {
     testname := "TestListLegalPoints"

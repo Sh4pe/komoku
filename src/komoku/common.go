@@ -38,6 +38,7 @@ const (
     ErrUnacceptableBoardSize;
     ErrGTPSyntaxError;
     ErrIOError;
+    ErrFieldLegalityCheckedMoreThanOnce;
 )
 
 // ################ interfaces ##############

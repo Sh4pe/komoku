@@ -67,14 +67,6 @@ func printDbgMsgBTf(depth int, format string, a ...interface{}) {
     if !printDebugOutput {
         return
     }
-    /*_, callerFilePath, callerLine, _ := runtime.Caller(1)
-    _, callerFilePath2, callerLine2, _ := runtime.Caller(2)
-    splitPath := strings.Split(callerFilePath, "/", -1)
-    splitPath2 := strings.Split(callerFilePath2, "/", -1)
-    callerFile := splitPath[len(splitPath) - 1]
-    callerFile2 := splitPath2[len(splitPath2)-1]
-    prefix := fmt.Sprintf("[%s:%d <- %s:%d] ", callerFile, callerLine, callerFile2, callerLine2)
-    fmt.Fprintf(os.Stderr, prefix+format, a)*/
     pc := make([]uintptr, depth)
     d := runtime.Callers(2, pc)
     _, callerFilePath, callerLine, _ := runtime.Caller(1)
@@ -82,8 +74,6 @@ func printDbgMsgBTf(depth int, format string, a ...interface{}) {
     callerFile := splitPath[len(splitPath) - 1]
     prefix := fmt.Sprintf("%s:%d", callerFile, callerLine)
     for i := 2; i < d; i++ {
-        /*p, _, _, _ := runtime.Caller(i)
-        fmt.Printf("%v, %v\n", pc[i], p)*/
         _, callerFilePath, callerLine, _ = runtime.Caller(i)
         splitPath = strings.Split(callerFilePath, "/", -1)
         callerFile = splitPath[len(splitPath) - 1]
