@@ -21,6 +21,10 @@ import (
  */
 
 func TestCreateGroup(t *testing.T) {
+    testname := "TestCreateGroup"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     for x := 0; x < DefaultBoardSize; x++ {
         for y := 0; y < DefaultBoardSize; y++ {
             b := NewBoard(DefaultBoardSize)
@@ -49,20 +53,24 @@ func TestCreateGroup(t *testing.T) {
             }
 
             expect := b.BoardSize()*b.BoardSize() - 1
-            if b.emptyFields.Length() != expect {
-                t.Fatalf("emptyFields has wrong length afterwards, expected %d, got %d", expect, b.emptyFields.Length())
+            if len(b.ListEmptyFields()) != expect {
+                t.Fatalf("emptyFields has wrong length afterwards, expected %d, got %d", expect, len(b.ListEmptyFields()))
             }
-            if b.legalBlackMoves.Length() != expect {
-                t.Fatalf("legalBlackMoves has wrong length afterwards, expected %d, got %d", expect, b.legalBlackMoves.Length())
+            if len(b.ListLegalPoints(Black)) != expect {
+                t.Fatalf("wrong number of legal black moves afterwards, expected %d, got %d", expect, len(b.ListLegalPoints(Black)))
             }
-            if b.legalWhiteMoves.Length() != expect {
-                t.Fatalf("legalWhiteMoves has wrong length afterwards, expected %d, got %d", expect, b.legalWhiteMoves.Length())
+            if len(b.ListLegalPoints(White)) != expect {
+                t.Fatalf("wrong number of legal white moves afterwards, expected %d, got %d", expect, len(b.ListLegalPoints(White)))
             }
         }
     }
 }
 
 func TestUpdateGroupLiberties(t *testing.T) {
+    testname := "TestUpdateGroupLiberties"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     b := NewBoard(DefaultBoardSize)
     // single stones
     p := NewPoint(1,1)
@@ -94,6 +102,10 @@ func TestUpdateGroupLiberties(t *testing.T) {
 }
 
 func TestJoinGroups(t *testing.T) {
+    testname := "TestJoinGroups"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     b := NewBoard(DefaultBoardSize)
     t1 := []*Point{ NewPoint(1,1), NewPoint(1,2), NewPoint(2,2) }
     t2 := []*Point{ NewPoint(1,3), NewPoint(1,4), NewPoint(2,4) }
@@ -175,6 +187,10 @@ var testGetEnvironment9 = []testGetEnvironmentCase{
 }
 
 func TestGetEnvironment(t *testing.T) {
+    testname := "TestGetEnvironment"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     for i, tc := range testGetEnvironment9 {
         b := NewBoard(9)
         b.playSequence(tc.sequence)
@@ -186,6 +202,10 @@ func TestGetEnvironment(t *testing.T) {
 }
 
 func TestRemoveGroup(t *testing.T) {
+    testname := "TestRemoveGroup"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     b := NewBoard(DefaultBoardSize)
 
     t1 := []*Point{ NewPoint(1,1), NewPoint(1,2), NewPoint(2,2) }
@@ -198,12 +218,16 @@ func TestRemoveGroup(t *testing.T) {
         b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
     b.RemoveGroupByPos(1,1)
-    if b.emptyFields.Length() != b.BoardSize()*b.BoardSize() {
+    if len(b.ListEmptyFields()) != b.BoardSize()*b.BoardSize() {
         t.Fatalf("Board.RemoveGroup does not completely remove the group")
     }
 }
 
 func TestXYToPos(t *testing.T) {
+    testname := "TestXYToPos"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     b := NewBoard(DefaultBoardSize)
     sz := b.BoardSize()
     for x := 0; x < sz; x++ {
@@ -217,6 +241,10 @@ func TestXYToPos(t *testing.T) {
 }
 
 func TestPosToXY(t *testing.T) {
+    testname := "TestPosToXY"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     b := NewBoard(DefaultBoardSize)
     for i := 0; i<b.BoardSize()*b.BoardSize(); i++ {
         x, y := b.posToXY(i)
@@ -228,6 +256,10 @@ func TestPosToXY(t *testing.T) {
 }
 
 func TestNeighbours(t *testing.T) {
+    testname := "TestNeighbours"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     b := NewBoard(DefaultBoardSize)
     for row := 0; row < b.BoardSize(); row++ {
         for col := 0; col < b.BoardSize(); col++ {
@@ -299,6 +331,10 @@ var testNumGroups9 = []testNumGroupsCase {
 }
 
 func TestNumGroups(t *testing.T) {
+    testname := "TestNumGroups"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     // on a 9x9 board
     for i, tc := range testNumGroups9 {
         b := NewBoard(9)
@@ -322,6 +358,10 @@ var testNumStones9 = []testNumGroupsCase {
 }
 
 func TestNumStones(t *testing.T) {
+    testname := "TestNumStones"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     // on a 9x9 board
     for _, tc := range testNumStones9 {
         b := NewBoard(9)
@@ -353,6 +393,10 @@ var testGroupGeometry9 = []testGroupGeometryCase {
 }
 
 func TestGroupGeometry(t *testing.T) {
+    testname := "TestGroupGeometry"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
 
     tester := func(number int, t *testing.T, b *Board, setPoints []Point, color Color) {
         for _, p := range setPoints {
@@ -406,6 +450,10 @@ type writeStringer interface {
 
 // Tests a simple ko and tenuki situation
 func TestKo(t *testing.T) {
+    testname := "TestKo"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     board := NewBoard(9)
     sequence := []Move{
         Move{ Color: Black, Vertex: *NewVertex(Point{3,4}, false) },
@@ -440,6 +488,10 @@ func TestKo(t *testing.T) {
 
 // Tests two kos at one board
 func TestDoubleKo(t *testing.T) {
+    testname := "TestDoubleKo"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     board := NewBoard(9)
     sequence := []Move{
         Move{ Color: Black, Vertex: *NewVertex(Point{3,4}, false) },
@@ -487,147 +539,142 @@ func TestDoubleKo(t *testing.T) {
     }
 }
 
+func gameStateCheck(game *Game,
+                    dumpFile string,
+                    t *testing.T,
+                    nGame, nMove int,
+                    legalBlack, legalWhite []Point,
+                    ) {
+
+    dumpSequence := func(w writeStringer) {
+        for _, mv := range game.sequence {
+            m, _ := mv.(Move)
+            vertex, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
+            line := fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
+            if _, werr := w.WriteString(line); werr != nil {
+                t.Fatalf("dumpSequence does not work, check the writeStringer")
+            }
+        }
+    }
+
+    failBecausePositionIsIllegal := func(w writeStringer,
+                                         failMessage, infoString string,
+                                         ) {
+        time := time.LocalTime()
+        w.WriteString(fmt.Sprintf("# These moves lead to an illegal position. %s\n", time))
+        _, werr := w.WriteString(fmt.Sprintf("  boardsize %d\n", game.Board.BoardSize()))
+        if werr != nil {
+            failMessage = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
+            failMessage += fmt.Sprintf("The error was: %s\n", werr)
+        } else {
+            dumpSequence(w)
+            line := fmt.Sprintf("# %s\n", infoString)
+            w.WriteString(line)
+
+        }
+        t.Fatalf(failMessage)
+    }
+
+    fileFail := func(failMessage, infoString string) {
+        os.Remove(dumpFile)
+        if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
+            failBecausePositionIsIllegal(file, failMessage, infoString)
+        } else {
+            t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
+        }
+    }
+
+    for _, p := range legalBlack {
+        if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
+            illegalVertex, _ := pointToGTPVertex(*NewPoint(p.X,p.Y))
+            failMessage := fmt.Sprintf("Game %d, move %d: the point %s was legal for black but is already occupied\n", nGame, nMove, illegalVertex)
+            failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
+            infoString := fmt.Sprintf("the vertex %s is legal for black but already occupied", illegalVertex)
+            fileFail(failMessage, infoString)
+        }
+    }
+    for _, p := range legalWhite {
+        if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
+            illegalVertex, _ := pointToGTPVertex(*NewPoint(p.X,p.Y))
+            failMessage := fmt.Sprintf("Game %d, move %d: the point %s was legal for white but is already occupied\n", nGame, nMove, illegalVertex)
+            failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
+            infoString := fmt.Sprintf("the vertex %s is legal for white but already occupied", illegalVertex)
+            fileFail(failMessage, infoString)
+        }
+    }
+    // Assemble the set of all groups in game.Board
+    groupMap := make(map[*Group]bool)
+    for _, grpPtr := range game.Board.fields {
+        if grpPtr != nil {
+            groupMap[grpPtr] = true
+        }
+    }
+    // check that no groups have 0 liberties
+    gmEach := func(grp *Group) {
+        if grp.Liberties.Length() == 0 {
+            failMessage := fmt.Sprintf("in game %d, there were groups with 0 liberties after %d moves.\nSeq dumped into %s", nGame, nMove, dumpFile)
+            gX, gY := game.Board.posToXY(grp.Fields.First().Value())
+            vertex, _ := pointToGTPVertex(*NewPoint(gX, gY))
+            infoString := fmt.Sprintf("# the group with 0 libs is around %s\n", vertex)
+            fileFail(failMessage, infoString)
+        }
+    }
+    for grp, _ := range groupMap {
+        gmEach(grp)
+    }
+    // check if the legal moves and the occupied fields completely exhaust the whole board
+    allmap := make(map[int]bool)
+    for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
+        allmap[i] = true
+    }
+    for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
+        //if !game.Board.fields[i].Empty() {
+        if game.Board.fields[i] != nil {
+            allmap[i] = false, false
+        }
+    }
+    for _, p := range legalBlack {
+        pos := game.Board.xyToPos(p.X, p.Y)
+        allmap[pos] = false, false
+    }
+    for _, p := range legalWhite {
+        pos := game.Board.xyToPos(p.X, p.Y)
+        allmap[pos] = false, false
+    }
+    if len(allmap) != 0 {
+        failMessage := fmt.Sprintf("in game %d, there were fields which were neigher empty nor legal for any color.\nSeq dumped into %s", nGame, dumpFile)
+        infoString := "# the fields which are neither occupied nor legal are:\n# "
+        for fpos, _ := range allmap {
+            fx, fy := game.Board.posToXY(fpos)
+            vertex, _ := pointToGTPVertex(*NewPoint(fx, fy))
+            infoString += fmt.Sprintf(" %s ", vertex)
+        }
+        fileFail(failMessage, infoString)
+    }
+}
+
 // Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersec
 // already occupied points
 func TestListLegalPoints(t *testing.T) {
-    //write a test if the legal moves and the occupied spaces exhaust the whole board
+    testname := "TestListLegalPoints"
+    fmt.Printf("entering %s\n", testname)
+    defer fmt.Printf("leaving %s\n", testname)
+
     numGames := 500 // Number of games this test should play
     gamesLen := 100 // Number of random moves to play
     boardsize := 9
     dumpFile := relPathToAbs("../../../data/tmp/TestListLegalPoints.GTPsequence.tmp")
     lastMovePass := false
     for nGame := 0; nGame < numGames; nGame++ {
+        fmt.Printf("Game %d\n", nGame)
         game := NewGame(boardsize)
         var currentColor Color = Black
         for nMove := 0; nMove < gamesLen; nMove++ {
 
-            //fmt.Printf("move %d\n", nMove)
-            dumpSequence := func(w writeStringer) {
-                for _, mv := range game.sequence {
-                    m, _ := mv.(Move)
-                    vertex, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
-                    line := fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
-                    if _, werr := w.WriteString(line); werr != nil {
-                        secondLine := fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
-                        secondLine += fmt.Sprintf("The error was: %s\n", werr)
-                        t.Fatalf(secondLine)
-                    }
-                }
-            }
-
-            fail := func(w writeStringer, nGame, nMove int, color Color, illegalPoint Point) {
-                // TODO: clean this up!
-                // The sequence is dumped into a file which can be used as input for komoku in the GTP mode
-                secondLine := fmt.Sprintf("The sequence was dumped into %s", dumpFile)
-                time := time.LocalTime()
-                _, werr := w.WriteString(fmt.Sprintf("# These moves lead to an illegal position. %s\n", time))
-                _, werr = w.WriteString(fmt.Sprintf("  boardsize %d\n", game.Board.BoardSize()))
-                if werr != nil {
-                    secondLine = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
-                    secondLine += fmt.Sprintf("The error was: %s\n", werr)
-                } else {
-                    for _, mv := range game.sequence {
-                        m, _ := mv.(Move)
-                        vertex, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
-                        line := fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
-                        if _, werr = w.WriteString(line); werr != nil {
-                            secondLine = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
-                            secondLine += fmt.Sprintf("The error was: %s\n", werr)
-                        }
-                    }
-                    illegalVertex, _ := pointToGTPVertex(illegalPoint)
-                    line := fmt.Sprintf("# play %s %s # this is the illegal move\n", colorToGTPColor(color), illegalVertex)
-                    if _, werr = w.WriteString(line); werr != nil {
-                        secondLine = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
-                        secondLine += fmt.Sprintf("The error was: %s\n", werr)
-                    }
-
-                }
-                t.Fatalf("In game #%d there was an illegal %s move/position after %d moves.\n%s", nGame, color, nMove, secondLine)
-            }
-
-            fileFail := func(p Point) {
-                os.Remove(dumpFile)
-                if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
-                    fail(file, nGame, nMove, Black, p)
-                } else {
-                    t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
-                }
-            }
-
             legalBlack := game.Board.ListLegalPoints(Black)
             legalWhite := game.Board.ListLegalPoints(White)
-            for _, p := range legalBlack {
-                if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
-                    fileFail(p)
-                }
-            }
-            for _, p := range legalBlack {
-                if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
-                    fileFail(p)
-                }
-            }
-            // Assemble the set of all groups in game.Board
-            groupMap := make(map[*Group]bool)
-            for _, grpPtr := range game.Board.fields {
-                if grpPtr != nil {
-                    groupMap[grpPtr] = true
-                }
-            }
-            // check that no groups have 0 liberties
-            gmEach := func(grp *Group) {
-                if grp.Liberties.Length() == 0 {
-                    os.Remove(dumpFile)
-                    if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
-                        dumpSequence(file)
-                        gX, gY := game.Board.posToXY(grp.Fields.First().Value())
-                        vertex, _ := pointToGTPVertex(*NewPoint(gX, gY))
-                        file.WriteString(fmt.Sprintf("# the group with 0 libs is around %s\n", vertex))
-                        t.Fatalf("in game %d, there were groups with 0 liberties after %d moves.\nSeq dumped into %s", nGame, nMove, dumpFile)
-                    } else {
-                        t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
-                    }
-                }
-            }
-            for grp, _ := range groupMap {
-                gmEach(grp)
-            }
-            // check if the legal moves and the occupied fields completely exhaust the whole board
-            allmap := make(map[int]bool)
-            for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
-                allmap[i] = true
-            }
-            for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
-                //if !game.Board.fields[i].Empty() {
-                if game.Board.fields[i] != nil {
-                    allmap[i] = false, false
-                }
-            }
-            for _, p := range legalBlack {
-                pos := game.Board.xyToPos(p.X, p.Y)
-                allmap[pos] = false, false
-            }
-            for _, p := range legalWhite {
-                pos := game.Board.xyToPos(p.X, p.Y)
-                allmap[pos] = false, false
-            }
-            if len(allmap) != 0 {
-                os.Remove(dumpFile)
-                if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
-                    dumpSequence(file)
-                    file.WriteString("# the fields which are neither occupied nor legal are:\n")
-                    invalidFields := ""
-                    for fpos, _ := range allmap {
-                        fx, fy := game.Board.posToXY(fpos)
-                        vertex, _ := pointToGTPVertex(*NewPoint(fx, fy))
-                        invalidFields += "# " + vertex
-                    }
-                    file.WriteString(invalidFields + "\n")
-                    t.Fatalf("in game %d, there were fields which were neigher empty nor legal for any color.\nSeq dumped into %s", nGame, dumpFile)
-                } else {
-                    t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
-                }
-            }
+
+            gameStateCheck(game, dumpFile, t, nGame, nMove, legalBlack, legalWhite)
 
             var legal []Point
             if currentColor == Black {
