@@ -29,7 +29,8 @@ func TestCreateGroup(t *testing.T) {
             if g == nil {
                 t.Fatalf("Field empty after CreateGroup created a group on it")
             }
-            nbours := b.neighbours(x,y)
+            pos := b.xyToPos(x,y)
+            nbours := b.neighboursByPos(pos)
             if len(nbours) != g.Liberties.Length() {
                 t.Fatalf("Different number of liberties (%d) and neighbours (%d)", g.Liberties.Length(), len(nbours))
             }
@@ -37,8 +38,8 @@ func TestCreateGroup(t *testing.T) {
             last := g.Liberties.Last()
             for it := g.Liberties.First(); it != last; it = it.Next() {
                 found := false
-                for _, p := range nbours {
-                    if b.xyToPos(p.X, p.Y) == it.Value() {
+                for _, npos := range nbours {
+                    if npos == it.Value() {
                         found = true
                         break
                     }
@@ -238,23 +239,25 @@ func TestNeighbours(t *testing.T) {
             if col == 0 || col == b.BoardSize()-1 {
                 expectedLen--
             }
-            n := b.neighbours(col, row)
+            pos := b.xyToPos(col, row)
+            n := b.neighboursByPos(pos)
             if len(n) != expectedLen {
                 t.Fatalf("expected %d, got %d", expectedLen, len(n))
             }
-            for _, ni := range n {
+            for _, npos := range n {
                 // Each neighbour on same row or same column?
-                if (ni.X != col) && (ni.Y != row) {
-                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) not on same row/column", col, row, ni.X, ni.Y)
+                niX, niY := b.posToXY(npos)
+                if (niX != col) && (niY != row) {
+                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) not on same row/column", col, row, niX, niY)
                 }
                 // Each neighbour has the right distance?
-                dx := (ni.X-col)*(ni.X-col)
-                dy := (ni.Y-row)*(ni.Y-row)
+                dx := (niX-col)*(niX-col)
+                dy := (niY-row)*(niY-row)
                 // one of dx, dy has to be 1, the other 0
                 if (dx - dy)*(dx - dy) != 1 {
                     //t.Logf("dx^2: %d", dx)
                     //t.Logf("dy^2: %d", dy)
-                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) has the wrong distance", col, row, ni.X, ni.Y)
+                    t.Fatalf("(%d,%d)'s neighbour (%d,%d) has the wrong distance", col, row, niX, niY)
                 }
             }
         }

@@ -29,8 +29,36 @@ import (
  *      - investigate on the strange panics inside board_test...
  */
 
+// ################################################################################
+// ########################### global variables ###################################
+// ################################################################################
+var neighbourCache []([]([]int))
 
-// ######################## Auxiliary type for Board struct #############################
+// ################################################################################
+// ########################### init func ##########################################
+// ################################################################################
+func init() {
+    // Initialize the neighbourCache. We only support boards of sizes between 3 and 25
+    neighbourCache = make([]([]([]int)), 30)
+    for boardSize := 3; boardSize < 26; boardSize++ {
+        neighbourCache[boardSize] = make([]([]int), boardSize*boardSize)
+        for pos := 0; pos < boardSize*boardSize; pos++ {
+            x, y := posToXY(pos, boardSize)
+            nbourPoints := calculateNeighbours(x,y,boardSize)
+            l := len(nbourPoints)
+            neighbourCache[boardSize][pos] = make([]int, l)
+            for i, p := range nbourPoints {
+                nbourPos := xyToPos(p.X, p.Y, boardSize)
+                neighbourCache[boardSize][pos][i] = nbourPos
+            }
+        }
+    }
+}
+
+// ################################################################################
+// ########################### Auxiliary types for Board ##########################
+// ################################################################################
+
 // The return values are only relevant if we assume that the legalities for all fields have been 
 // calculated before. In this case, {black,white}Updated indicates that all legalities are valid 
 // afterwards.
@@ -340,9 +368,9 @@ func (b *Board) CreateGroup(x, y int, color Color) {
     pos := b.xyToPos(x,y)
     newGroup := NewGroup(color)
     newGroup.Fields.Append(pos)
-    nbours := b.neighbours(x,y)
-    for _, p := range nbours {
-        npos := b.xyToPos(p.X, p.Y)
+    nbours := b.neighboursByPos(pos)
+    //for _, p := range nbours {
+    for _, npos := range nbours {
         if b.fields[npos] == nil {
             newGroup.Liberties.Append(npos)
         }
@@ -380,11 +408,11 @@ func (b *Board) dropLibertyFromEach(libertyPos int, adjGroups GroupSlice) {
 // and IntLists 'adj{Black,White}' containing instances of GroupIndexTypes of adjacent {black,white} groups.
 // TODO: unexport this?
 func (b *Board) GetEnvironment(x,y int) (nFree int, adjBlack, adjWhite GroupSlice) {
-    nbours := b.neighbours(x,y)
+    pos := b.xyToPos(x,y)
+    nbours := b.neighboursByPos(pos)
     adjBlack = NewGroupSlice()
     adjWhite = NewGroupSlice()
-    for _, p := range nbours {
-        npos := b.xyToPos(p.X, p.Y)
+    for _, npos := range nbours {
         if b.fields[npos] == nil {
             nFree++
         } else {
@@ -518,8 +546,7 @@ func (b *Board) ListLegalPoints(color Color) []Point {
 }
 
 // Returns the neighbours of a field (x,y) as a slice of Points.
-func (b *Board) neighbours(x, y int) []Point {
-    // TODO: can this be implemented better?
+/*func (b *Board) neighbours(x, y int) []Point {
     ret := make([]Point, 4)
     count := 0
     switch x {
@@ -549,6 +576,10 @@ func (b *Board) neighbours(x, y int) []Point {
             count++
     }
     return ret[0:count]
+}*/
+// Returns the neighbours of 'pos' as a pos
+func (b *Board) neighboursByPos(pos int) []int {
+    return neighbourCache[b.boardSize][pos]
 }
 
 // Returns the number of {black,white} groups in 'n{black,white}'
@@ -620,21 +651,6 @@ func (b *Board) PlayMove(x, y int, color Color) (err Error) {
     }
     // Clear the appropriate actionOnNextMove array. 
     b.colorOfNextPlay = !color
-    /*if b.colorOfNextPlay == White && !b.acWhiteMoveUpToDate {
-        // David: This is really important so that the GC can free the closures with all the
-        // associated contexts. Am I right?
-        for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
-            b.actionOnNextBlackMove[i] = nil
-        }
-        b.updateLegalMoves(Black)
-        return nil
-    }
-    if b.colorOfNextPlay == Black && !b.acBlackMoveUpToDate {
-        for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
-            b.actionOnNextWhiteMove[i] = nil
-        }
-        b.updateLegalMoves(White)
-    }*/
     b.currentSequence++
 
     return nil
@@ -642,15 +658,7 @@ func (b *Board) PlayMove(x, y int, color Color) (err Error) {
 
 // The player of color 'color' plays a pass.
 func (b *Board) PlayPass(color Color) {
-    /*nextActions := b.actionOnNextBlackMove
-    if color == Black {
-        nextActions = b.actionOnNextWhiteMove
-    }
-    for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
-        nextActions[i] = nil
-    }*/
     b.colorOfNextPlay = !color
-    //b.updateLegalMoves(b.colorOfNextPlay)
     b.currentSequence++
 }
 
@@ -666,9 +674,8 @@ func (b *Board) playSequence(seq []Move) {
     }
 }
 
-// TODO: use point!
 func (b *Board) posToXY(pos int) (x, y int) {
-    return pos%b.BoardSize(), pos/b.BoardSize()
+    return posToXY(pos, b.boardSize)
 }
 
 // Removes the group which occupies (x,y), if there is any, and updates b.emptyFields.
@@ -691,10 +698,9 @@ func (b *Board) removeGroup(group *Group) {
     for e := group.Fields.First(); e != last; e = e.Next() {
         // Collect adjacend groups so that we can update their liberties later
         pos := e.Value()
-        x, y := b.posToXY(pos)
-        nbours := b.neighbours(x,y)
-        for _, p := range nbours {
-            npos := b.xyToPos(p.X, p.Y)
+        //x, y := b.posToXY(pos)
+        nbours := b.neighboursByPos(pos)
+        for _, npos := range nbours {
             if grp := b.fields[npos]; grp != nil {
                 adjGroups.PushUnique(grp)
             }
@@ -729,10 +735,10 @@ func (b *Board) updateGroupLiberties(group *Group) {
     group.Liberties.Clear()
     last := group.Fields.Last()
     for it := group.Fields.First(); it != last; it = it.Next() {
-        x, y := b.posToXY(it.Value())
-        nbours := b.neighbours(x,y)
-        for _, p := range nbours {
-            npos := b.xyToPos(p.X, p.Y)
+        //x, y := b.posToXY(it.Value())
+        nbours := b.neighboursByPos(it.Value())
+        for _, npos := range nbours {
+            //npos := b.xyToPos(p.X, p.Y)
             if b.fields[npos] == nil {
                 group.Liberties.AppendUnique(npos)
             }
@@ -797,9 +803,10 @@ func (b *Board) updateLegalityForAdjacentGroups(adjGroups GroupSlice, whichSeque
 func (b *Board) updateLegalityForFreeNeighboursOf(x,y int, whichSequence uint32, alreadyUpdated []bool) {
     //printDbgMsg("in updateLegalityForFreeNeighboursOf\n") // <DBG>
     //defer printDbgMsgf("returned from updateLegalityForFreeNeighboursOf\n") // </DBG>
-    nbours := b.neighbours(x,y)
-    for _, p := range nbours {
-        npos := b.xyToPos(p.X, p.Y)
+    pos := b.xyToPos(x,y)
+    nbours := b.neighboursByPos(pos)
+    for _, npos := range nbours {
+        //npos := b.xyToPos(p.X, p.Y)
         if b.fields[npos] == nil && !alreadyUpdated[npos] {
             b.updateLegalityFor(npos, whichSequence)
             alreadyUpdated[npos] = true
@@ -857,7 +864,7 @@ func (b *Board) updateLegalMoves(color Color) {
 }
 
 func (b *Board) xyToPos(x, y int) int {
-    return b.BoardSize()*y + x
+    return xyToPos(x,y, b.boardSize)
 }
 
 // ##################### Board helper functions ##########################
@@ -866,9 +873,6 @@ func NewBoard(boardsize int) *Board {
     ret := &Board{ fields: make([]*Group, boardsize*boardsize),
                    actionOnNextBlackMove: make([]actionFunc, boardsize*boardsize),
                    actionOnNextWhiteMove: make([]actionFunc, boardsize*boardsize),
-                   //legalWhiteMoves: NewIntList(),
-                   //legalBlackMoves: NewIntList(),
-                   //emptyFields: NewIntList(),
                    colorOfNextPlay: Black,
                    boardSize: boardsize,
                    acBlackMoveUpToDate: true,
@@ -877,10 +881,6 @@ func NewBoard(boardsize int) *Board {
                    fieldSequencesWhite: make([]uint32, boardsize*boardsize),
                  }
     for i := 0; i < boardsize*boardsize; i++ {
-        //ret.legalWhiteMoves.Append(i)
-        //ret.legalBlackMoves.Append(i)
-        //ret.emptyFields.Append(i)
-        // set the initial actions for playing a field
         x, y := ret.posToXY(i)
         ret.actionOnNextBlackMove[i] = func() (updateBlack, updateWhite bool) {
             ret.CreateGroup(x, y, Black)
@@ -911,4 +911,50 @@ func NewIllegalMoveError(x, y int, color Color) (err Error) {
 func NewFieldLegalityCheckedMoreThanOnceError(msg string) Error {
     return NewError(msg, ErrFieldLegalityCheckedMoreThanOnce)
 }
+
+
+// ################################################################################
+// ########################### common helper funcs ################################
+// ################################################################################
+func calculateNeighbours(x, y, boardsize int) []Point {
+    ret := make([]Point, 4)
+    count := 0
+    switch x {
+        case 0:
+            ret[count] = Point{ 1, y }
+            count++
+        case boardsize-1:
+            ret[count] = Point{ boardsize - 2 , y }
+            count++
+        default:
+            ret[count] = Point{ x-1, y }
+            count++
+            ret[count] = Point{ x+1, y }
+            count++
+    }
+    switch y {
+        case 0:
+            ret[count] = Point{ x, 1 }
+            count++
+        case boardsize-1:
+            ret[count] = Point{ x, boardsize - 2 }
+            count++
+        default:
+            ret[count] = Point{ x, y-1 }
+            count++
+            ret[count] = Point{ x, y+1 }
+            count++
+    }
+    return ret[0:count]
+}
+
+func xyToPos(x, y, boardSize int) int {
+    return boardSize*y + x
+}
+
+func posToXY(pos, boardsize int) (x, y int) {
+    return pos%boardsize, pos/boardsize
+}
+
+
 
