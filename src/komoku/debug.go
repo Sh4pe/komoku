@@ -83,6 +83,24 @@ func printDbgMsgBTf(depth int, format string, a ...interface{}) {
     fmt.Fprintf(os.Stderr, prefix+format, a)
 }
 
+// like printDbgMsgBTf, but returns a string containing the output
+func sPrintDbgMsgBTf(depth int, format string, a ...interface{}) string {
+    pc := make([]uintptr, depth)
+    d := runtime.Callers(2, pc)
+    _, callerFilePath, callerLine, _ := runtime.Caller(1)
+    splitPath := strings.Split(callerFilePath, "/", -1)
+    callerFile := splitPath[len(splitPath) - 1]
+    prefix := fmt.Sprintf("%s:%d", callerFile, callerLine)
+    for i := 2; i < d; i++ {
+        _, callerFilePath, callerLine, _ = runtime.Caller(i)
+        splitPath = strings.Split(callerFilePath, "/", -1)
+        callerFile = splitPath[len(splitPath) - 1]
+        prefix += fmt.Sprintf(" <- %s:%d", callerFile, callerLine)
+    }
+    prefix = fmt.Sprintf("[%s] ", prefix)
+    return fmt.Sprintf(prefix+format, a)
+}
+
 func ProfileInfoToFile(profFile string) {
     file, err := os.Open(profFile, os.O_CREATE | os.O_RDWR, 0666)
     if err != nil {

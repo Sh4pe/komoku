@@ -21,10 +21,6 @@ import (
  */
 
 func TestCreateGroup(t *testing.T) {
-    testname := "TestCreateGroup"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     for x := 0; x < DefaultBoardSize; x++ {
         for y := 0; y < DefaultBoardSize; y++ {
             b := NewBoard(DefaultBoardSize)
@@ -67,10 +63,6 @@ func TestCreateGroup(t *testing.T) {
 }
 
 func TestUpdateGroupLiberties(t *testing.T) {
-    testname := "TestUpdateGroupLiberties"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     b := NewBoard(DefaultBoardSize)
     // single stones
     p := NewPoint(1,1)
@@ -102,10 +94,6 @@ func TestUpdateGroupLiberties(t *testing.T) {
 }
 
 func TestJoinGroups(t *testing.T) {
-    testname := "TestJoinGroups"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     b := NewBoard(DefaultBoardSize)
     t1 := []*Point{ NewPoint(1,1), NewPoint(1,2), NewPoint(2,2) }
     t2 := []*Point{ NewPoint(1,3), NewPoint(1,4), NewPoint(2,4) }
@@ -187,10 +175,6 @@ var testGetEnvironment9 = []testGetEnvironmentCase{
 }
 
 func TestGetEnvironment(t *testing.T) {
-    testname := "TestGetEnvironment"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     for i, tc := range testGetEnvironment9 {
         b := NewBoard(9)
         b.playSequence(tc.sequence)
@@ -202,10 +186,6 @@ func TestGetEnvironment(t *testing.T) {
 }
 
 func TestRemoveGroup(t *testing.T) {
-    testname := "TestRemoveGroup"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     b := NewBoard(DefaultBoardSize)
 
     t1 := []*Point{ NewPoint(1,1), NewPoint(1,2), NewPoint(2,2) }
@@ -224,10 +204,6 @@ func TestRemoveGroup(t *testing.T) {
 }
 
 func TestXYToPos(t *testing.T) {
-    testname := "TestXYToPos"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     b := NewBoard(DefaultBoardSize)
     sz := b.BoardSize()
     for x := 0; x < sz; x++ {
@@ -241,10 +217,6 @@ func TestXYToPos(t *testing.T) {
 }
 
 func TestPosToXY(t *testing.T) {
-    testname := "TestPosToXY"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     b := NewBoard(DefaultBoardSize)
     for i := 0; i<b.BoardSize()*b.BoardSize(); i++ {
         x, y := b.posToXY(i)
@@ -256,10 +228,6 @@ func TestPosToXY(t *testing.T) {
 }
 
 func TestNeighbours(t *testing.T) {
-    testname := "TestNeighbours"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     b := NewBoard(DefaultBoardSize)
     for row := 0; row < b.BoardSize(); row++ {
         for col := 0; col < b.BoardSize(); col++ {
@@ -331,10 +299,6 @@ var testNumGroups9 = []testNumGroupsCase {
 }
 
 func TestNumGroups(t *testing.T) {
-    testname := "TestNumGroups"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     // on a 9x9 board
     for i, tc := range testNumGroups9 {
         b := NewBoard(9)
@@ -358,10 +322,6 @@ var testNumStones9 = []testNumGroupsCase {
 }
 
 func TestNumStones(t *testing.T) {
-    testname := "TestNumStones"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
     // on a 9x9 board
     for _, tc := range testNumStones9 {
         b := NewBoard(9)
@@ -393,10 +353,6 @@ var testGroupGeometry9 = []testGroupGeometryCase {
 }
 
 func TestGroupGeometry(t *testing.T) {
-    testname := "TestGroupGeometry"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
-
 
     tester := func(number int, t *testing.T, b *Board, setPoints []Point, color Color) {
         for _, p := range setPoints {
@@ -450,11 +406,21 @@ type writeStringer interface {
 
 // Tests a simple ko and tenuki situation
 func TestKo(t *testing.T) {
-    testname := "TestKo"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
+    /*testName := "TestKo"
+    fmt.Printf("entering %s\n", testName)
+    defer fmt.Printf("leaving %s\n", testName)*/
 
-    board := NewBoard(9)
+    legalityCheckedTooOften := func(err Error) {
+        printDbgMsgBTf(4, "legalityCheckedTooOften not yet initialized!\n")
+        t.Fatalf("legalityCheckedTooOften not yet initialized!\n")
+    }
+    inPanicLegalityCheckedTooOften := func(err Error) {
+        legalityCheckedTooOften(err)
+    }
+    defer panicChecks(inPanicLegalityCheckedTooOften)
+
+    game := NewGame(9)
+    dumpFile := relPathToAbs("../../../data/tmp/TestKo.GTPsequence.tmp")
     sequence := []Move{
         Move{ Color: Black, Vertex: *NewVertex(Point{3,4}, false) },
         Move{ Color: Black, Vertex: *NewVertex(Point{4,5}, false) },
@@ -464,19 +430,23 @@ func TestKo(t *testing.T) {
         Move{ Color: White, Vertex: *NewVertex(Point{4,6}, false) },
         Move{ Color: White, Vertex: *NewVertex(Point{5,5}, false) },
     }
-    board.playSequence(sequence)
-    board.PlayMove(4,4,White)
-    legalWhite, _ := board.calculateIfLegal(4,5, White)
-    legalBlack, _ := board.calculateIfLegal(4,5, Black)
+    // set the error handling for panic checks to the appropriate context
+    legalityCheckedTooOften = func(err Error) {
+        failLegalityCheckedTooOften(dumpFile, game, err, t)
+    }
+    game.PlaySequence(sequence)
+    game.PlayMove(4,4,White)
+    legalWhite, _ := game.Board.calculateIfLegal(4,5, White)
+    legalBlack, _ := game.Board.calculateIfLegal(4,5, Black)
     if !legalWhite {
         t.Fatalf("expected legal white move at (%d,%d)", 4,5)
     }
     if legalBlack {
         t.Fatalf("expected that a black move at (%d,%d) is illegal", 4,5)
     }
-    board.PlayMove(1,1,Black)
-    legalWhite, _ = board.calculateIfLegal(4,5, White)
-    legalBlack, _ = board.calculateIfLegal(4,5, Black)
+    game.PlayMove(1,1,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(4,5, White)
+    legalBlack, _ = game.Board.calculateIfLegal(4,5, Black)
     if !legalWhite {
         t.Fatalf("after tennuki: expected legal white move at (%d,%d)", 4,5)
     }
@@ -488,11 +458,21 @@ func TestKo(t *testing.T) {
 
 // Tests two kos at one board
 func TestDoubleKo(t *testing.T) {
-    testname := "TestDoubleKo"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
+    /*testName := "TestDoubleKo"
+    fmt.Printf("entering %s\n", testName)
+    defer fmt.Printf("leaving %s\n", testName)*/
 
-    board := NewBoard(9)
+    legalityCheckedTooOften := func(err Error) {
+        printDbgMsgBTf(4, "legalityCheckedTooOften not yet initialized!\n")
+        t.Fatalf("legalityCheckedTooOften not yet initialized!\n")
+    }
+    inPanicLegalityCheckedTooOften := func(err Error) {
+        legalityCheckedTooOften(err)
+    }
+    defer panicChecks(inPanicLegalityCheckedTooOften)
+
+    game := NewGame(9)
+    dumpFile := relPathToAbs("../../../data/tmp/TestDoubleKo.GTPsequence.tmp")
     sequence := []Move{
         Move{ Color: Black, Vertex: *NewVertex(Point{3,4}, false) },
         Move{ Color: Black, Vertex: *NewVertex(Point{4,5}, false) },
@@ -509,33 +489,73 @@ func TestDoubleKo(t *testing.T) {
         Move{ Color: Black, Vertex: *NewVertex(Point{1,1}, false) },
         Move{ Color: Black, Vertex: *NewVertex(Point{2,0}, false) },
     }
-    board.playSequence(sequence)
-    legalBlack, _ := board.calculateIfLegal(4,4,Black)
-    legalWhite, _ := board.calculateIfLegal(4,4,White)
+    // set the error handling for panic checks to the appropriate context
+    legalityCheckedTooOften = func(err Error) {
+        failLegalityCheckedTooOften(dumpFile, game, err, t)
+    }
+    game.PlaySequence(sequence)
+    legalBlack, _ := game.Board.calculateIfLegal(4,4,Black)
+    legalWhite, _ := game.Board.calculateIfLegal(4,4,White)
     if !legalBlack || !legalWhite {
         t.Fatalf("wrong legality status at (%d,%d)", 4,4)
     }
-    legalBlack, _ = board.calculateIfLegal(2,2,Black)
-    legalWhite, _ = board.calculateIfLegal(2,2,White)
+    legalBlack, _ = game.Board.calculateIfLegal(2,2,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(2,2,White)
     if !legalBlack || !legalWhite {
         t.Fatalf("wrong legality status at (%d,%d)", 2,2)
     }
-    board.PlayMove(4,4,White)
-    legalBlack, _ = board.calculateIfLegal(4,5,Black)
-    legalWhite, _ = board.calculateIfLegal(4,5,White)
+    game.PlayMove(4,4,White)
+    legalBlack, _ = game.Board.calculateIfLegal(4,5,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(4,5,White)
     if legalBlack || !legalWhite {
         t.Fatalf("wrong legality status at (%d,%d)", 4,5)
     }
-    board.PlayMove(2,2,Black)
-    legalBlack, _ = board.calculateIfLegal(2,1,Black)
-    legalWhite, _ = board.calculateIfLegal(2,1,White)
+    game.PlayMove(2,2,Black)
+    legalBlack, _ = game.Board.calculateIfLegal(2,1,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(2,1,White)
     if !legalBlack || legalWhite {
         t.Fatalf("wrong legality status at (%d,%d)", 2,1)
     }
-    legalBlack, _ = board.calculateIfLegal(4,5,Black)
-    legalWhite, _ = board.calculateIfLegal(4,5,White)
+    legalBlack, _ = game.Board.calculateIfLegal(4,5,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(4,5,White)
     if !legalBlack || !legalWhite {
         t.Fatalf("after 2nd ko: wrong legality status at (%d,%d)", 4,5)
+    }
+}
+
+func dumpSequence(w writeStringer, game *Game, t *testing.T) {
+    for _, mv := range game.sequence {
+        m, _ := mv.(Move)
+        vertex, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
+        line := fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
+        if _, werr := w.WriteString(line); werr != nil {
+            t.Fatalf("dumpSequence does not work, check the writeStringer")
+        }
+    }
+}
+
+func failBecausePositionIsIllegal(w writeStringer, failMessage, infoString string, game *Game, t *testing.T, dumpFile string) {
+    time := time.LocalTime()
+    w.WriteString(fmt.Sprintf("# These moves lead to an illegal position. %s\n", time))
+    _, werr := w.WriteString(fmt.Sprintf("  boardsize %d\n", game.Board.BoardSize()))
+    if werr != nil {
+        failMessage = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
+        failMessage += fmt.Sprintf("The error was: %s\n", werr)
+    } else {
+        dumpSequence(w, game, t)
+        line := fmt.Sprintf("# %s\n", infoString)
+        w.WriteString(line)
+
+    }
+    t.Fatalf(failMessage)
+}
+
+func fileFail(failMessage, infoString, dumpFile string, game *Game, t *testing.T) {
+    os.Remove(dumpFile)
+    if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
+        failBecausePositionIsIllegal(file, failMessage, infoString, game, t, dumpFile)
+    } else {
+        t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
     }
 }
 
@@ -546,43 +566,6 @@ func gameStateCheck(game *Game,
                     legalBlack, legalWhite []Point,
                     ) {
 
-    dumpSequence := func(w writeStringer) {
-        for _, mv := range game.sequence {
-            m, _ := mv.(Move)
-            vertex, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
-            line := fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
-            if _, werr := w.WriteString(line); werr != nil {
-                t.Fatalf("dumpSequence does not work, check the writeStringer")
-            }
-        }
-    }
-
-    failBecausePositionIsIllegal := func(w writeStringer,
-                                         failMessage, infoString string,
-                                         ) {
-        time := time.LocalTime()
-        w.WriteString(fmt.Sprintf("# These moves lead to an illegal position. %s\n", time))
-        _, werr := w.WriteString(fmt.Sprintf("  boardsize %d\n", game.Board.BoardSize()))
-        if werr != nil {
-            failMessage = fmt.Sprintf("The sequence should have been dumped into %s, but this file could not be opened.\n", dumpFile)
-            failMessage += fmt.Sprintf("The error was: %s\n", werr)
-        } else {
-            dumpSequence(w)
-            line := fmt.Sprintf("# %s\n", infoString)
-            w.WriteString(line)
-
-        }
-        t.Fatalf(failMessage)
-    }
-
-    fileFail := func(failMessage, infoString string) {
-        os.Remove(dumpFile)
-        if file, err := os.Open(dumpFile, os.O_CREATE | os.O_RDWR, 0666); err == nil {
-            failBecausePositionIsIllegal(file, failMessage, infoString)
-        } else {
-            t.Fatalf("Tried to create the error output file %s, but this error occured: %s", dumpFile, err)
-        }
-    }
 
     for _, p := range legalBlack {
         if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
@@ -590,7 +573,7 @@ func gameStateCheck(game *Game,
             failMessage := fmt.Sprintf("Game %d, move %d: the point %s was legal for black but is already occupied\n", nGame, nMove, illegalVertex)
             failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
             infoString := fmt.Sprintf("the vertex %s is legal for black but already occupied", illegalVertex)
-            fileFail(failMessage, infoString)
+            fileFail(failMessage, infoString, dumpFile, game, t)
         }
     }
     for _, p := range legalWhite {
@@ -599,7 +582,7 @@ func gameStateCheck(game *Game,
             failMessage := fmt.Sprintf("Game %d, move %d: the point %s was legal for white but is already occupied\n", nGame, nMove, illegalVertex)
             failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
             infoString := fmt.Sprintf("the vertex %s is legal for white but already occupied", illegalVertex)
-            fileFail(failMessage, infoString)
+            fileFail(failMessage, infoString, dumpFile, game, t)
         }
     }
     // Assemble the set of all groups in game.Board
@@ -615,8 +598,8 @@ func gameStateCheck(game *Game,
             failMessage := fmt.Sprintf("in game %d, there were groups with 0 liberties after %d moves.\nSeq dumped into %s", nGame, nMove, dumpFile)
             gX, gY := game.Board.posToXY(grp.Fields.First().Value())
             vertex, _ := pointToGTPVertex(*NewPoint(gX, gY))
-            infoString := fmt.Sprintf("# the group with 0 libs is around %s\n", vertex)
-            fileFail(failMessage, infoString)
+            infoString := fmt.Sprintf("# the group with 0 libs is around %s", vertex)
+            fileFail(failMessage, infoString, dumpFile, game, t)
         }
     }
     for grp, _ := range groupMap {
@@ -628,7 +611,6 @@ func gameStateCheck(game *Game,
         allmap[i] = true
     }
     for i := 0; i < game.Board.BoardSize()*game.Board.BoardSize(); i++ {
-        //if !game.Board.fields[i].Empty() {
         if game.Board.fields[i] != nil {
             allmap[i] = false, false
         }
@@ -649,23 +631,56 @@ func gameStateCheck(game *Game,
             vertex, _ := pointToGTPVertex(*NewPoint(fx, fy))
             infoString += fmt.Sprintf(" %s ", vertex)
         }
-        fileFail(failMessage, infoString)
+        fileFail(failMessage, infoString, dumpFile, game, t)
     }
 }
 
 // used for some panic situations that occur while debugging komoku
-func panicChecks(t *testing.T) {
+func panicChecks(legalityCheckedTooOften func(err Error)) {
+    //fmt.Printf("entering panicChecks\n")
     if e := recover(); e != nil {
-        jjjjjjj
+        //fmt.Printf("after first if\n")
+        // catch only komoku errors, repanic otherwise
+        //printDbgMsgBTf(4, "its an error != nil\n")
+        if err, ok := e.(Error); ok {
+            //fmt.Printf("after successful type assertion, errno: %d\n", err.Errno())
+            //printDbgMsgBTf(4, "its a komoku error\n")
+            switch err.Errno() {
+                case ErrFieldLegalityCheckedMoreThanOnce:
+                    //printDbgMsgBTf(4, "calling legalityCheckedTooOften\n")
+                    legalityCheckedTooOften(err)
+                default:
+                    // repanic
+                    panic(e)
+            }
+        } else {
+            panic(e)
+        }
     }
+}
+
+func failLegalityCheckedTooOften(dumpFile string, game *Game, err Error, t *testing.T) {
+    backtrace := sPrintDbgMsgBTf(13,"")
+    failMessage := fmt.Sprintf("'%s', bt: '%s'.\nSeq dumped into %s", err, backtrace, dumpFile)
+    infoString := fmt.Sprintf("'%s', bt: '%s'.", err, backtrace)
+    fileFail(failMessage, infoString, dumpFile, game, t)
 }
 
 // Generates random games and checks if the []Points returned by Board.ListLegalPoints do not intersect
 // already occupied points
 func TestListLegalPoints(t *testing.T) {
-    testname := "TestListLegalPoints"
-    fmt.Printf("entering %s\n", testname)
-    defer fmt.Printf("leaving %s\n", testname)
+    /*testName := "TestListLegalPoints"
+    fmt.Printf("entering %s\n", testName)
+    defer fmt.Printf("leaving %s\n", testName)*/
+
+    legalityCheckedTooOften := func(err Error) {
+        printDbgMsgBTf(4, "legalityCheckedTooOften not yet initialized!\n")
+        t.Fatalf("legalityCheckedTooOften not yet initialized!\n")
+    }
+    inPanicLegalityCheckedTooOften := func(err Error) {
+        legalityCheckedTooOften(err)
+    }
+    defer panicChecks(inPanicLegalityCheckedTooOften)
 
     numGames := 500 // Number of games this test should play
     gamesLen := 100 // Number of random moves to play
@@ -673,11 +688,15 @@ func TestListLegalPoints(t *testing.T) {
     dumpFile := relPathToAbs("../../../data/tmp/TestListLegalPoints.GTPsequence.tmp")
     lastMovePass := false
     for nGame := 0; nGame < numGames; nGame++ {
-        fmt.Printf("Game %d\n", nGame)
+        //fmt.Printf("Game %d\n", nGame)
         game := NewGame(boardsize)
         var currentColor Color = Black
         for nMove := 0; nMove < gamesLen; nMove++ {
 
+            // set the error handling for panic checks to the appropriate context
+            legalityCheckedTooOften = func(err Error) {
+                failLegalityCheckedTooOften(dumpFile, game, err, t)
+            }
             legalBlack := game.Board.ListLegalPoints(Black)
             legalWhite := game.Board.ListLegalPoints(White)
 

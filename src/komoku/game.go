@@ -51,6 +51,17 @@ func (g *Game) PlayPass(color Color) {
     g.Board.PlayPass(color)
 }
 
+// Plays out the sequence 'seq' of moves
+func (g *Game) PlaySequence(seq []Move) {
+    for _, m := range seq {
+        if m.Vertex.Pass {
+            g.PlayPass(m.Color)
+        } else {
+            g.PlayMove(m.Vertex.X, m.Vertex.Y, m.Color)
+        }
+    }
+}
+
 func (g *Game) SetKomi(newKomi float) {
     g.komi = newKomi
 }
