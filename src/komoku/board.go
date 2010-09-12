@@ -154,7 +154,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                         alreadyUpdated := make([]bool, b.boardSize*b.boardSize)
                         b.ko = nil
                         b.removeGroup(enemiesInAtari[0]) // Remove the enemy stone
-                        b.CreateGroup(x,y,color) // Create the new group
+                        b.CreateGroup(pos,color) // Create the new group
                         for _, grp := range enemiesNotInAtari { // Update liberties of the groups adjacent to the new stone at (x,y)
                             b.updateGroupLiberties(grp)
                         }
@@ -195,7 +195,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                         for _, grp := range enemiesInAtari {
                             b.removeGroup(grp)
                         }
-                        b.CreateGroup(x,y,color)
+                        b.CreateGroup(pos,color)
                         for _, grp := range enemiesNotInAtari {
                             b.updateGroupLiberties(grp)
                         }
@@ -216,7 +216,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     for _, grp := range enemiesInAtari {
                         b.removeGroup(grp)
                     }
-                    b.CreateGroup(x,y,color)
+                    b.CreateGroup(pos,color)
                     for _, grp := range enemiesNotInAtari {
                         b.updateGroupLiberties(grp)
                     }
@@ -231,7 +231,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     //DbgHistogram.Score() // </DBG>
                     alreadyUpdated := make([]bool, b.boardSize*b.boardSize)
                     b.ko = nil
-                    b.CreateGroup(x,y,color)
+                    b.CreateGroup(pos,color)
                     b.dropLibertyFromEach(pos, adjOtherColor)
                     b.updateLegalityForFreeNeighboursOf(x,y, b.currentSequence + 1, alreadyUpdated)
                     b.updateLegalityForAdjacentGroups(adjOtherColor, b.currentSequence + 1, alreadyUpdated)
@@ -361,11 +361,10 @@ func (b *Board) ColorOfNextPlay() Color {
     return b.colorOfNextPlay
 }
 
-// Create a new, one-stone-group of 'color' at (x,y) and sets its liberties appropriately. 
+// Create a new, one-stone-group of 'color' at 'pos' and sets its liberties appropriately. 
 // This method does not perform any legality checks or liberty updates for other groups.
 // TODO: unexport this?
-func (b *Board) CreateGroup(x, y int, color Color) {
-    pos := b.xyToPos(x,y)
+func (b *Board) CreateGroup(pos int, color Color) {
     newGroup := NewGroup(color)
     newGroup.Fields.Append(pos)
     nbours := b.neighboursByPos(pos)
@@ -378,6 +377,12 @@ func (b *Board) CreateGroup(x, y int, color Color) {
     b.fields[pos] = newGroup
     b.actionOnNextBlackMove[pos] = nil
     b.actionOnNextWhiteMove[pos] = nil
+}
+
+// as CreateGroup
+func (b *Board) CreateGroupByPoint(x, y int, color Color) {
+    pos := b.xyToPos(x,y)
+    b.CreateGroup(pos, color)
 }
 
 // Returns the sublists '{not,}inAtari' of 'groups' which are {not,} in atari. Assumes that the groups in
@@ -668,7 +673,8 @@ func (b *Board) playSequence(seq []Move) {
         if m.Vertex.Pass {
             b.PlayPass(m.Color)
         } else {
-            //printDbgMsgf("playing %s stone at (%d,%d)\n", m.Color, m.Vertex.X, m.Vertex.Y)
+            /*v, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
+            printDbgMsgf("playing %s stone at %s\n", m.Color, v)*/
             b.PlayMove(m.Vertex.X, m.Vertex.Y, m.Color)
         }
     }
@@ -750,13 +756,13 @@ func (b *Board) updateGroupLiberties(group *Group) {
 // 'whichSequence' denotes the sequence to set in b.fieldSequences{Black,White}.
 func (b *Board) updateLegalityFor(pos int, whichSequence uint32) {
     pX, pY := b.posToXY(pos)
-    //v, _ := pointToGTPVertex(*NewPoint(pX, pY))
+    v, _ := pointToGTPVertex(*NewPoint(pX, pY))
     //printDbgMsgBTf(4,"in updateLegalityFor(%s, %d), currentSequence: %d\n", v, whichSequence, b.currentSequence)
 
     // use this 'if' only for debugging!
-    /*if b.fieldSequencesBlack[pos] == whichSequence || b.fieldSequencesWhite[pos] == whichSequence {
+    if b.fieldSequencesBlack[pos] == whichSequence || b.fieldSequencesWhite[pos] == whichSequence {
         panic(NewFieldLegalityCheckedMoreThanOnceError(fmt.Sprintf("checked more than once for %s",v)))
-    }*/
+    }
 
     _, b.actionOnNextBlackMove[pos] = b.calculateIfLegal(pX, pY, Black)
     _, b.actionOnNextWhiteMove[pos] = b.calculateIfLegal(pX, pY, White)
@@ -880,20 +886,17 @@ func NewBoard(boardsize int) *Board {
                    fieldSequencesBlack: make([]uint32, boardsize*boardsize),
                    fieldSequencesWhite: make([]uint32, boardsize*boardsize),
                  }
+    initialActionGenerator := func(pos int, color Color) actionFunc {
+        return func() (updateBlack, updateWhite bool) {
+            ret.CreateGroup(pos, color)
+            ret.colorOfNextPlay = !ret.colorOfNextPlay
+            ret.legalMovesNeedUpdate()
+            return false, false
+        }
+    }
     for i := 0; i < boardsize*boardsize; i++ {
-        x, y := ret.posToXY(i)
-        ret.actionOnNextBlackMove[i] = func() (updateBlack, updateWhite bool) {
-            ret.CreateGroup(x, y, Black)
-            ret.colorOfNextPlay = !ret.colorOfNextPlay
-            ret.legalMovesNeedUpdate()
-            return false, false
-        }
-        ret.actionOnNextWhiteMove[i] = func() (updateBlack, updateWhite bool) {
-            ret.CreateGroup(x, y, White)
-            ret.colorOfNextPlay = !ret.colorOfNextPlay
-            ret.legalMovesNeedUpdate()
-            return false, false
-        }
+        ret.actionOnNextBlackMove[i] = initialActionGenerator(i, Black)
+        ret.actionOnNextWhiteMove[i] = initialActionGenerator(i, White)
     }
     return ret
 }

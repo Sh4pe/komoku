@@ -24,12 +24,12 @@ func TestCreateGroup(t *testing.T) {
     for x := 0; x < DefaultBoardSize; x++ {
         for y := 0; y < DefaultBoardSize; y++ {
             b := NewBoard(DefaultBoardSize)
-            b.CreateGroup(x,y, Black)
+            pos := b.xyToPos(x,y)
+            b.CreateGroup(pos, Black)
             g := b.GetGroup(x,y)
             if g == nil {
                 t.Fatalf("Field empty after CreateGroup created a group on it")
             }
-            pos := b.xyToPos(x,y)
             nbours := b.neighboursByPos(pos)
             if len(nbours) != g.Liberties.Length() {
                 t.Fatalf("Different number of liberties (%d) and neighbours (%d)", g.Liberties.Length(), len(nbours))
@@ -68,7 +68,7 @@ func TestUpdateGroupLiberties(t *testing.T) {
     // single stones
     p := NewPoint(1,1)
     pos := b.xyToPos(p.X, p.Y)
-    b.CreateGroup(p.X, p.Y, Black)
+    b.CreateGroup(pos, Black)
     g := b.GetGroup(p.X, p.Y)
     b.updateGroupLiberties(g)
     if g.Liberties.Length() != 4 {
@@ -77,7 +77,7 @@ func TestUpdateGroupLiberties(t *testing.T) {
     // two stones in a row
     p2 := NewPoint(1,2)
     pos2 := b.xyToPos(p2.X, p2.Y)
-    b.CreateGroup(p2.X, p2.Y, Black)
+    b.CreateGroup(pos2, Black)
     b.joinGroups(b.fields[pos], b.fields[pos2])
     b.updateGroupLiberties(g)
     if g.Liberties.Length() != 6 {
@@ -86,7 +86,7 @@ func TestUpdateGroupLiberties(t *testing.T) {
     // empty triangle - ewww!
     p3 := NewPoint(2,2)
     pos3 := b.xyToPos(p3.X, p3.Y)
-    b.CreateGroup(p3.X, p3.Y, Black)
+    b.CreateGroup(pos3, Black)
     b.joinGroups(b.fields[pos], b.fields[pos3])
     b.updateGroupLiberties(g)
     if g.Liberties.Length() != 7 {
@@ -102,10 +102,10 @@ func TestJoinGroups(t *testing.T) {
     ref := t1
     refpos := b.xyToPos(ref[0].X, ref[0].Y)
     t1pos := refpos
-    b.CreateGroup(ref[0].X, ref[0].Y, Black)
+    b.CreateGroup(refpos, Black)
     for i := 1; i < len(ref); i++ {
         p := ref[i]
-        b.CreateGroup(p.X, p.Y, Black)
+        b.CreateGroupByPoint(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
     nblack, nwhite := b.numberOfGroups()
@@ -117,10 +117,10 @@ func TestJoinGroups(t *testing.T) {
     ref = t2
     refpos = b.xyToPos(ref[0].X, ref[0].Y)
     t2pos := refpos
-    b.CreateGroup(ref[0].X, ref[0].Y, Black)
+    b.CreateGroup(refpos, Black)
     for i := 1; i < len(ref); i++ {
         p := ref[i]
-        b.CreateGroup(p.X, p.Y, Black)
+        b.CreateGroupByPoint(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
 
@@ -192,10 +192,10 @@ func TestRemoveGroup(t *testing.T) {
     t1 := []*Point{ NewPoint(1,1), NewPoint(1,2), NewPoint(2,2) }
     ref := t1
     refpos := b.xyToPos(ref[0].X, ref[0].Y)
-    b.CreateGroup(ref[0].X, ref[0].Y, Black)
+    b.CreateGroup(refpos, Black)
     for i := 1; i < len(ref); i++ {
         p := ref[i]
-        b.CreateGroup(p.X, p.Y, Black)
+        b.CreateGroupByPoint(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
     b.RemoveGroupByPos(1,1)

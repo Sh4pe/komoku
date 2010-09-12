@@ -64,6 +64,10 @@ func testMain() {
     for i, g := range gs {
         fmt.Printf("%d, %v\n", i, g)
     }
+    i := 10
+    j := i 
+    i++
+    fmt.Printf("%d\n", j)
 }
 
 func normalMain() {
@@ -71,7 +75,7 @@ func normalMain() {
 }
 
 func main() {
-    //testMain()
-    komoku.RunGTPMode()
+    testMain()
+    //komoku.RunGTPMode()
 }
 
