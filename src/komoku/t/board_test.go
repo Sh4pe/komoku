@@ -26,7 +26,7 @@ func TestCreateGroup(t *testing.T) {
             b := NewBoard(DefaultBoardSize)
             pos := b.xyToPos(x,y)
             b.CreateGroup(pos, Black)
-            g := b.GetGroup(x,y)
+            g := b.GetGroupByPoint(x,y)
             if g == nil {
                 t.Fatalf("Field empty after CreateGroup created a group on it")
             }
@@ -69,7 +69,7 @@ func TestUpdateGroupLiberties(t *testing.T) {
     p := NewPoint(1,1)
     pos := b.xyToPos(p.X, p.Y)
     b.CreateGroup(pos, Black)
-    g := b.GetGroup(p.X, p.Y)
+    g := b.GetGroupByPoint(p.X, p.Y)
     b.updateGroupLiberties(g)
     if g.Liberties.Length() != 4 {
         t.Fatalf("Wrong # of liberties, got %d, want 4", g.Liberties.Length())
@@ -136,7 +136,7 @@ func TestJoinGroups(t *testing.T) {
     if nall != 1 {
         t.Fatalf("(Joined the two groups) Wrong number of groups, got %d, want 1", nall)
     }
-    g := b.GetGroup(t1[0].X, t1[0].Y)
+    g := b.GetGroupByPoint(t1[0].X, t1[0].Y)
     b.updateGroupLiberties(g)
     if g.Liberties.Length() != 11 {
         t.Fatalf("Wrong number of liberties, got %d, wanted 11", g.Liberties.Length())
@@ -179,7 +179,8 @@ func TestGetEnvironment(t *testing.T) {
     for i, tc := range testGetEnvironment9 {
         b := NewBoard(9)
         b.playSequence(tc.sequence)
-        nFree, adjBlack, adjWhite := b.GetEnvironment(tc.where.X, tc.where.Y)
+        pos := b.xyToPos(tc.where.X, tc.where.Y)
+        nFree, adjBlack, adjWhite := b.GetEnvironment(pos)
         if nFree != tc.enFree || len(adjBlack) != tc.eadjBlackLen || len(adjWhite) != tc.eadjWhiteLen {
             t.Fatalf("Board.GetEnvironment fails test case %d", i)
         }
@@ -198,7 +199,8 @@ func TestRemoveGroup(t *testing.T) {
         b.CreateGroupByPoint(p.X, p.Y, Black)
         b.joinGroups(b.fields[refpos], b.fields[b.xyToPos(p.X, p.Y)])
     }
-    b.RemoveGroupByPos(1,1)
+    pos := b.xyToPos(1,1)
+    b.RemoveGroupByPos(pos)
     if len(b.ListEmptyFields()) != b.BoardSize()*b.BoardSize() {
         t.Fatalf("Board.RemoveGroup does not completely remove the group")
     }
@@ -359,14 +361,14 @@ func TestGroupGeometry(t *testing.T) {
 
     tester := func(number int, t *testing.T, b *Board, setPoints []Point, color Color) {
         for _, p := range setPoints {
-            grp := b.GetGroup(p.X,p.Y)
+            grp := b.GetGroupByPoint(p.X,p.Y)
             if grp == nil {
                 t.Fatalf("Failed testcase %d (%s), there seems to be no group at (%d,%d)", number, color, p.X, p.Y)
             } else if grp.Color != color {
                 t.Fatalf("Failed testcase %d (%s), stone has the wrong color", number, color)
             }
         }
-        grp := b.GetGroup(setPoints[0].X, setPoints[0].Y)
+        grp := b.GetGroupByPoint(setPoints[0].X, setPoints[0].Y)
         if len(setPoints) != grp.Fields.Length() {
             t.Fatalf("Failed testcase %d (%s), group has wrong number of stones, got %d, wanted %d", number, color, grp.Fields.Length(), len(setPoints))
         }
@@ -439,8 +441,9 @@ func TestKo(t *testing.T) {
     }
     game.PlaySequence(sequence)
     game.PlayMove(4,4,White)
-    legalWhite, _ := game.Board.calculateIfLegal(4,5, White)
-    legalBlack, _ := game.Board.calculateIfLegal(4,5, Black)
+    pos := game.Board.xyToPos(4,5)
+    legalWhite, _ := game.Board.calculateIfLegal(pos, White)
+    legalBlack, _ := game.Board.calculateIfLegal(pos, Black)
     if !legalWhite {
         t.Fatalf("expected legal white move at (%d,%d)", 4,5)
     }
@@ -448,8 +451,8 @@ func TestKo(t *testing.T) {
         t.Fatalf("expected that a black move at (%d,%d) is illegal", 4,5)
     }
     game.PlayMove(1,1,Black)
-    legalWhite, _ = game.Board.calculateIfLegal(4,5, White)
-    legalBlack, _ = game.Board.calculateIfLegal(4,5, Black)
+    legalWhite, _ = game.Board.calculateIfLegal(pos, White)
+    legalBlack, _ = game.Board.calculateIfLegal(pos, Black)
     if !legalWhite {
         t.Fatalf("after tennuki: expected legal white move at (%d,%d)", 4,5)
     }
@@ -497,30 +500,35 @@ func TestDoubleKo(t *testing.T) {
         failLegalityCheckedTooOften(dumpFile, game, err, t)
     }
     game.PlaySequence(sequence)
-    legalBlack, _ := game.Board.calculateIfLegal(4,4,Black)
-    legalWhite, _ := game.Board.calculateIfLegal(4,4,White)
+    pos := game.Board.xyToPos(4,4)
+    legalBlack, _ := game.Board.calculateIfLegal(pos,Black)
+    legalWhite, _ := game.Board.calculateIfLegal(pos,White)
     if !legalBlack || !legalWhite {
         t.Fatalf("wrong legality status at (%d,%d)", 4,4)
     }
-    legalBlack, _ = game.Board.calculateIfLegal(2,2,Black)
-    legalWhite, _ = game.Board.calculateIfLegal(2,2,White)
+    pos = game.Board.xyToPos(2,2)
+    legalBlack, _ = game.Board.calculateIfLegal(pos,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(pos,White)
     if !legalBlack || !legalWhite {
         t.Fatalf("wrong legality status at (%d,%d)", 2,2)
     }
     game.PlayMove(4,4,White)
-    legalBlack, _ = game.Board.calculateIfLegal(4,5,Black)
-    legalWhite, _ = game.Board.calculateIfLegal(4,5,White)
+    pos = game.Board.xyToPos(4,5)
+    legalBlack, _ = game.Board.calculateIfLegal(pos,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(pos,White)
     if legalBlack || !legalWhite {
         t.Fatalf("wrong legality status at (%d,%d)", 4,5)
     }
     game.PlayMove(2,2,Black)
-    legalBlack, _ = game.Board.calculateIfLegal(2,1,Black)
-    legalWhite, _ = game.Board.calculateIfLegal(2,1,White)
+    pos = game.Board.xyToPos(2,1)
+    legalBlack, _ = game.Board.calculateIfLegal(pos,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(pos,White)
     if !legalBlack || legalWhite {
         t.Fatalf("wrong legality status at (%d,%d)", 2,1)
     }
-    legalBlack, _ = game.Board.calculateIfLegal(4,5,Black)
-    legalWhite, _ = game.Board.calculateIfLegal(4,5,White)
+    pos = game.Board.xyToPos(4,5)
+    legalBlack, _ = game.Board.calculateIfLegal(pos,Black)
+    legalWhite, _ = game.Board.calculateIfLegal(pos,White)
     if !legalBlack || !legalWhite {
         t.Fatalf("after 2nd ko: wrong legality status at (%d,%d)", 4,5)
     }
@@ -571,7 +579,7 @@ func gameStateCheck(game *Game,
 
 
     for _, p := range legalBlack {
-        if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
+        if gptr := game.Board.GetGroupByPoint(p.X, p.Y); gptr != nil {
             illegalVertex, _ := pointToGTPVertex(*NewPoint(p.X,p.Y))
             failMessage := fmt.Sprintf("Game %d, move %d: the point %s was legal for black but is already occupied\n", nGame, nMove, illegalVertex)
             failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
@@ -580,7 +588,7 @@ func gameStateCheck(game *Game,
         }
     }
     for _, p := range legalWhite {
-        if gptr := game.Board.GetGroup(p.X, p.Y); gptr != nil {
+        if gptr := game.Board.GetGroupByPoint(p.X, p.Y); gptr != nil {
             illegalVertex, _ := pointToGTPVertex(*NewPoint(p.X,p.Y))
             failMessage := fmt.Sprintf("Game %d, move %d: the point %s was legal for white but is already occupied\n", nGame, nMove, illegalVertex)
             failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)

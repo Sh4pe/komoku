@@ -66,12 +66,12 @@ type actionFunc func() (blackUpdated, whiteUpdated bool)
 
 // Used for ko. Says that a play of color 'Color' at 'Point' is forbidden by the ko rule
 type koLock struct {
-    Point Point
+    Pos int
     Color Color
 }
 
-func NewKoLock(x,y int, color Color) *koLock {
-    return &koLock{ Point: *NewPoint(x,y),
+func NewKoLock(pos int, color Color) *koLock {
+    return &koLock{ Pos: pos,
                     Color: color,
                   }
 }
@@ -101,24 +101,25 @@ func (b *Board) BoardSize() int {
     return b.boardSize
 }
 
-// Calculates if a move of 'color' at (x,y) is legal. Does not use 
-// b.legal{Black,White}Moves for this. Also, this method returnsthe appropriate
+// Calculates if a move of 'color' at 'pos' is legal. Does not use 
+// b.legal{Black,White}Moves for this. Also, this method returns the appropriate
 // `actions` to be performed if this move is played using 'action'. The return value
 // of these actions indicate if any legality update has been performed.
-// Note that this method assumes that (x,y) is empty.
-func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action actionFunc) {
+// Note that this method assumes that 'pos' is empty.
+func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action actionFunc) {
     /*v, _ := pointToGTPVertex(*NewPoint(x, y))
     printDbgMsgBTf(4,"entering Board.calculateIfLegal(%s, %v)\n", v, color) // <DBG>*/
     //printDbgMsgf("ko status: %v\n", b.ko)
 
     // Is this move prohibited because of a ko? It is not prohibited for the player who 
     // took the ko to fill it in the next move
-    if b.ko != nil && b.ko.Color == color&& b.ko.Point.X == x && b.ko.Point.Y == y {
+    //if b.ko != nil && b.ko.Color == color && b.ko.Point.X == x && b.ko.Point.Y == y {
+    if b.ko != nil && b.ko.Color == color && b.ko.Pos == pos {
         //printDbgMsgf("returned from Board.calculateIfLegal(%d, %d, %v)\n", x, y, color) // <DBG/>
         return false, nil
     }
-    pos := b.xyToPos(x,y)
-    nFree, adjSameColor, adjOtherColor := b.GetEnvironment(x,y)
+    //pos := b.xyToPos(x,y)
+    nFree, adjSameColor, adjOtherColor := b.GetEnvironment(pos)
     if color == White {
         adjSameColor, adjOtherColor = adjOtherColor, adjSameColor
     }
@@ -146,7 +147,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     // It's a ko, so remove the group, play the stone, update the liberties
                     // and set b.ko to the right point.
                     koPos := firstGroup.Fields.First().Value()
-                    koX, koY := b.posToXY(koPos)
+                    //koX, koY := b.posToXY(koPos)
                     action = func() (blackUpToDate, whiteUpToDate bool) {
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, ko case.\n") // <DBG>
                         //DbgHistogram.Score() // </DBG>
@@ -161,21 +162,21 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                         // Update liberties and legality for the groups adjacent to the removed stone
                         var adjToKoSameColor GroupSlice
                         if color == Black {
-                            _, adjToKoSameColor, _ = b.GetEnvironment(koX, koY)
+                            _, adjToKoSameColor, _ = b.GetEnvironment(koPos)
                         } else {
-                            _, _, adjToKoSameColor = b.GetEnvironment(koX, koY)
+                            _, _, adjToKoSameColor = b.GetEnvironment(koPos)
                         }
                         for _, grp := range adjToKoSameColor {
                             grp.Liberties.AppendUnique(koPos)
-                            b.updateLegalityForLibertiesOfExcept(grp, koX, koY, b.currentSequence + 1, alreadyUpdated)
+                            b.updateLegalityForLibertiesOfExcept(grp, koPos, b.currentSequence + 1, alreadyUpdated)
                         }
                         // The player who took the ko may fill it, so make it legal for the player 'color' for the next round.
                         // TODO: this is sort of an evil hack... or is it?
                         if color == Black {
-                            _, b.actionOnNextBlackMove[koPos] = b.calculateIfLegal(koX, koY, Black)
+                            _, b.actionOnNextBlackMove[koPos] = b.calculateIfLegal(koPos, Black)
                             b.fieldSequencesBlack[koPos] = b.currentSequence + 1
                         } else {
-                            _, b.actionOnNextWhiteMove[koPos] = b.calculateIfLegal(koX, koY, White)
+                            _, b.actionOnNextWhiteMove[koPos] = b.calculateIfLegal(koPos, White)
                             b.fieldSequencesWhite[koPos] = b.currentSequence + 1
                         }
                         // Update the legality for the liberties of the groups adjacent to the new created stone
@@ -184,7 +185,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                             b.updateLegalityForLibertiesOf(grp, b.currentSequence + 1, alreadyUpdated)
                         }
 
-                        b.ko = NewKoLock(koX, koY, !color)
+                        b.ko = NewKoLock(koPos, !color)
                         return true, true
                     }
                 } else {
@@ -233,7 +234,7 @@ func (b *Board) calculateIfLegal(x,y int, color Color) (isLegal bool, action act
                     b.ko = nil
                     b.CreateGroup(pos,color)
                     b.dropLibertyFromEach(pos, adjOtherColor)
-                    b.updateLegalityForFreeNeighboursOf(x,y, b.currentSequence + 1, alreadyUpdated)
+                    b.updateLegalityForFreeNeighboursOf(pos, b.currentSequence + 1, alreadyUpdated)
                     b.updateLegalityForAdjacentGroups(adjOtherColor, b.currentSequence + 1, alreadyUpdated)
                     return true, true
                 }
@@ -368,7 +369,6 @@ func (b *Board) CreateGroup(pos int, color Color) {
     newGroup := NewGroup(color)
     newGroup.Fields.Append(pos)
     nbours := b.neighboursByPos(pos)
-    //for _, p := range nbours {
     for _, npos := range nbours {
         if b.fields[npos] == nil {
             newGroup.Liberties.Append(npos)
@@ -409,11 +409,10 @@ func (b *Board) dropLibertyFromEach(libertyPos int, adjGroups GroupSlice) {
     }
 }
 
-// Returns the `environment` of (x,y), i.e. the number 'nFree' of free neighbours
-// and IntLists 'adj{Black,White}' containing instances of GroupIndexTypes of adjacent {black,white} groups.
-// TODO: unexport this?
-func (b *Board) GetEnvironment(x,y int) (nFree int, adjBlack, adjWhite GroupSlice) {
-    pos := b.xyToPos(x,y)
+// Returns the `environment` of 'pos', i.e. the number 'nFree' of free neighbours
+// and GroupSlices 'adj{Black,White}' containing the adjacent {black,white} groups.
+func (b *Board) GetEnvironment(pos int) (nFree int, adjBlack, adjWhite GroupSlice) {
+    // TODO: unexport this?
     nbours := b.neighboursByPos(pos)
     adjBlack = NewGroupSlice()
     adjWhite = NewGroupSlice()
@@ -433,24 +432,15 @@ func (b *Board) GetEnvironment(x,y int) (nFree int, adjBlack, adjWhite GroupSlic
     return
 }
 
-// Analogous to GetEnvironment.
-// TODO: write tests for this...
-// TODO: unexport this?
-func (b *Board) GetEnvironmentByPos(pos int) (nFree int, adjBlack, adjWhite GroupSlice) {
-    x, y := b.posToXY(pos)
-    return b.GetEnvironment(x,y)
-}
-
 // Returs a pointer to the group which occupies (x,y). Nil means that this 
 // field is empty.
-func (b *Board) GetGroup(x,y int) *Group {
+func (b *Board) GetGroupByPoint(x,y int) *Group {
     index := b.xyToPos(x,y)
     return b.fields[index]
 }
 
-// Is it legal to play a stone of color 'color' at (x,y)?
-func (b *Board) IsLegalMove(x, y int, color Color) bool {
-    pos := b.xyToPos(x,y)
+// Is it legal to play a stone of color 'color' at 'pos'?
+func (b *Board) IsLegalMove(pos int, color Color) bool {
     /*printDbgMsgf("IsLegalMove(%d, %d, %s): fieldSeqW[pos]: %d, fieldSeqB[pos]: %d, currSeq: %d\n", x,y,color, b.fieldSequencesWhite[pos], b.fieldSequencesBlack[pos],
                 b.currentSequence)*/
     if color == Black {
@@ -550,40 +540,9 @@ func (b *Board) ListLegalPoints(color Color) []Point {
     return ret[0:index]
 }
 
-// Returns the neighbours of a field (x,y) as a slice of Points.
-/*func (b *Board) neighbours(x, y int) []Point {
-    ret := make([]Point, 4)
-    count := 0
-    switch x {
-        case 0:
-            ret[count] = Point{ 1, y }
-            count++
-        case b.BoardSize()-1:
-            ret[count] = Point{ b.BoardSize()-2, y }
-            count++
-        default:
-            ret[count] = Point{ x-1, y }
-            count++
-            ret[count] = Point{ x+1, y }
-            count++
-    }
-    switch y {
-        case 0:
-            ret[count] = Point{ x, 1 }
-            count++
-        case b.BoardSize()-1:
-            ret[count] = Point{ x, b.BoardSize()-2 }
-            count++
-        default:
-            ret[count] = Point{ x, y-1 }
-            count++
-            ret[count] = Point{ x, y+1 }
-            count++
-    }
-    return ret[0:count]
-}*/
 // Returns the neighbours of 'pos' as a pos
 func (b *Board) neighboursByPos(pos int) []int {
+    // TODO: remove the ..ByPos in the name
     return neighbourCache[b.boardSize][pos]
 }
 
@@ -627,7 +586,7 @@ func (b *Board) PlayMove(x, y int, color Color) (err Error) {
 
     // Check if this is legal if necessary
 
-    if !b.IsLegalMove(x,y, color) {
+    if !b.IsLegalMove(pos, color) {
         return NewIllegalMoveError(x,y, color)
     }
 
@@ -684,11 +643,10 @@ func (b *Board) posToXY(pos int) (x, y int) {
     return posToXY(pos, b.boardSize)
 }
 
-// Removes the group which occupies (x,y), if there is any, and updates b.emptyFields.
+// Removes the group which occupies 'pos', if there is any, and updates b.emptyFields.
 // This method does not alter legalWhiteMoves or legalBlackMoves.
 // TODO(david): Do I really want to export this?
-func (b *Board) RemoveGroupByPos(x,y int) {
-    pos := b.xyToPos(x,y)
+func (b *Board) RemoveGroupByPos(pos int) {
     if grp := b.fields[pos]; grp != nil {
         b.removeGroup(grp)
     }
@@ -755,34 +713,32 @@ func (b *Board) updateGroupLiberties(group *Group) {
 // Updates the legality for posToXY(pos) and makes sure the state of the board remains correct. 
 // 'whichSequence' denotes the sequence to set in b.fieldSequences{Black,White}.
 func (b *Board) updateLegalityFor(pos int, whichSequence uint32) {
-    pX, pY := b.posToXY(pos)
-    v, _ := pointToGTPVertex(*NewPoint(pX, pY))
     //printDbgMsgBTf(4,"in updateLegalityFor(%s, %d), currentSequence: %d\n", v, whichSequence, b.currentSequence)
 
     // use this 'if' only for debugging!
-    if b.fieldSequencesBlack[pos] == whichSequence || b.fieldSequencesWhite[pos] == whichSequence {
+    /*if b.fieldSequencesBlack[pos] == whichSequence || b.fieldSequencesWhite[pos] == whichSequence {
+        pX, pY := b.posToXY(pos)
+        v, _ := pointToGTPVertex(*NewPoint(pX, pY))
         panic(NewFieldLegalityCheckedMoreThanOnceError(fmt.Sprintf("checked more than once for %s",v)))
-    }
+    }*/
 
-    _, b.actionOnNextBlackMove[pos] = b.calculateIfLegal(pX, pY, Black)
-    _, b.actionOnNextWhiteMove[pos] = b.calculateIfLegal(pX, pY, White)
-    b.fieldSequencesBlack[pos] = whichSequence
-    b.fieldSequencesWhite[pos] = whichSequence
+    b.updateLegalityForBlack(pos, whichSequence)
+    b.updateLegalityForWhite(pos, whichSequence)
 }
 
 // Checks if a black move at 'pos' is legal and makes sure the state of the board remains correct. 
 // 'whichSequence' denotes the sequence to set in b.fieldSequences{Black,White}.
 func (b *Board) updateLegalityForBlack(pos int, whichSequence uint32) {
-    pX, pY := b.posToXY(pos)
-    _, b.actionOnNextBlackMove[pos] = b.calculateIfLegal(pX, pY, Black)
+    //pX, pY := b.posToXY(pos)
+    _, b.actionOnNextBlackMove[pos] = b.calculateIfLegal(pos, Black)
     b.fieldSequencesBlack[pos] = whichSequence
 }
 
 // Checks if a white move at 'pos' is legal and makes sure the state of the board remains correct. 
 // 'whichSequence' denotes the sequence to set in b.fieldSequences{Black,White}.
 func (b *Board) updateLegalityForWhite(pos int, whichSequence uint32) {
-    pX, pY := b.posToXY(pos)
-    _, b.actionOnNextWhiteMove[pos] = b.calculateIfLegal(pX, pY, White)
+    //pX, pY := b.posToXY(pos)
+    _, b.actionOnNextWhiteMove[pos] = b.calculateIfLegal(pos, White)
     b.fieldSequencesWhite[pos] = whichSequence
 }
 
@@ -806,10 +762,9 @@ func (b *Board) updateLegalityForAdjacentGroups(adjGroups GroupSlice, whichSeque
 
 // Helper method for Board.calculateIfLegal. Does what it name indicates and skips the fields which are mared in 
 // alreadyUpdated.
-func (b *Board) updateLegalityForFreeNeighboursOf(x,y int, whichSequence uint32, alreadyUpdated []bool) {
+func (b *Board) updateLegalityForFreeNeighboursOf(pos int, whichSequence uint32, alreadyUpdated []bool) {
     //printDbgMsg("in updateLegalityForFreeNeighboursOf\n") // <DBG>
     //defer printDbgMsgf("returned from updateLegalityForFreeNeighboursOf\n") // </DBG>
-    pos := b.xyToPos(x,y)
     nbours := b.neighboursByPos(pos)
     for _, npos := range nbours {
         //npos := b.xyToPos(p.X, p.Y)
@@ -837,12 +792,12 @@ func (b *Board) updateLegalityForLibertiesOf(group *Group, whichSequence uint32,
 
 // Helper method for Board.calculateIfLegal, analogous to updateLegalityForLibertiesOf, except that (exceptX, exceptY) will be 
 // left also.
-func (b *Board) updateLegalityForLibertiesOfExcept(group *Group, exceptX, exceptY int, whichSequence uint32, alreadyUpdated []bool) {
+func (b *Board) updateLegalityForLibertiesOfExcept(group *Group, exceptPos int, whichSequence uint32, alreadyUpdated []bool) {
     //printDbgMsg("in Board.updateLegalityForLibertiesOfExcept\n") // <DBG/>
     //defer printDbgMsg("returned from Board.updateLegalityForLibertiesOfExcept\n") // <DBG/>
     lastLib := group.Liberties.Last()
     for itLib := group.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
-        exceptPos := b.xyToPos(exceptX, exceptY)
+        //exceptPos := b.xyToPos(exceptX, exceptY)
         lpos := itLib.Value()
         if exceptPos != lpos && !alreadyUpdated[lpos] {
             b.updateLegalityFor(lpos, whichSequence)

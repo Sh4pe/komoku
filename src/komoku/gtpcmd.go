@@ -148,7 +148,8 @@ func gtpkomoku_getenv(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        nFree, adjBlack, adjWhite := obj.env.CurrentGame.Board.GetEnvironment(vertex.X, vertex.Y)
+        pos := obj.env.CurrentGame.Board.xyToPos(vertex.X, vertex.Y)
+        nFree, adjBlack, adjWhite := obj.env.CurrentGame.Board.GetEnvironment(pos)
         return fmt.Sprintf("nFree: %d, len(adjBlack): %d, len(adjWhite): %d", nFree, len(adjBlack), len(adjWhite)), false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -165,7 +166,7 @@ func gtpkomoku_getgroup(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        grp := obj.env.CurrentGame.Board.GetGroup(vertex.X, vertex.Y)
+        grp := obj.env.CurrentGame.Board.GetGroupByPoint(vertex.X, vertex.Y)
         if grp == nil {
             return "empty", false, nil
         }
@@ -249,7 +250,7 @@ func gtpkomoku_showliberties(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        group := obj.env.CurrentGame.Board.GetGroup(vertex.X, vertex.Y)
+        group := obj.env.CurrentGame.Board.GetGroupByPoint(vertex.X, vertex.Y)
         if group == nil {
             return "there is no group", false, nil
         }

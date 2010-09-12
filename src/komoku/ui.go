@@ -71,7 +71,7 @@ func printBoardPrimitive(b *Board,
         for x := 0; x < b.BoardSize(); x++ {
             //fmt.Printf("(%d,%d)\n",x,y)
             //field := b.GetField(x,y)
-            group := b.GetGroup(x,y)
+            group := b.GetGroupByPoint(x,y)
             fieldChar := ""
             //fmt.Printf("empty: %v, group: %v\n", empty, group)
             inMarks := false
