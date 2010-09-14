@@ -23,7 +23,7 @@ import (
     "sort"
     "container/vector"
     "fmt"
-    "rand"
+    //"rand"
     "os"
     "bufio"
 )
@@ -68,7 +68,8 @@ func gtpclear_board(obj *GTPObject) *GTPCommand {
 func gtpgenmove(obj *GTPObject) *GTPCommand {
     signature := []int { GTPColor }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        color, _ := params[0].(Color)
+        // old version
+        /*color, _ := params[0].(Color)
         legalMoves := object.env.CurrentGame.Board.ListLegalPoints(color)
         if len(legalMoves) == 0 {
             return "pass", false, nil
@@ -86,6 +87,16 @@ func gtpgenmove(obj *GTPObject) *GTPCommand {
         if !ok {
             panic("\n\nThe random move is a malformed coordinate.\n\n")
         }
+        return r, false, nil*/
+        color, _ := params[0].(Color)
+        vertex := obj.env.CurrentGame.PlayRandomMove(color)
+        if vertex.Pass {
+            return "pass", false, nil
+        }
+        r, ok := pointToGTPVertex(*NewPoint(vertex.X, vertex.Y))
+        if !ok {
+            panic("\n\nThe random move is a malformed coordinate.\n\n")
+        }
         return r, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -99,7 +110,7 @@ func gtpknown_command(obj *GTPObject) *GTPCommand {
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         result = "true"
         cmdName, _ := params[0].(string) // type checking should have been done before, we assume that this works.
-        if _, ok1 := object.commands[cmdName]; !ok1 {
+        if _, ok := object.commands[cmdName]; !ok {
             result = "false"
         }
         return result, false, nil

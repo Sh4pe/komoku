@@ -46,6 +46,15 @@ func (g *Game) PlayMove(x, y int, color Color) (err Error) {
     return g.Board.PlayMove(x,y,color)
 }
 
+func (g *Game) PlayRandomMove(color Color) Vertex {
+    /*g.sequence.Push(*NewMove(*NewPoint(x,y), color, false))
+    return g.Board.PlayMove(x,y,color)*/
+    vertex := g.Board.PlayRandomMove(color)
+    move := *NewMoveByVertex(&vertex, color)
+    g.sequence.Push(move)
+    return vertex
+}
+
 func (g *Game) PlayPass(color Color) {
     g.sequence.Push(*NewMove(*NewPoint(0,0), color, true))
     g.Board.PlayPass(color)

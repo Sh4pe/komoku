@@ -9,8 +9,9 @@ package komoku
 
 import (
     "fmt"
+    "rand"
+    "os"
     //"runtime"
-    //"os"
 )
 
 /*
@@ -92,6 +93,7 @@ type Board struct {
     currentSequence uint32 // Represents the state of the board. Everything flagged with a different sequence has to be updated.
     fieldSequencesBlack []uint32
     fieldSequencesWhite []uint32
+    rand *rand.Rand
 }
 
 // ##################### Board methods ##########################
@@ -581,12 +583,15 @@ func (b *Board) numberOfStones() (nblack, nwhite int) {
 }
 
 // Play a move of color 'color' at (x,y)
-func (b *Board) PlayMove(x, y int, color Color) (err Error) {
+func (b *Board) PlayMove(x,y int, color Color) (err Error) {
     pos := b.xyToPos(x,y)
+    return b.playMoveByPos(pos, color)
+}
 
-    // Check if this is legal if necessary
-
+// Play a move of color 'color' at 'pos'
+func (b *Board) playMoveByPos(pos int, color Color) (err Error) {
     if !b.IsLegalMove(pos, color) {
+        x, y := b.posToXY(pos)
         return NewIllegalMoveError(x,y, color)
     }
 
@@ -624,6 +629,46 @@ func (b *Board) PlayMove(x, y int, color Color) (err Error) {
 func (b *Board) PlayPass(color Color) {
     b.colorOfNextPlay = !color
     b.currentSequence++
+}
+
+// Plays a random move for player 'color' and returns the played vertex.
+func (b *Board) PlayRandomMove(color Color) Vertex {
+    // Collect empty fields
+    emptyPos := make([]int, b.boardSize*b.boardSize)
+    index := 0
+    for i := 0; i < b.boardSize*b.boardSize; i++ {
+        if b.fields[i] == nil {
+            emptyPos[index] = i
+            index++
+        }
+    }
+    emptyPos = emptyPos[0:index]
+    length := len(emptyPos)
+    // Now pick a random move and play it if it is legal. randomTries how often only random
+    // moves should be picked. If we pick illegal moves more often than randomTries, we determine
+    // all legal moves and pick one of them
+    const randomTries = 4
+    for i := 0; i < randomTries; i++ {
+        //randomMove := legalMoves[random.Intn(len(legalMoves))]
+        //fmt.Printf("index: %d\n", b.rand.Intn(length))
+        rmv := emptyPos[b.rand.Intn(length)]
+        if b.IsLegalMove(rmv, color) {
+            b.playMoveByPos(rmv,color)
+            x,y := b.posToXY(rmv)
+            //DbgHistogram.ScoreTagged("worked with a random try")
+            return *NewVertexByInts(x,y,false)
+        }
+    }
+    //DbgHistogram.ScoreTagged("not enough tries, now calculating all")
+    // this didn't work, so we have to look at all legal moves
+    legalMoves := b.ListLegalPoints(color)
+    // If there are no legal moves, pass. This behaviour should be removed soon.
+    if len(legalMoves) == 0 {
+        return *NewVertexByInts(0,0,true)
+    }
+    rPoint := legalMoves[b.rand.Intn(len(legalMoves))]
+    b.PlayMove(rPoint.X, rPoint.Y, color)
+    return *NewVertex(rPoint,false)
 }
 
 // Plays out the sequence 'seq' of moves
@@ -831,6 +876,7 @@ func (b *Board) xyToPos(x, y int) int {
 // ##################### Board helper functions ##########################
 // Creates a new, initial board of size 'boardsize'.
 func NewBoard(boardsize int) *Board {
+    sec, nsec, _ := os.Time()
     ret := &Board{ fields: make([]*Group, boardsize*boardsize),
                    actionOnNextBlackMove: make([]actionFunc, boardsize*boardsize),
                    actionOnNextWhiteMove: make([]actionFunc, boardsize*boardsize),
@@ -840,6 +886,7 @@ func NewBoard(boardsize int) *Board {
                    acWhiteMoveUpToDate: true,
                    fieldSequencesBlack: make([]uint32, boardsize*boardsize),
                    fieldSequencesWhite: make([]uint32, boardsize*boardsize),
+                   rand: rand.New(rand.NewSource(sec+nsec)),
                  }
     initialActionGenerator := func(pos int, color Color) actionFunc {
         return func() (updateBlack, updateWhite bool) {

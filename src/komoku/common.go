@@ -68,6 +68,10 @@ func NewVertex(p Point, pass bool) *Vertex {
     return &Vertex{ X: p.X, Y: p.Y, Pass: pass }
 }
 
+func NewVertexByInts(x, y int , pass bool) *Vertex {
+    return &Vertex{ X: x, Y: y, Pass: pass }
+}
+
 type Move struct {
     Color Color
     Vertex Vertex
@@ -75,6 +79,10 @@ type Move struct {
 
 func NewMove(p Point, c Color, pass bool) *Move {
     return &Move{ Vertex: *NewVertex(p, pass), Color: c }
+}
+
+func NewMoveByVertex(v *Vertex, c Color) *Move {
+    return &Move{ Vertex: *v, Color: c }
 }
 
 type komokuError struct {

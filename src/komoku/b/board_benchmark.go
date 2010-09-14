@@ -13,17 +13,18 @@ import (
     "rand"
 )
 
+const boardsize = 9
 
-func BenchmarkRandomGame(b *testing.B) {
+
+func BenchmarkRandomGameByListLegalPoints(b *testing.B) {
     b.StopTimer()
-    boardSize := 19
-    board := NewBoard(boardSize)
+    board := NewBoard(boardsize)
     b.StartTimer()
     for i := 0; i < b.N; i++ {
         legalMoves := board.ListLegalPoints(board.ColorOfNextPlay())
         if len(legalMoves) == 0 {
             b.StopTimer()
-            board = NewBoard(boardSize)
+            board = NewBoard(boardsize)
             b.StartTimer()
         } else {
             sec, nsec, _ := os.Time()
@@ -35,7 +36,25 @@ func BenchmarkRandomGame(b *testing.B) {
     DbgHistogram.PrintSorted()
 }
 
+func BenchmarkRandomGameByPlayRandomMove(b *testing.B) {
+    b.StopTimer()
+    board := NewBoard(boardsize)
+    var color Color = Black
+    b.StartTimer()
+    for i := 0; i < b.N; i++ {
+        v := board.PlayRandomMove(color)
+        if v.Pass {
+            b.StopTimer()
+            board = NewBoard(boardsize)
+            b.StartTimer()
+        }
+        color = !color
+    }
+    DbgHistogram.PrintSorted()
+}
+
 func Benchmarks() []testing.Benchmark {
-    return []testing.Benchmark { testing.Benchmark{"BenchmarkRandomGame", BenchmarkRandomGame},
+    return []testing.Benchmark { testing.Benchmark{"BenchmarkRandomGameByListLegalPoints", BenchmarkRandomGameByListLegalPoints},
+                                 testing.Benchmark{"BenchmarkRandomGameByPlayRandomMove", BenchmarkRandomGameByPlayRandomMove},
                                }
 }
