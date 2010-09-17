@@ -13,7 +13,7 @@ import (
 )
 
 const (
-    vectorLength = 100;
+    vectorLength = 10
 )
 
 func BenchmarkGenericVector(b *testing.B) {

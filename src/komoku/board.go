@@ -359,6 +359,32 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action act
     return false, nil
 }
 
+// Tries to choose a favorable move out of candidatePos randomly. Favorable means that we don't fill own eyes. pos's marked 
+// in alreadyConsidered are skipped. tries denotes the number of tries. This method returns true and the favorable bos if it was 
+// able to find a move, false, 0 otherwise
+func (b *Board) chooseRandomFavorableMove(candidatePos []int, color Color, alreadyConsidered []bool, tries int) (found bool, retPos int) {
+    length := len(candidatePos)
+    for i := 0; i < tries; i++ {
+        randomIndex := b.rand.Intn(length)
+        randomPos := candidatePos[randomIndex]
+        if !alreadyConsidered[randomPos] {
+            if b.IsLegalMove(randomPos, color) {
+                // Do we want to play this move? This move is not played if one it only fills eyes.
+                if b.isEyeFillingMove(randomPos, color) {
+                    alreadyConsidered[randomPos] = true
+                } else {
+                    // yes, we want to play this move
+                    found, retPos = true, randomPos
+                    break
+                }
+            } else {
+                alreadyConsidered[randomPos] = true
+            }
+        }
+    }
+    return
+}
+
 // Returns the color of the player who plays the next turn
 func (b *Board) ColorOfNextPlay() Color {
     return b.colorOfNextPlay
@@ -441,6 +467,19 @@ func (b *Board) GetGroupByPoint(x,y int) *Group {
     return b.fields[index]
 }
 
+// is playing a stone of the designated color at pos an eye filling move?
+func (b *Board) isEyeFillingMove(pos int, color Color) bool {
+    // TODO: Write tests for this!!
+    var nFree int
+    var adjSameColor, adjOtherColor GroupSlice
+    if color == Black {
+        nFree, adjSameColor, adjOtherColor = b.GetEnvironment(pos)
+    } else {
+        nFree, adjOtherColor, adjSameColor = b.GetEnvironment(pos)
+    }
+    return nFree == 0 && len(adjSameColor) == 1 && len(adjOtherColor) == 0
+}
+
 // Is it legal to play a stone of color 'color' at 'pos'?
 func (b *Board) IsLegalMove(pos int, color Color) bool {
     /*printDbgMsgf("IsLegalMove(%d, %d, %s): fieldSeqW[pos]: %d, fieldSeqB[pos]: %d, currSeq: %d\n", x,y,color, b.fieldSequencesWhite[pos], b.fieldSequencesBlack[pos],
@@ -518,8 +557,19 @@ func (b *Board) ListEmptyFields() []*Point {
     return ret[0:index]
 }
 
-// Returns a slice of legal moves of color 'color'
+// Returns a slice of legal moves for color 'color' as Points
 func (b *Board) ListLegalPoints(color Color) []Point {
+    legalPosses := b.listLegalPosses(color)
+    ret := make([]Point, len(legalPosses))
+    for i, pos := range legalPosses {
+        x, y := b.posToXY(pos)
+        ret[i] = *NewPoint(x,y)
+    }
+    return ret
+}
+
+// Returns a slice of legal moves for color 'color' as posses
+func (b *Board) listLegalPosses(color Color) []int {
     b.updateLegalMoves(color)
 
     var actions []actionFunc
@@ -528,14 +578,11 @@ func (b *Board) ListLegalPoints(color Color) []Point {
     } else {
         actions = b.actionOnNextWhiteMove
     }
-    ret := make([]Point, b.boardSize*b.boardSize)
+    ret := make([]int, b.boardSize*b.boardSize)
     index := 0
     for i := 0; i < b.boardSize*b.boardSize; i++ {
         if actions[i] != nil {
-            x, y := b.posToXY(i)
-            //v, _ := pointToGTPVertex(*NewPoint(x,y))
-            //printDbgMsgf("actions[%s] != nil\n", v)
-            ret[index] = *NewPoint(x,y)
+            ret[index] = i
             index++
         }
     }
@@ -633,8 +680,11 @@ func (b *Board) PlayPass(color Color) {
 
 // Plays a random move for player 'color' and returns the played vertex.
 func (b *Board) PlayRandomMove(color Color) Vertex {
+    // FIXME: what about sekis and the like????
+
     // Collect empty fields
     emptyPos := make([]int, b.boardSize*b.boardSize)
+    alreadyConsidered := make([]bool, b.boardSize*b.boardSize)
     index := 0
     for i := 0; i < b.boardSize*b.boardSize; i++ {
         if b.fields[i] == nil {
@@ -643,32 +693,41 @@ func (b *Board) PlayRandomMove(color Color) Vertex {
         }
     }
     emptyPos = emptyPos[0:index]
-    length := len(emptyPos)
     // Now pick a random move and play it if it is legal. randomTries how often only random
     // moves should be picked. If we pick illegal moves more often than randomTries, we determine
     // all legal moves and pick one of them
     const randomTries = 4
-    for i := 0; i < randomTries; i++ {
-        //randomMove := legalMoves[random.Intn(len(legalMoves))]
-        //fmt.Printf("index: %d\n", b.rand.Intn(length))
-        rmv := emptyPos[b.rand.Intn(length)]
-        if b.IsLegalMove(rmv, color) {
-            b.playMoveByPos(rmv,color)
-            x,y := b.posToXY(rmv)
-            //DbgHistogram.ScoreTagged("worked with a random try")
-            return *NewVertexByInts(x,y,false)
-        }
+    if found, pos := b.chooseRandomFavorableMove(emptyPos, color, alreadyConsidered, randomTries); found {
+        x, y := b.posToXY(pos)
+        b.PlayMove(x,y,color)
+        return *NewVertexByInts(x,y,false)
     }
-    //DbgHistogram.ScoreTagged("not enough tries, now calculating all")
     // this didn't work, so we have to look at all legal moves
-    legalMoves := b.ListLegalPoints(color)
-    // If there are no legal moves, pass. This behaviour should be removed soon.
+    legalMoves := b.listLegalPosses(color)
     if len(legalMoves) == 0 {
+        // TODO: panic here? There should be some legal moves....
         return *NewVertexByInts(0,0,true)
     }
-    rPoint := legalMoves[b.rand.Intn(len(legalMoves))]
-    b.PlayMove(rPoint.X, rPoint.Y, color)
-    return *NewVertex(rPoint,false)
+    if found, pos := b.chooseRandomFavorableMove(legalMoves, color, alreadyConsidered, randomTries); found {
+        x, y := b.posToXY(pos)
+        b.PlayMove(x,y,color)
+        return *NewVertexByInts(x,y,false)
+    }
+    // Guessing inside the legal moves didn't yield a favorable one, so we have to go through these systematically
+    for _, pos := range legalMoves {
+        if !alreadyConsidered[pos] {
+            if b.isEyeFillingMove(pos, color) {
+                alreadyConsidered[pos] = true
+            } else {
+                // yey! We want to play this move
+                x, y := b.posToXY(pos)
+                b.PlayMove(x,y,color)
+                return *NewVertexByInts(x,y,false)
+            }
+        }
+    }
+    // Okay then, we don't want to play any move, so we pass
+    return *NewVertexByInts(0,0,true)
 }
 
 // Plays out the sequence 'seq' of moves

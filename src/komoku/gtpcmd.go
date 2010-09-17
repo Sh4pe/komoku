@@ -68,26 +68,6 @@ func gtpclear_board(obj *GTPObject) *GTPCommand {
 func gtpgenmove(obj *GTPObject) *GTPCommand {
     signature := []int { GTPColor }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        // old version
-        /*color, _ := params[0].(Color)
-        legalMoves := object.env.CurrentGame.Board.ListLegalPoints(color)
-        if len(legalMoves) == 0 {
-            return "pass", false, nil
-        }
-        if lastMove := obj.env.CurrentGame.LastMove(); lastMove != nil {
-            if lastMove.Vertex.Pass {
-                return "pass", false, nil
-            }
-        }
-        sec, nsec, _ := os.Time()
-        random := rand.New(rand.NewSource(sec+nsec))
-        randomMove := legalMoves[random.Intn(len(legalMoves))]
-        obj.env.CurrentGame.PlayMove(randomMove.X, randomMove.Y, color)
-        r, ok := pointToGTPVertex(randomMove)
-        if !ok {
-            panic("\n\nThe random move is a malformed coordinate.\n\n")
-        }
-        return r, false, nil*/
         color, _ := params[0].(Color)
         vertex := obj.env.CurrentGame.PlayRandomMove(color)
         if vertex.Pass {

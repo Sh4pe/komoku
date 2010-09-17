@@ -45,7 +45,7 @@ func TestCreateGroup(t *testing.T) {
                     }
                 }
                 if !found {
-                    t.Fatalf("Neighbours and .Liberties differ")
+                    t.Fatalf("Neighbours and Liberties differ")
                 }
             }
 
