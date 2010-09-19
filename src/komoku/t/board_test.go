@@ -736,21 +736,65 @@ func TestListLegalPoints(t *testing.T) {
     }
 }
 
+// Checks the final position of a random game after both players pass
+func TestFinalPosition(t *testing.T) {
+    const numGames = 50
+    const boardSize = 19
+    board := NewBoard(boardSize)
+    for i := 0; i < numGames; i++ {
+        lastPass := false
+        for {
+            v := board.PlayRandomMove(board.ColorOfNextPlay())
+            if v.Pass {
+                if lastPass {
+                    break
+                }
+                lastPass = true
+            } else {
+                lastPass = false
+            }
+        }
+        // game finished
+        for pos := 0; pos < boardSize*boardSize; pos++ {
+            if board.fields[pos] == nil {
+                //func (b *Board) GetEnvironment(pos int) (nFree int, adjBlack, adjWhite GroupSlice) {
+                nFree, adjBlack, adjWhite := board.GetEnvironment(pos)
+                _ = adjBlack
+                _ = adjWhite
+                x, y := board.posToXY(pos)
+                v, _ := pointToGTPVertex(*NewPoint(x,y))
+                if nFree > 0 {
+                    t.Fatalf("nFree > 0 at field %s", v)
+                }
+                blackLen, whiteLen := len(adjBlack), len(adjWhite)
+                if !((blackLen == 0 && whiteLen == 1) || (blackLen == 1 && whiteLen == 0)) {
+                    fmt.Printf("game %d\n", i)
+                    PrintBoard(board)
+                    t.Fatalf("there seems to be a neutral field at %s", v)
+                }
+            }
+        }
+        board.Reset()
+    }
+}
+
 
 func Testsuite() []testing.Test {
-    return []testing.Test { testing.Test{"TestCreateGroup", TestCreateGroup},
-                            testing.Test{"TestUpdateGroupLiberties", TestUpdateGroupLiberties},
-                            testing.Test{"TestJoinGroups", TestJoinGroups},
-                            testing.Test{"TestGetEnvironment", TestGetEnvironment},
-                            testing.Test{"TestRemoveGroup", TestRemoveGroup},
-                            testing.Test{"TestXYToPos", TestXYToPos},
-                            testing.Test{"TestPosToXY", TestPosToXY},
-                            testing.Test{"TestNeighbours", TestNeighbours},
-                            testing.Test{"TestNumGroups", TestNumGroups},
-                            testing.Test{"TestNumStones", TestNumStones},
-                            testing.Test{"TestGroupGeometry", TestGroupGeometry},
-                            testing.Test{"TestKo", TestKo},
-                            testing.Test{"TestDoubleKo", TestDoubleKo},
-                            testing.Test{"TestListLegalPoints", TestListLegalPoints},
-                         }
+    return []testing.Test {
+        testing.Test{"TestCreateGroup", TestCreateGroup},
+        testing.Test{"TestUpdateGroupLiberties", TestUpdateGroupLiberties},
+        testing.Test{"TestJoinGroups", TestJoinGroups},
+        testing.Test{"TestGetEnvironment", TestGetEnvironment},
+        testing.Test{"TestRemoveGroup", TestRemoveGroup},
+        testing.Test{"TestXYToPos", TestXYToPos},
+        testing.Test{"TestPosToXY", TestPosToXY},
+        testing.Test{"TestNeighbours", TestNeighbours},
+        testing.Test{"TestNumGroups", TestNumGroups},
+        testing.Test{"TestNumStones", TestNumStones},
+        testing.Test{"TestGroupGeometry", TestGroupGeometry},
+        testing.Test{"TestKo", TestKo},
+        testing.Test{"TestDoubleKo", TestDoubleKo},
+        testing.Test{"TestListLegalPoints", TestListLegalPoints},
+        testing.Test{"TestFinalPosition", TestFinalPosition},
+    }
 }
