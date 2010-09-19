@@ -11,6 +11,6 @@
 GOSLOC=$(cat $(find . | grep '\.go$') | wc -l)
 MAKEFILESLOC=$(cat $(find . | grep 'Makefile') | wc -l)
 echo '.go:       '${GOSLOC}
-echo 'Makefiles: '${MAKEFILESLCO}
+echo 'Makefiles: '${MAKEFILESLOC}
 echo
 echo 'sum:       '`expr ${GOSLOC} + ${MAKEFILESLOC}`
