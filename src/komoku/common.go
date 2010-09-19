@@ -6,10 +6,6 @@
  * that can be found in the LICENSE file.
  */
 
-/*
- * TODO:
- *      - This whole file is not very tidy. Clean it up.
- */
 package komoku
 
 import (

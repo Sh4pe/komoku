@@ -15,11 +15,6 @@ import (
     "fmt"
 )
 
-/*
- * TODO:
- *      - This becomes ugly and hardly maintainable. Refactor it!
- */
-
 func TestCreateGroup(t *testing.T) {
     for x := 0; x < DefaultBoardSize; x++ {
         for y := 0; y < DefaultBoardSize; y++ {

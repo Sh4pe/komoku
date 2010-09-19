@@ -11,23 +11,11 @@ import (
     "fmt"
     "rand"
     "os"
-    //"runtime"
 )
 
 /*
  * This file defines the Board object. This object handles the representation of one current
  * state in a game. It provides the methods for creating legal games.
- */
-
-/*
- * TODO:
- *      - make this all more Go-ideomatic. Can the use of interfaces make IntList obsolete?
- *      - make updateLegalityFor take a color parameter which specifies the color for which legality
- *        should be checked.
- *      - make the usage of color more generic. A lot of 'ifs' might be removed by this. A bad example
- *        might be the code around line 171...
- *      - clean up the mess between (x,y) vs. pos...
- *      - investigate on the strange panics inside board_test...
  */
 
 // ################################################################################
@@ -89,7 +77,6 @@ type Board struct {
     actionOnNextWhiteMove []actionFunc // see the obvious analogue
     colorOfNextPlay Color
     boardSize int
-    acBlackMoveUpToDate, acWhiteMoveUpToDate bool
     currentSequence uint32 // Represents the state of the board. Everything flagged with a different sequence has to be updated.
     fieldSequencesBlack []uint32
     fieldSequencesWhite []uint32
@@ -467,6 +454,16 @@ func (b *Board) GetGroupByPoint(x,y int) *Group {
     return b.fields[index]
 }
 
+// Returns the action which is performed when a stone of the designated color is played at pos on
+// an empty board
+func (b *Board) initialActionGenerator(pos int, color Color) actionFunc {
+    return func() (updateBlack, updateWhite bool) {
+        b.CreateGroup(pos, color)
+        b.colorOfNextPlay = !b.colorOfNextPlay
+        return false, false
+    }
+}
+
 // is playing a stone of the designated color at pos an eye filling move?
 func (b *Board) isEyeFillingMove(pos int, color Color) bool {
     // TODO: Write tests for this!!
@@ -536,11 +533,6 @@ func (b *Board) joinGroupsByPlayAt(playPos int, adjSameColor GroupSlice) {
     }
     // Finally update the liberties for the joined group.
     b.updateGroupLiberties(firstGroup)
-}
-
-func (b *Board) legalMovesNeedUpdate() {
-    b.acBlackMoveUpToDate = false
-    b.acWhiteMoveUpToDate = false
 }
 
 // Returns a slice containing the empty fields of b.
@@ -782,12 +774,28 @@ func (b *Board) removeGroup(group *Group) {
     }
 }
 
+// Resets the board. The state is the same as after creating a new instance.
+func (b *Board) Reset() {
+    sec, nsec, _ := os.Time()
+    b.rand = rand.New(rand.NewSource(sec+nsec))
+    b.ko = nil
+    b.colorOfNextPlay = Black
+    b.currentSequence = 0
+    for i := 0; i < b.boardSize*b.boardSize; i++ {
+        b.fields[i] = nil
+        b.actionOnNextBlackMove[i] = b.initialActionGenerator(i, Black)
+        b.actionOnNextWhiteMove[i] = b.initialActionGenerator(i, White)
+        b.fieldSequencesBlack[i] = 0
+        b.fieldSequencesWhite[i] = 0
+    }
+
+}
 
 // The player whose turn it is plays a stone (x,y). If an error occurs (such as that 
 // this place is already occupied) this error is returned. This method assumes that 
 // b.actionOnNextMove is correcty set
-// TODO: write tests for this...
 func (b *Board) TurnPlayMove(x, y int) (err Error) {
+    // TODO: write tests for this...
     return b.PlayMove(x,y, b.colorOfNextPlay)
 }
 
@@ -935,30 +943,14 @@ func (b *Board) xyToPos(x, y int) int {
 // ##################### Board helper functions ##########################
 // Creates a new, initial board of size 'boardsize'.
 func NewBoard(boardsize int) *Board {
-    sec, nsec, _ := os.Time()
     ret := &Board{ fields: make([]*Group, boardsize*boardsize),
                    actionOnNextBlackMove: make([]actionFunc, boardsize*boardsize),
                    actionOnNextWhiteMove: make([]actionFunc, boardsize*boardsize),
-                   colorOfNextPlay: Black,
                    boardSize: boardsize,
-                   acBlackMoveUpToDate: true,
-                   acWhiteMoveUpToDate: true,
                    fieldSequencesBlack: make([]uint32, boardsize*boardsize),
                    fieldSequencesWhite: make([]uint32, boardsize*boardsize),
-                   rand: rand.New(rand.NewSource(sec+nsec)),
                  }
-    initialActionGenerator := func(pos int, color Color) actionFunc {
-        return func() (updateBlack, updateWhite bool) {
-            ret.CreateGroup(pos, color)
-            ret.colorOfNextPlay = !ret.colorOfNextPlay
-            ret.legalMovesNeedUpdate()
-            return false, false
-        }
-    }
-    for i := 0; i < boardsize*boardsize; i++ {
-        ret.actionOnNextBlackMove[i] = initialActionGenerator(i, Black)
-        ret.actionOnNextWhiteMove[i] = initialActionGenerator(i, White)
-    }
+    ret.Reset()
     return ret
 }
 

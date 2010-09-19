@@ -1,0 +1,13 @@
+List of things to do:
+=====================
+
+- make this all more Go-ideomatic. Can the use of interfaces make IntList obsolete?
+- make updateLegalityFor take a color parameter which specifies the color for which legality
+- should be checked.
+- make the usage of color more generic. A lot of 'ifs' might be removed by this. A bad example
+  might be the code around line 171...
+- clean up the mess between (x,y) vs. pos...
+- investigate on the strange panics inside board_test...
+- use anonymous fields in structs where possible
+- Clean up common.go
+- split the big makefile into several different ones. Restructure e/, b/ and t/ dirs...

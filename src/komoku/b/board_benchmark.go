@@ -24,7 +24,7 @@ func BenchmarkRandomGameByListLegalPoints(b *testing.B) {
         legalMoves := board.ListLegalPoints(board.ColorOfNextPlay())
         if len(legalMoves) == 0 {
             b.StopTimer()
-            board = NewBoard(boardsize)
+            board.Reset()
             b.StartTimer()
         } else {
             sec, nsec, _ := os.Time()
@@ -45,7 +45,7 @@ func BenchmarkRandomGameByPlayRandomMove(b *testing.B) {
         v := board.PlayRandomMove(color)
         if v.Pass {
             b.StopTimer()
-            board = NewBoard(boardsize)
+            board.Reset()
             b.StartTimer()
         }
         color = !color

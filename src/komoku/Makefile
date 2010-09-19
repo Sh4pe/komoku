@@ -8,10 +8,6 @@
 # that can be found in the LICENSE file.
 #
 
-# TODO:
-#	refactor using eval etc...
-#	
-
 #########################################################################################
 ####################### most common defintions ##########################################
 #########################################################################################
@@ -125,14 +121,31 @@ BENCHMARKOBJS += board_benchmark.6
 BENCHMARKOBJS += intlist_benchmark
 BENCHMARKOBJS += intlist_benchmark.6
 
+#########################################################################################
+############### Stuff needed for generating experiment executables ######################
+#########################################################################################
+EXPERIMENTDIR = e/
+
+EXPERIMENTCOMPILE += $(eval sourcefile=$(wordlist 2, $(words $(^)), $(^)))
+EXPERIMENTCOMPILE += $(CC) -o $(@).6 $(sourcefile);
+EXPERIMENTCOMPILE += $(LINK) -o $(@) $(@).6
+
+EXPERIMENTCOMPILE_QUIET = @echo '  6l $(@)'; $(EXPERIMENTCOMPILE)
+
+EXPERIMENTRUN  = @echo Performing the experiment $(patsubst %_run,%, $(@))...;
+EXPERIMENTRUN += ./$(patsubst %_run,%, $(@));
+
+EXPERIMENTOBJS += gamelength
+EXPERIMENTOBJS += gamelength.6
 
 
 #########################################################################################
-####################### 'final' global vars #############################################
+####################### global vars #####################################################
 #########################################################################################
 
 OBJS  = $(TARG).6 $(TARG).a $(patsubst %,$(TESTDIR)%,$(TESTOBJS)) 
 OBJS += $(patsubst %,$(BENCHMARKDIR)%,$(BENCHMARKOBJS))
+OBJS += $(patsubst %,$(EXPERIMENTDIR)%,$(EXPERIMENTOBJS))
 OBJS += $(PROFDIR)*.prof
 
 #########################################################################################
@@ -218,7 +231,15 @@ benchmarks_run: $(KOMOKULIB) $(ALLBENCHMARKS)
 		 fi \
 	done;
 
-#################### phony targets ################
+#################### experiments ################
+$(EXPERIMENTDIR)gamelength: $(KOMOKULIB) $(EXPERIMENTDIR)gamelength.go
+	$(EXPERIMENTCOMPILE_QUIET)
+
+.PHONY: $(EXPERIMENTDIR)gamelength_run
+$(EXPERIMENTDIR)gamelength_run: $(EXPERIMENTDIR)gamelength
+	$(EXPERIMENTRUN)
+
+#################### pure phony targets ################
 .PHONY: clean
 clean:
 	@for obj in $(OBJS); do \
