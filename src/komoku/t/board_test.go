@@ -533,7 +533,12 @@ func dumpSequence(w writeStringer, game *Game, t *testing.T) {
     for _, mv := range game.sequence {
         m, _ := mv.(Move)
         vertex, _ := pointToGTPVertex(*NewPoint(m.Vertex.X, m.Vertex.Y))
-        line := fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
+        var line string
+        if m.Vertex.Pass {
+            line = fmt.Sprintf("  play %s PASS\n", colorToGTPColor(m.Color))
+        } else {
+            line = fmt.Sprintf("  play %s %s\n", colorToGTPColor(m.Color), vertex)
+        }
         if _, werr := w.WriteString(line); werr != nil {
             t.Fatalf("dumpSequence does not work, check the writeStringer")
         }
@@ -740,11 +745,14 @@ func TestListLegalPoints(t *testing.T) {
 func TestFinalPosition(t *testing.T) {
     const numGames = 50
     const boardSize = 19
-    board := NewBoard(boardSize)
-    for i := 0; i < numGames; i++ {
+    //board := NewBoard(boardSize)
+    game := NewGame(boardSize)
+    dumpFile := relPathToAbs("../../../data/tmp/TestFinalPosition.GTPsequence.tmp")
+    for nGame := 0; nGame < numGames; nGame++ {
         lastPass := false
         for {
-            v := board.PlayRandomMove(board.ColorOfNextPlay())
+            v := game.PlayRandomMove(game.Board.ColorOfNextPlay())
+            //fmt.Printf("colorOfNextPlay: %v\n", game.Board.ColorOfNextPlay())
             if v.Pass {
                 if lastPass {
                     break
@@ -756,25 +764,25 @@ func TestFinalPosition(t *testing.T) {
         }
         // game finished
         for pos := 0; pos < boardSize*boardSize; pos++ {
-            if board.fields[pos] == nil {
-                //func (b *Board) GetEnvironment(pos int) (nFree int, adjBlack, adjWhite GroupSlice) {
-                nFree, adjBlack, adjWhite := board.GetEnvironment(pos)
+            if game.Board.fields[pos] == nil {
+                nFree, adjBlack, adjWhite := game.Board.GetEnvironment(pos)
                 _ = adjBlack
                 _ = adjWhite
-                x, y := board.posToXY(pos)
+                x, y := game.Board.posToXY(pos)
                 v, _ := pointToGTPVertex(*NewPoint(x,y))
                 if nFree > 0 {
                     t.Fatalf("nFree > 0 at field %s", v)
                 }
                 blackLen, whiteLen := len(adjBlack), len(adjWhite)
                 if !((blackLen == 0 && whiteLen == 1) || (blackLen == 1 && whiteLen == 0)) {
-                    fmt.Printf("game %d\n", i)
-                    PrintBoard(board)
-                    t.Fatalf("there seems to be a neutral field at %s", v)
+                    failMessage := fmt.Sprintf("Game %d: there seems to be a neutral field at %s\n", nGame, v)
+                    failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
+                    infoString := fmt.Sprintf("a neutral field is at %s", v)
+                    fileFail(failMessage, infoString, dumpFile, game, t)
                 }
             }
         }
-        board.Reset()
+        game.Board.Reset()
     }
 }
 

@@ -69,8 +69,8 @@ func NewVertexByInts(x, y int , pass bool) *Vertex {
 }
 
 type Move struct {
-    Color Color
-    Vertex Vertex
+    Color
+    Vertex
 }
 
 func NewMove(p Point, c Color, pass bool) *Move {

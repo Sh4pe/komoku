@@ -69,6 +69,12 @@ func (g *Game) PlaySequence(seq []Move) {
     }
 }
 
+// Resets the game, i.e. clears the board and sets everything to initial values
+func (g *Game) Reset() {
+    g.Board.Reset()
+    g.sequence.Resize(0,0)
+}
+
 func (g *Game) SetKomi(newKomi float) {
     g.komi = newKomi
 }
@@ -76,9 +82,10 @@ func (g *Game) SetKomi(newKomi float) {
 
 // ##################### Game helper functions ##########################
 func NewGame(boardsize int) *Game {
-    return &Game{ Board: NewBoard(boardsize),
-                  komi: defaultKomi,
-                }
+    return &Game{ 
+        Board: NewBoard(boardsize),
+        komi: defaultKomi,
+    }
 }
 
 

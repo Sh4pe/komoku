@@ -719,6 +719,7 @@ func (b *Board) PlayRandomMove(color Color) Vertex {
         }
     }
     // Okay then, we don't want to play any move, so we pass
+    b.PlayPass(color)
     return *NewVertexByInts(0,0,true)
 }
 

@@ -75,7 +75,6 @@ func normalMain() {
 }
 
 func main() {
-    //experimente?? dann score??
     //testMain()
     komoku.RunGTPMode()
 }
