@@ -56,7 +56,7 @@ type actionFunc func() (blackUpdated, whiteUpdated bool)
 // Used for ko. Says that a play of color 'Color' at 'Point' is forbidden by the ko rule
 type koLock struct {
     Pos int
-    Color Color
+    Color
 }
 
 func NewKoLock(pos int, color Color) *koLock {
@@ -81,6 +81,8 @@ type Board struct {
     fieldSequencesBlack []uint32
     fieldSequencesWhite []uint32
     rand *rand.Rand
+    prisonersBlack int // number of black prisoners
+    prisonersWhite int // number of white prisoners
 }
 
 // ##################### Board methods ##########################
@@ -136,7 +138,6 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action act
                     // It's a ko, so remove the group, play the stone, update the liberties
                     // and set b.ko to the right point.
                     koPos := firstGroup.Fields.First().Value()
-                    //koX, koY := b.posToXY(koPos)
                     action = func() (blackUpToDate, whiteUpToDate bool) {
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, ko case.\n") // <DBG>
                         //DbgHistogram.Score() // </DBG>
@@ -606,6 +607,11 @@ func (b *Board) numberOfGroups() (nblack, nwhite int) {
     return
 }
 
+// returns the number of prisoners for black and white
+func (b *Board) numberOfPrisoners() (nblack, nwhite int) {
+    return b.prisonersBlack, b.prisonersWhite
+}
+
 // Returns the number of {black,white} stones on the board
 func (b *Board) numberOfStones() (nblack, nwhite int) {
     nblack, nwhite = 0,0
@@ -756,6 +762,12 @@ func (b *Board) RemoveGroupByPos(pos int) {
 func (b *Board) removeGroup(group *Group) {
     last := group.Fields.Last()
     adjGroups := NewGroupSlice()
+    var prisoners *int
+    if group.Color == Black {
+        prisoners = &b.prisonersBlack
+    } else {
+        prisoners = &b.prisonersWhite
+    }
     for e := group.Fields.First(); e != last; e = e.Next() {
         // Collect adjacend groups so that we can update their liberties later
         pos := e.Value()
@@ -767,7 +779,8 @@ func (b *Board) removeGroup(group *Group) {
             }
         }
         b.fields[pos] = nil
-        //b.emptyFields.Append(e.Value())
+        // count prisoners
+        *prisoners++
     }
     // Update the liberties of the adjacent groups.
     for _, grp := range adjGroups {
@@ -782,6 +795,8 @@ func (b *Board) Reset() {
     b.ko = nil
     b.colorOfNextPlay = Black
     b.currentSequence = 0
+    b.prisonersWhite = 0
+    b.prisonersBlack = 0
     for i := 0; i < b.boardSize*b.boardSize; i++ {
         b.fields[i] = nil
         b.actionOnNextBlackMove[i] = b.initialActionGenerator(i, Black)

@@ -701,6 +701,9 @@ func TestListLegalPoints(t *testing.T) {
     for nGame := 0; nGame < numGames; nGame++ {
         //fmt.Printf("Game %d\n", nGame)
         game := NewGame(boardsize)
+        // expected total number of stones for each color, i.e. stones on the board + prisoners
+        totalWhite := 0
+        totalBlack := 0
         var currentColor Color = Black
         for nMove := 0; nMove < gamesLen; nMove++ {
 
@@ -734,6 +737,27 @@ func TestListLegalPoints(t *testing.T) {
                 random := rand.New(rand.NewSource(sec+nsec))
                 randomMove := legal[random.Intn(len(legal))]
                 game.PlayMove(randomMove.X, randomMove.Y, currentColor)
+
+                // check if total number of stones is as expected
+                if currentColor == Black {
+                    totalBlack++
+                } else {
+                    totalWhite++
+                }
+                onBoardBlack, onBoardWhite := game.Board.numberOfStones()
+                prisonersBlack, prisonersWhite := game.Board.numberOfPrisoners()
+                if (onBoardBlack + prisonersBlack != totalBlack) || (onBoardWhite + prisonersWhite != totalWhite) {
+                    PrintBoard(game.Board)
+                    failMessage := fmt.Sprintf("In game %d: wrong number of total stones.\n", nGame)
+                    failMessage += fmt.Sprintf("black stones on board: %d + black prisoners: %d = %d, expected %d\n",
+                        onBoardBlack, prisonersBlack, onBoardBlack + prisonersBlack, totalBlack)
+                    failMessage += fmt.Sprintf("white stones on board: %d + white prisoners: %d = %d, expected %d\n",
+                        onBoardWhite, prisonersWhite, onBoardWhite + prisonersWhite, totalWhite)
+                    failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
+                    infoString := fmt.Sprintf("wrong number of total stones")
+                    fileFail(failMessage, infoString, dumpFile, game, t)
+                }
+
                 currentColor = !currentColor
                 lastMovePass = false
             }
