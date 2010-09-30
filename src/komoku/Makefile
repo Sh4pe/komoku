@@ -23,7 +23,8 @@ KOMOKULIB=$(TARG).a
 COMPILE  = $(CC) -o $(@) $(^)
 COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
-ALLSOURCE  = board.go
+ALLSOURCE  = ai.go
+ALLSOURCE += board.go
 ALLSOURCE += common.go
 ALLSOURCE += debug.go
 ALLSOURCE += environment.go

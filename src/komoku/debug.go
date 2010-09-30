@@ -44,7 +44,7 @@ func printDbgMsgf(format string, a ...interface{}) {
     splitPath := strings.Split(callerFilePath, "/", -1)
     callerFile := splitPath[len(splitPath) - 1]
     prefix := fmt.Sprintf("[%s:%d] ", callerFile, callerLine)
-    fmt.Fprintf(os.Stderr, prefix+format, a)
+    fmt.Fprintf(os.Stderr, prefix+format, a...)
 }
 
 // like printDbgMsgf, but adds dips one step further into the backtrace
@@ -59,7 +59,7 @@ func printDbgMsgCallerf(format string, a ...interface{}) {
     callerFile := splitPath[len(splitPath) - 1]
     callerFile2 := splitPath2[len(splitPath2)-1]
     prefix := fmt.Sprintf("[%s:%d <- %s:%d] ", callerFile, callerLine, callerFile2, callerLine2)
-    fmt.Fprintf(os.Stderr, prefix+format, a)
+    fmt.Fprintf(os.Stderr, prefix+format, a...)
 }
 
 // like printDbgMsgCallerf, but with a backtrace of depth 'depth'
@@ -80,7 +80,7 @@ func printDbgMsgBTf(depth int, format string, a ...interface{}) {
         prefix += fmt.Sprintf(" <- %s:%d", callerFile, callerLine)
     }
     prefix = fmt.Sprintf("[%s] ", prefix)
-    fmt.Fprintf(os.Stderr, prefix+format, a)
+    fmt.Fprintf(os.Stderr, prefix+format, a...)
 }
 
 // like printDbgMsgBTf, but returns a string containing the output
@@ -98,7 +98,7 @@ func sPrintDbgMsgBTf(depth int, format string, a ...interface{}) string {
         prefix += fmt.Sprintf(" <- %s:%d", callerFile, callerLine)
     }
     prefix = fmt.Sprintf("[%s] ", prefix)
-    return fmt.Sprintf(prefix+format, a)
+    return fmt.Sprintf(prefix+format, a...)
 }
 
 func ProfileInfoToFile(profFile string) {

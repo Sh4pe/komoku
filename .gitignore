@@ -1,6 +1,7 @@
 *.swp
 *.6
 *.DS_Store
+*.vim
 src/main
 src/komoku/komoku.a
 src/komoku/t/common_test

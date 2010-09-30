@@ -76,7 +76,6 @@ func normalMain() {
 
 func main() {
     //now start implementing the AI
-    //but first implement counting of prisoners
     //testMain()
     komoku.RunGTPMode()
 }
