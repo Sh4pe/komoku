@@ -7,67 +7,69 @@
  */
 package main
 
-/*
- * Plan for this branch:
- *      Get rid of the GroupIndexType in Board.fields. Use *Group instead, nil can denote empty.
- *      Get rid of most (if not all) [probably only some] the use of IntList, implement a GroupSlice instead....
- *      Board.GetEnvironment and .determineGroupsAtariStatus should be refactored in this new context.
- *      Use vector.IntVector for legal{Black,White}Moves and emptyFields
- */
-
-
 import (
     "fmt"
     "./komoku/komoku"
 )
 
+type testerContext struct {
+    string
+}
+
+type testerFunc struct {
+    context *testerContext
+    f func(c *testerContext)
+}
+
+func (t *testerFunc) Call() {
+    t.f(t.context)
+}
+
+func NewTesterFunc() *testerFunc {
+    return &testerFunc{
+        context: &testerContext {
+            string: "init",
+        },
+        f: func(c *testerContext) {
+            fmt.Printf("closure; context.string: '%s'\n", c.string)
+        },
+    }
+}
+
+type tester struct {
+    fu *testerFunc
+}
+
+func (t *tester) Copy() *tester {
+    f := NewTesterFunc()
+    f.context.string = t.fu.context.string
+    return &tester{
+        fu: f,
+    }
+}
+
+func NewTester() *tester {
+    return &tester{
+        fu: NewTesterFunc(),
+    }
+}
+
 func testMain() {
-    fmt.Println("Testmain")
-    slc := make([]int, 10)
-    slc2 := make([]int, 10, 20)
-    fmt.Printf("slc: %d, slc2: %d\n", len(slc), len(slc2))
+    t1 := NewTester()
+    t2 := t1.Copy()
 
-    for i := 0; i < 5; i++ { fmt.Println("") }
+    t1.fu.Call()
+    t2.fu.Call()
 
-    iPtrs := make([]*int, 10)
-    for i := 0; i < len(iPtrs); i++ {
-        iPtrs[i] = new(int)
-        *iPtrs[i] = i
-    }
+    t2.fu.context.string = "modified"
 
-    iPtrs = iPtrs[0:0]
-    fmt.Println("start")
-    for i := 0; i < len(iPtrs); i++ {
-        fmt.Printf("%v\n", *iPtrs[i])
-    }
-    fmt.Println("stop")
-    iPtrs = iPtrs[0:5]
-    fmt.Println("start")
-    for i := 0; i < len(iPtrs); i++ {
-        fmt.Printf("%v\n", *iPtrs[i])
-    }
-    fmt.Println("stop")
-    iPtrs = iPtrs[0:10]
-    fmt.Println("start")
-    for i := 0; i < len(iPtrs); i++ {
-        fmt.Printf("%v\n", *iPtrs[i])
-    }
-    fmt.Println("stop")
+    t1.fu.Call()
+    t2.fu.Call()
 
-    for i := 0; i < 5; i++ { fmt.Println("") }
+    t1.fu.context.string = "modified original"
 
-    gs := komoku.NewGroupSlice()
-    const max = 10
-    for i := 0; i < max; i++ {
-        gs.Push(komoku.NewGroup(komoku.Black))
-    }
-    for i, g := range gs {
-        fmt.Printf("%d, %v\n", i, g)
-    }
-    i := 10
-    j := i 
-    i++
-    fmt.Printf("%d\n", j)
+    t1.fu.Call()
+    t2.fu.Call()
 }
 
 func normalMain() {
@@ -76,6 +78,6 @@ func normalMain() {
 
 func main() {
     //now start implementing the AI
-    //testMain()
-    komoku.RunGTPMode()
+    testMain()
+    //komoku.RunGTPMode()
 }

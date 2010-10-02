@@ -45,13 +45,44 @@ func init() {
 }
 
 // ################################################################################
-// ########################### Auxiliary types for Board ##########################
+// ########################### actionFunc #########################################
 // ################################################################################
+
+// Context is implicit in closures. We use this to make a part of the context needed by an 
+// actionFunc explicit, because we need to change it later, when we copy a board.
+type boardBoundFuncContext struct {
+    enemiesInAtari, enemiesNotInAtari, adjSameColor, adjOtherColor GroupSlice
+}
+
+// This is the actual closure
+type actionFuncClosure func(boardPtr *Board, c *boardBoundFuncContext) (blackUpdated, whiteUpdated bool)
+
+// An actionFunc represents the action performed by playing at one field. Use .Call() to
+// execute the action.
+type actionFunc struct {
+    context *boardBoundFuncContext
+    boardPtr *Board
+    f actionFuncClosure
+}
 
 // The return values are only relevant if we assume that the legalities for all fields have been 
 // calculated before. In this case, {black,white}Updated indicates that all legalities are valid 
 // afterwards.
-type actionFunc func() (blackUpdated, whiteUpdated bool)
+func (a *actionFunc) Call() (blackUpdated, whiteUpdated bool) {
+    return a.f(a.boardPtr, a.context)
+}
+
+func NewActionFunc(board *Board, context *boardBoundFuncContext, f actionFuncClosure) *actionFunc {
+    return &actionFunc{
+        context: context,
+        boardPtr: board,
+        f: f,
+    }
+}
+
+// ################################################################################
+// ########################### Auxiliary types for Board ##########################
+// ################################################################################
 
 // Used for ko. Says that a play of color 'Color' at 'Point' is forbidden by the ko rule
 type koLock struct {
@@ -73,8 +104,8 @@ func NewKoLock(pos int, color Color) *koLock {
 type Board struct {
     fields []*Group // Stores pointers to the groups. nil denotes an empty field
     ko *koLock // nil means that there is no ko
-    actionOnNextBlackMove []actionFunc // This stores the appropriate code which has to be run if a black move is played on a field
-    actionOnNextWhiteMove []actionFunc // see the obvious analogue
+    actionOnNextBlackMove []*actionFunc // This stores the appropriate code which has to be run if a black move is played on a field
+    actionOnNextWhiteMove []*actionFunc // see the obvious analogue
     colorOfNextPlay Color
     boardSize int
     currentSequence uint32 // Represents the state of the board. Everything flagged with a different sequence has to be updated.
@@ -97,29 +128,34 @@ func (b *Board) BoardSize() int {
 // `actions` to be performed if this move is played using 'action'. The return value
 // of these actions indicate if any legality update has been performed.
 // Note that this method assumes that 'pos' is empty.
-func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action actionFunc) {
+func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action *actionFunc) {
     /*v, _ := pointToGTPVertex(*NewPoint(x, y))
     printDbgMsgBTf(4,"entering Board.calculateIfLegal(%s, %v)\n", v, color) // <DBG>*/
     //printDbgMsgf("ko status: %v\n", b.ko)
 
     // Is this move prohibited because of a ko? It is not prohibited for the player who 
     // took the ko to fill it in the next move
-    //if b.ko != nil && b.ko.Color == color && b.ko.Point.X == x && b.ko.Point.Y == y {
     if b.ko != nil && b.ko.Color == color && b.ko.Pos == pos {
         //printDbgMsgf("returned from Board.calculateIfLegal(%d, %d, %v)\n", x, y, color) // <DBG/>
         return false, nil
     }
-    //pos := b.xyToPos(x,y)
-    nFree, adjSameColor, adjOtherColor := b.GetEnvironment(pos)
+    // assemble context which is bound to the board
+    nFree, sameColor, otherColor := b.GetEnvironment(pos)
     if color == White {
-        adjSameColor, adjOtherColor = adjOtherColor, adjSameColor
+        sameColor, otherColor = otherColor, sameColor
     }
-    enemiesInAtari, enemiesNotInAtari := b.determineGroupsAtariStatus(adjOtherColor)
+    inAtari, notInAtari := b.determineGroupsAtariStatus(otherColor)
+    context := &boardBoundFuncContext{
+        enemiesInAtari: inAtari,
+        enemiesNotInAtari: notInAtari,
+        adjSameColor: sameColor,
+        adjOtherColor: otherColor,
+    }
     /*printDbgMsgf("sameColLen: %d, othColLen: %d, enemInAtariLen: %d, enemNotInAtariLen: %d\n", len(adjSameColor), len(adjOtherColor), 
                 len(enemiesInAtari), len(enemiesNotInAtari)) // <DBG>*/
-    removeGroups := len(enemiesInAtari) > 0
+    removeGroups := len(context.enemiesInAtari) > 0
 
-    if len(adjSameColor) == 0 {
+    if len(context.adjSameColor) == 0 {
         if nFree == 0 {
             if !removeGroups {
                 // There are no adjacent friendly groups, no neighbour is a free field and 
@@ -133,66 +169,66 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action act
 
                 // But first we have to check if this move is a ko play. If we capture exactly one
                 // group consisting of exactly one stone, than it's a ko.
-                firstGroup := enemiesInAtari[0]
-                if len(enemiesInAtari) == 1 && firstGroup.Fields.Length() == 1 {
+                firstGroup := context.enemiesInAtari[0]
+                if len(context.enemiesInAtari) == 1 && firstGroup.Fields.Length() == 1 {
                     // It's a ko, so remove the group, play the stone, update the liberties
                     // and set b.ko to the right point.
                     koPos := firstGroup.Fields.First().Value()
-                    action = func() (blackUpToDate, whiteUpToDate bool) {
+                    action = NewActionFunc(b, context, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, ko case.\n") // <DBG>
                         //DbgHistogram.Score() // </DBG>
 
-                        alreadyUpdated := make([]bool, b.boardSize*b.boardSize)
-                        b.ko = nil
-                        b.removeGroup(enemiesInAtari[0]) // Remove the enemy stone
-                        b.CreateGroup(pos,color) // Create the new group
-                        for _, grp := range enemiesNotInAtari { // Update liberties of the groups adjacent to the new stone at (x,y)
-                            b.updateGroupLiberties(grp)
+                        alreadyUpdated := make([]bool, boardPtr.boardSize*boardPtr.boardSize)
+                        boardPtr.ko = nil
+                        boardPtr.removeGroup(c.enemiesInAtari[0]) // Remove the enemy stone
+                        boardPtr.CreateGroup(pos,color) // Create the new group
+                        for _, grp := range c.enemiesNotInAtari { // Update liberties of the groups adjacent to the new stone at (x,y)
+                            boardPtr.updateGroupLiberties(grp)
                         }
                         // Update liberties and legality for the groups adjacent to the removed stone
                         var adjToKoSameColor GroupSlice
                         if color == Black {
-                            _, adjToKoSameColor, _ = b.GetEnvironment(koPos)
+                            _, adjToKoSameColor, _ = boardPtr.GetEnvironment(koPos)
                         } else {
-                            _, _, adjToKoSameColor = b.GetEnvironment(koPos)
+                            _, _, adjToKoSameColor = boardPtr.GetEnvironment(koPos)
                         }
                         for _, grp := range adjToKoSameColor {
                             grp.Liberties.AppendUnique(koPos)
-                            b.updateLegalityForLibertiesOfExcept(grp, koPos, b.currentSequence + 1, alreadyUpdated)
+                            boardPtr.updateLegalityForLibertiesOfExcept(grp, koPos, boardPtr.currentSequence + 1, alreadyUpdated)
                         }
                         // The player who took the ko may fill it, so make it legal for the player 'color' for the next round.
                         // TODO: this is sort of an evil hack... or is it?
                         if color == Black {
-                            _, b.actionOnNextBlackMove[koPos] = b.calculateIfLegal(koPos, Black)
-                            b.fieldSequencesBlack[koPos] = b.currentSequence + 1
+                            _, boardPtr.actionOnNextBlackMove[koPos] = boardPtr.calculateIfLegal(koPos, Black)
+                            boardPtr.fieldSequencesBlack[koPos] = boardPtr.currentSequence + 1
                         } else {
-                            _, b.actionOnNextWhiteMove[koPos] = b.calculateIfLegal(koPos, White)
-                            b.fieldSequencesWhite[koPos] = b.currentSequence + 1
+                            _, boardPtr.actionOnNextWhiteMove[koPos] = boardPtr.calculateIfLegal(koPos, White)
+                            boardPtr.fieldSequencesWhite[koPos] = boardPtr.currentSequence + 1
                         }
                         // Update the legality for the liberties of the groups adjacent to the new created stone
                         //printDbgMsg("Update the legality for the liberties of the groups adjacent to the new created stone\n") // </DBG>
-                        for _, grp := range enemiesNotInAtari {
-                            b.updateLegalityForLibertiesOf(grp, b.currentSequence + 1, alreadyUpdated)
+                        for _, grp := range c.enemiesNotInAtari {
+                            boardPtr.updateLegalityForLibertiesOf(grp, boardPtr.currentSequence + 1, alreadyUpdated)
                         }
 
-                        b.ko = NewKoLock(koPos, !color)
+                        boardPtr.ko = NewKoLock(koPos, !color)
                         return true, true
-                    }
+                    })
                 } else {
                     // It's not a ko
-                    action = func() (blackUpToDate, whiteUpToDate bool) {
+                    action = NewActionFunc(b, context, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen == nFree == 0, removeGroups = true, not ko case.\n") // <DBG>
                         //DbgHistogram.Score() // </DBG>
-                        for _, grp := range enemiesInAtari {
-                            b.removeGroup(grp)
+                        for _, grp := range c.enemiesInAtari {
+                            boardPtr.removeGroup(grp)
                         }
-                        b.CreateGroup(pos,color)
-                        for _, grp := range enemiesNotInAtari {
-                            b.updateGroupLiberties(grp)
+                        boardPtr.CreateGroup(pos,color)
+                        for _, grp := range c.enemiesNotInAtari {
+                            boardPtr.updateGroupLiberties(grp)
                         }
-                        b.ko = nil
+                        boardPtr.ko = nil
                         return false, false
-                    }
+                    })
                 }
                 //printDbgMsgf("returned from Board.calculateIfLegal(%d, %d, %v)\n", x, y, color) // <DBG/>
                 return true, action
@@ -201,33 +237,33 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action act
             // There are no adjacent friendly groups, but free neighbour fields, so this move
             // is always legal. Remove adjacent enemy groups if necessary and create a new group.
             if removeGroups {
-               action = func() (blackUpToDate, whiteUpToDate bool) {
+                action = NewActionFunc(b, context, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = true.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
-                    for _, grp := range enemiesInAtari {
-                        b.removeGroup(grp)
+                    for _, grp := range c.enemiesInAtari {
+                        boardPtr.removeGroup(grp)
                     }
-                    b.CreateGroup(pos,color)
-                    for _, grp := range enemiesNotInAtari {
-                        b.updateGroupLiberties(grp)
+                    boardPtr.CreateGroup(pos,color)
+                    for _, grp := range c.enemiesNotInAtari {
+                        boardPtr.updateGroupLiberties(grp)
                     }
-                    b.ko = nil
+                    boardPtr.ko = nil
                     return false, false
-                }
+                })
             } else {
-                action = func() (blackUpToDate, whiteUpToDate bool) {
+                action = NewActionFunc(b, context, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
                     // Experiments show that this case is run the most often
 
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen == 0, nFree > 0, removeGroups = false.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
-                    alreadyUpdated := make([]bool, b.boardSize*b.boardSize)
-                    b.ko = nil
-                    b.CreateGroup(pos,color)
-                    b.dropLibertyFromEach(pos, adjOtherColor)
-                    b.updateLegalityForFreeNeighboursOf(pos, b.currentSequence + 1, alreadyUpdated)
-                    b.updateLegalityForAdjacentGroups(adjOtherColor, b.currentSequence + 1, alreadyUpdated)
+                    alreadyUpdated := make([]bool, boardPtr.boardSize*boardPtr.boardSize)
+                    boardPtr.ko = nil
+                    boardPtr.CreateGroup(pos,color)
+                    boardPtr.dropLibertyFromEach(pos, c.adjOtherColor)
+                    boardPtr.updateLegalityForFreeNeighboursOf(pos, boardPtr.currentSequence + 1, alreadyUpdated)
+                    boardPtr.updateLegalityForAdjacentGroups(c.adjOtherColor, boardPtr.currentSequence + 1, alreadyUpdated)
                     return true, true
-                }
+                })
             }
             //printDbgMsgf("returned from Board.calculateIfLegal(%d, %d, %v)\n", x, y, color) // <DBG/>
             return true, action
@@ -237,19 +273,19 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action act
             if removeGroups {
                 // This move captures stones and thus produces empty fields, so it is legal. Capture
                 // the stones first and then join the adjacent groups of the same color.
-                action = func() (blackUpToDate, whiteUpToDate bool) {
+                action = NewActionFunc(b, context, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree == 0, removeGroups = true.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
-                    for _, grp := range enemiesInAtari {
-                        b.removeGroup(grp)
+                    for _, grp := range c.enemiesInAtari {
+                        boardPtr.removeGroup(grp)
                     }
-                    b.joinGroupsByPlayAt(pos, adjSameColor)
-                    for _, grp := range enemiesNotInAtari {
-                        b.updateGroupLiberties(grp)
+                    boardPtr.joinGroupsByPlayAt(pos, c.adjSameColor)
+                    for _, grp := range c.enemiesNotInAtari {
+                        boardPtr.updateGroupLiberties(grp)
                     }
-                    b.ko = nil
+                    boardPtr.ko = nil
                     return false, false
-                }
+                })
                 //printDbgMsgf("returned from Board.calculateIfLegal(%d, %d, %v)\n", x, y, color) // <DBG/>
                 return true, action
             } else {
@@ -257,7 +293,7 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action act
                 // of the adjacent groups of the same color. We check if at least one of these group
                 // has at least two liberties.
                 oneHasTwo := false
-                for _, g := range adjSameColor {
+                for _, g := range context.adjSameColor {
                     if g.Liberties.Length() > 1 {
                         /*fX, fY := b.posToXY(g.Fields.First().Value())
                         grpVertex, _ := pointToGTPVertex(*NewPoint(fX, fY))
@@ -277,20 +313,20 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action act
                 if oneHasTwo {
                     // If we join the groups, the resulting group has at least one liberty, so this move is legal.
                     // Since there are no groups to capture, simply join the adjacient groups of color 'color'.
-                    action = func() (blackUpToDate, whiteUpToDate bool) {
+                    action = NewActionFunc(b, context, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
                         // Experiments show that this case is run the 3rd most often
 
                         //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree == 0, removeGroups = false, oneHasTwo = true.\n") // <DBG>
                         //DbgHistogram.Score() // </DBG>
-                        alreadyUpdated := make([]bool, b.boardSize*b.boardSize)
-                        b.ko = nil
-                        b.joinGroupsByPlayAt(pos, adjSameColor)
-                        b.dropLibertyFromEach(pos, adjOtherColor)
-                        b.updateLegalityForAdjacentGroups(adjOtherColor, b.currentSequence + 1, alreadyUpdated)
-                        b.updateLegalityForLibertiesOf(b.fields[pos], b.currentSequence + 1, alreadyUpdated)
+                        alreadyUpdated := make([]bool, boardPtr.boardSize*boardPtr.boardSize)
+                        boardPtr.ko = nil
+                        boardPtr.joinGroupsByPlayAt(pos, c.adjSameColor)
+                        boardPtr.dropLibertyFromEach(pos, c.adjOtherColor)
+                        boardPtr.updateLegalityForAdjacentGroups(c.adjOtherColor, boardPtr.currentSequence + 1, alreadyUpdated)
+                        boardPtr.updateLegalityForLibertiesOf(boardPtr.fields[pos], boardPtr.currentSequence + 1, alreadyUpdated)
 
                         return true, true
-                    }
+                    })
                     //printDbgMsgf("returned from Board.calculateIfLegal(%d, %d, %v)\n", x, y, color) // <DBG/>
                     return true, action
                 } else {
@@ -305,37 +341,37 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action act
             // There are free neighbour fields, so this move is always legal. Capture adjacent enemy groups if necessary, 
             // then join groups and update liberties
             if removeGroups {
-                action = func() (blackUpToDate, whiteUpToDate bool) {
+                action = NewActionFunc(b, context, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree > 0, removeGroups = true.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
-                    for _, grp := range enemiesInAtari {
-                        b.removeGroup(grp)
+                    for _, grp := range c.enemiesInAtari {
+                        boardPtr.removeGroup(grp)
                     }
-                    b.joinGroupsByPlayAt(pos, adjSameColor)
-                    for _, grp := range enemiesNotInAtari {
-                        b.updateGroupLiberties(grp)
+                    boardPtr.joinGroupsByPlayAt(pos, c.adjSameColor)
+                    for _, grp := range c.enemiesNotInAtari {
+                        boardPtr.updateGroupLiberties(grp)
                     }
-                    b.ko = nil
+                    boardPtr.ko = nil
                     return false, false
-                }
+                })
             } else {
-                action = func() (blackUpToDate, whiteUpToDate bool) {
+                action = NewActionFunc(b, context, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
                     // Experiments show that this case is run the 2nd most often
 
                     //printDbgMsgf("Board.calculateIfLegal: sameColLen > 0, nFree > 0, removeGroups = false.\n") // <DBG>
                     //DbgHistogram.Score() // </DBG>
-                    alreadyUpdated := make([]bool, b.boardSize*b.boardSize)
-                    b.ko = nil
-                    b.joinGroupsByPlayAt(pos, adjSameColor)
-                    for _, grp := range enemiesNotInAtari {
-                        b.updateGroupLiberties(grp)
+                    alreadyUpdated := make([]bool, boardPtr.boardSize*boardPtr.boardSize)
+                    boardPtr.ko = nil
+                    boardPtr.joinGroupsByPlayAt(pos, c.adjSameColor)
+                    for _, grp := range c.enemiesNotInAtari {
+                        boardPtr.updateGroupLiberties(grp)
                     }
-                    b.updateLegalityForAdjacentGroups(adjOtherColor, b.currentSequence + 1, alreadyUpdated)
+                    boardPtr.updateLegalityForAdjacentGroups(c.adjOtherColor, boardPtr.currentSequence + 1, alreadyUpdated)
                     // update legality for the newly joined group, which is at pos
-                    b.updateLegalityForLibertiesOf(b.fields[pos], b.currentSequence + 1, alreadyUpdated)
+                    boardPtr.updateLegalityForLibertiesOf(boardPtr.fields[pos], boardPtr.currentSequence + 1, alreadyUpdated)
 
                     return true, true
-                }
+                })
             }
             //printDbgMsgf("returned from Board.calculateIfLegal(%d, %d, %v)\n", x, y, color) // <DBG/>
             return true, action
@@ -457,12 +493,13 @@ func (b *Board) GetGroupByPoint(x,y int) *Group {
 
 // Returns the action which is performed when a stone of the designated color is played at pos on
 // an empty board
-func (b *Board) initialActionGenerator(pos int, color Color) actionFunc {
-    return func() (updateBlack, updateWhite bool) {
+func (b *Board) initialActionGenerator(pos int, color Color) *actionFunc {
+    return NewActionFunc(b, nil, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
+    //return func() (updateBlack, updateWhite bool) {
         b.CreateGroup(pos, color)
         b.colorOfNextPlay = !b.colorOfNextPlay
         return false, false
-    }
+    })
 }
 
 // is playing a stone of the designated color at pos an eye filling move?
@@ -565,7 +602,7 @@ func (b *Board) ListLegalPoints(color Color) []Point {
 func (b *Board) listLegalPosses(color Color) []int {
     b.updateLegalMoves(color)
 
-    var actions []actionFunc
+    var actions []*actionFunc
     if color == Black {
         actions = b.actionOnNextBlackMove
     } else {
@@ -640,13 +677,13 @@ func (b *Board) playMoveByPos(pos int, color Color) (err Error) {
         return NewIllegalMoveError(x,y, color)
     }
 
-    var action actionFunc
+    var action *actionFunc
     if color == White {
         action = b.actionOnNextWhiteMove[pos]
     } else {
         action = b.actionOnNextBlackMove[pos]
     }
-    blackUpToDate, whiteUpToDate := action()
+    blackUpToDate, whiteUpToDate := action.Call()
     if blackUpToDate || whiteUpToDate {
         for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
             //pX, pY := b.posToXY(i)
@@ -960,8 +997,8 @@ func (b *Board) xyToPos(x, y int) int {
 // Creates a new, initial board of size 'boardsize'.
 func NewBoard(boardsize int) *Board {
     ret := &Board{ fields: make([]*Group, boardsize*boardsize),
-                   actionOnNextBlackMove: make([]actionFunc, boardsize*boardsize),
-                   actionOnNextWhiteMove: make([]actionFunc, boardsize*boardsize),
+                   actionOnNextBlackMove: make([]*actionFunc, boardsize*boardsize),
+                   actionOnNextWhiteMove: make([]*actionFunc, boardsize*boardsize),
                    boardSize: boardsize,
                    fieldSequencesBlack: make([]uint32, boardsize*boardsize),
                    fieldSequencesWhite: make([]uint32, boardsize*boardsize),
