@@ -140,17 +140,7 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action *ac
         return false, nil
     }
     // assemble context which is bound to the board
-    nFree, sameColor, otherColor := b.GetEnvironment(pos)
-    if color == White {
-        sameColor, otherColor = otherColor, sameColor
-    }
-    inAtari, notInAtari := b.determineGroupsAtariStatus(otherColor)
-    context := &boardBoundFuncContext{
-        enemiesInAtari: inAtari,
-        enemiesNotInAtari: notInAtari,
-        adjSameColor: sameColor,
-        adjOtherColor: otherColor,
-    }
+    nFree, context := b.getEnvironmentAndContext(pos, color)
     /*printDbgMsgf("sameColLen: %d, othColLen: %d, enemInAtariLen: %d, enemNotInAtariLen: %d\n", len(adjSameColor), len(adjOtherColor), 
                 len(enemiesInAtari), len(enemiesNotInAtari)) // <DBG>*/
     removeGroups := len(context.enemiesInAtari) > 0
@@ -414,10 +404,60 @@ func (b *Board) ColorOfNextPlay() Color {
     return b.colorOfNextPlay
 }
 
+// returns an equivalent but completlely independent copy of b
+func (b *Board) Copy() *Board {
+    sec, nsec, _ := os.Time()
+    l := b.boardSize*b.boardSize
+    cpy := &Board{
+        fields: make([]*Group, l),
+        colorOfNextPlay: b.colorOfNextPlay,
+        boardSize: b.boardSize,
+        currentSequence: b.currentSequence,
+        actionOnNextBlackMove: make([]*actionFunc, l),
+        actionOnNextWhiteMove: make([]*actionFunc, l),
+        fieldSequencesBlack: make([]uint32, l),
+        fieldSequencesWhite: make([]uint32, l),
+        rand: rand.New(rand.NewSource(sec+nsec)),
+        prisonersBlack: b.prisonersBlack,
+        prisonersWhite: b.prisonersWhite,
+    }
+    if b.ko != nil {
+        cpy.ko = &koLock{
+            Pos: b.ko.Pos,
+            Color: b.ko.Color,
+        }
+    }
+    copy(cpy.fieldSequencesBlack, b.fieldSequencesBlack)
+    copy(cpy.fieldSequencesWhite, b.fieldSequencesWhite)
+
+    // Copy .fields in a seperate loop first. The next loop, in which we set .actionOnNext{Black,White}Move
+    // depends upon correcty and already completely set .fields
+    for i := 0; i < l; i++ {
+        if grp := b.fields[i]; grp != nil {
+            cpy.fields[i] = grp.Copy()
+        }
+    }
+
+    for i := 0; i < l; i++ {
+        // copy .actionOnNextBlackMove and adjust its context
+        if f := b.actionOnNextBlackMove[i]; f != nil {
+            cpy.actionOnNextBlackMove[i] = NewActionFunc(cpy, nil, f.f)
+            _, cpy.actionOnNextBlackMove[i].context = cpy.getEnvironmentAndContext(i, Black)
+        }
+        // copy .actionOnNextWhiteMove and adjust its context
+        if f := b.actionOnNextWhiteMove[i]; f != nil {
+            cpy.actionOnNextWhiteMove[i] = NewActionFunc(cpy, nil, f.f)
+            _, cpy.actionOnNextWhiteMove[i].context = cpy.getEnvironmentAndContext(i, White)
+        }
+    }
+
+    return cpy
+}
+
 // Create a new, one-stone-group of 'color' at 'pos' and sets its liberties appropriately. 
 // This method does not perform any legality checks or liberty updates for other groups.
-// TODO: unexport this?
 func (b *Board) CreateGroup(pos int, color Color) {
+// TODO: unexport this?
     newGroup := NewGroup(color)
     newGroup.Fields.Append(pos)
     nbours := b.neighboursByPos(pos)
@@ -482,6 +522,22 @@ func (b *Board) GetEnvironment(pos int) (nFree int, adjBlack, adjWhite GroupSlic
         }
     }
     return
+}
+
+// returns nFree and the context for an actionFunc for a move of the designated color at pos
+func (b *Board) getEnvironmentAndContext(pos int, color Color) (int, *boardBoundFuncContext) {
+    nFree, sameColor, otherColor := b.GetEnvironment(pos)
+    if color == White {
+        sameColor, otherColor = otherColor, sameColor
+    }
+    inAtari, notInAtari := b.determineGroupsAtariStatus(otherColor)
+    context := &boardBoundFuncContext{
+        enemiesInAtari: inAtari,
+        enemiesNotInAtari: notInAtari,
+        adjSameColor: sameColor,
+        adjOtherColor: otherColor,
+    }
+    return nFree, context
 }
 
 // Returs a pointer to the group which occupies (x,y). Nil means that this 
@@ -972,8 +1028,8 @@ func (b *Board) updateLegalityForLibertiesOfExcept(group *Group, exceptPos int, 
 }
 
 // Updates the legal moves for the color 'color'
-// TODO: write tests for this...
 func (b *Board) updateLegalMoves(color Color) {
+// TODO: write tests for this...
     if color == Black {
         for i := 0; i < b.BoardSize()*b.BoardSize(); i++ {
             if b.fields[i] == nil && b.fieldSequencesBlack[i] != b.currentSequence {
@@ -996,13 +1052,14 @@ func (b *Board) xyToPos(x, y int) int {
 // ##################### Board helper functions ##########################
 // Creates a new, initial board of size 'boardsize'.
 func NewBoard(boardsize int) *Board {
-    ret := &Board{ fields: make([]*Group, boardsize*boardsize),
-                   actionOnNextBlackMove: make([]*actionFunc, boardsize*boardsize),
-                   actionOnNextWhiteMove: make([]*actionFunc, boardsize*boardsize),
-                   boardSize: boardsize,
-                   fieldSequencesBlack: make([]uint32, boardsize*boardsize),
-                   fieldSequencesWhite: make([]uint32, boardsize*boardsize),
-                 }
+    ret := &Board{ 
+        fields: make([]*Group, boardsize*boardsize),
+        actionOnNextBlackMove: make([]*actionFunc, boardsize*boardsize),
+        actionOnNextWhiteMove: make([]*actionFunc, boardsize*boardsize),
+        boardSize: boardsize,
+        fieldSequencesBlack: make([]uint32, boardsize*boardsize),
+        fieldSequencesWhite: make([]uint32, boardsize*boardsize),
+    }
     ret.Reset()
     return ret
 }

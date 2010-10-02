@@ -19,6 +19,24 @@ type Group struct {
 }
 
 // ##################### Group methods ##########################
+
+// returns an equivalent but completlely independent copy of g
+func (g *Group) Copy() *Group {
+    cpy := NewGroup(g.Color)
+    // copy Fields
+    last := g.Fields.Last()
+    var it *IntListNode
+    for it = g.Fields.First(); it != last; it = it.Next() {
+        cpy.Fields.Append(it.Value())
+    }
+    // copy Liberties
+    last = g.Liberties.Last()
+    for it = g.Liberties.First(); it != last; it = it.Next() {
+        cpy.Liberties.Append(it.Value())
+    }
+    return cpy
+}
+
 func (g *Group) NumLiberties() int {
     return g.Liberties.Length()
 }

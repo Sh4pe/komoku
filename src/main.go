@@ -70,6 +70,14 @@ func testMain() {
 
     t1.fu.Call()
     t2.fu.Call()
+
+    for i := 0; i < 5; i++ {
+        fmt.Println()
+    }
+
+    b1 := komoku.NewBoard(19)
+    b2 := b1.Copy()
+    _ = b2
 }
 
 func normalMain() {
@@ -77,7 +85,6 @@ func normalMain() {
 }
 
 func main() {
-    //now start implementing the AI
     testMain()
     //komoku.RunGTPMode()
 }
