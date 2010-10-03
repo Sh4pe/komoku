@@ -123,7 +123,7 @@ func gtpkomoku_alllegal(obj *GTPObject) *GTPCommand {
         color, _ := params[0].(Color)
         b := obj.env.CurrentGame.Board
         legalPoints := b.ListLegalPoints(color)
-        return "\n" + printBoardPrimitive(b, "", -1, -1, legalPoints) , false, nil
+        return "\n" + printBoardPrimitive(b, " ", -1, -1, legalPoints) , false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
@@ -213,7 +213,7 @@ func gtpkomoku_numgroups(obj *GTPObject) *GTPCommand {
     signature := []int {}
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         nblack, nwhite := obj.env.CurrentGame.Board.numberOfGroups()
-        return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
+        return fmt.Sprintf("#black: %d, #white: %d", nblack, nwhite), false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
@@ -226,6 +226,32 @@ func gtpkomoku_numstones(obj *GTPObject) *GTPCommand {
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         nblack, nwhite := obj.env.CurrentGame.Board.numberOfStones()
         return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Like play, but replaces the board by a copy of itself before. This is used for debugging Board.Copy()
+func gtpkomoku_playfork(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPColor, GTPVertex }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        obj.env.CurrentGame.Board = obj.env.CurrentGame.Board.Copy()
+        color, _ := params[0].(Color)
+        vertex, _ := params[1].(Vertex)
+        if vertex.Pass {
+            obj.env.CurrentGame.PlayPass(color)
+            return "", false, nil
+        }
+        if er := obj.env.CurrentGame.PlayMove(vertex.X, vertex.Y, color); er != nil {
+            if er.Errno() == ErrIllegalMove {
+                return "illegal move", false, er
+            } else {
+                panic("\n\nGame.PlayMove returned an error != ErrIllegalMove.\n\n")
+            }
+        }
+        // Everything went fine
+        return "", false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
@@ -288,8 +314,8 @@ func gtpkomoku_source(obj *GTPObject) *GTPCommand {
 }
 
 // As gtpkomoku_source, except that it comments out the last 'n' lines, where 'n' is the second required parameter
-// BUG: if the first line is a comment, it gets printed twice...
 func gtpkomoku_sourcen(obj *GTPObject) *GTPCommand {
+// BUG: if the first line is a comment, it gets printed twice...
     signature := []int { GTPString, GTPInt }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         filename, _ := params[0].(string)
@@ -321,6 +347,48 @@ func gtpkomoku_sourcen(obj *GTPObject) *GTPCommand {
             }
         }
         fmt.Println("\nend komoku-sourcen")
+        return "", false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// As gtpkomoku_sourcen, except that it makes replaces the board with a copy of it in each move. This is used to debug
+// Board.Copy()
+func gtpkomoku_sourceforkn(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPString, GTPInt }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        filename, _ := params[0].(string)
+        n := int(params[1].(uint))
+        file, er := os.Open(filename, os.O_RDONLY, 0)
+        if er != nil {
+            return fmt.Sprintf("error: '%s'", err), false, NewIOError(er)
+        }
+        input := bufio.NewReader(file)
+        var lines vector.StringVector
+        line, er := input.ReadString('\n')
+        lines.Push(line)
+        for er != os.EOF {
+            lines.Push(line)
+            line, er = input.ReadString('\n')
+        }
+        length := lines.Len()
+        line = ""
+        for i := 0; i < length; i++ {
+            line = lines.At(i)
+            if length - i <= n {
+                line = "#" + line
+            }
+            fmt.Printf(line)
+            obj.env.CurrentGame.Board = obj.env.CurrentGame.Board.Copy()
+            lineResult, lineQuit, _ := obj.ExecuteCommand(line)
+            fmt.Printf(lineResult)
+            if lineQuit {
+                return "", true, nil
+            }
+        }
+        fmt.Println("\nend komoku-sourceforkn")
         return "", false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -421,7 +489,7 @@ func gtpshowboard(obj *GTPObject) *GTPCommand {
             lastMove := object.env.CurrentGame.sequence.Last().(Move)
             lastX, lastY = lastMove.Vertex.X, lastMove.Vertex.Y
         }
-        result = "\n" + printBoardPrimitive(b, "", lastX, lastY , nil)
+        result = "\n" + printBoardPrimitive(b, " ", lastX, lastY , nil)
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,

@@ -580,6 +580,7 @@ func gameStateCheck(game *Game,
 
     for _, p := range legalBlack {
         if gptr := game.Board.GetGroupByPoint(p.X, p.Y); gptr != nil {
+            PrintBoard(game.Board)
             illegalVertex, _ := pointToGTPVertex(*NewPoint(p.X,p.Y))
             failMessage := fmt.Sprintf("Game %d, move %d: the point %s was legal for black but is already occupied\n", nGame, nMove, illegalVertex)
             failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
@@ -767,6 +768,15 @@ func TestListLegalPoints(t *testing.T) {
 
 // Checks the final position of a random game after both players pass
 func TestFinalPosition(t *testing.T) {
+    legalityCheckedTooOften := func(err Error) {
+        printDbgMsgBTf(4, "legalityCheckedTooOften not yet initialized!\n")
+        t.Fatalf("legalityCheckedTooOften not yet initialized!\n")
+    }
+    inPanicLegalityCheckedTooOften := func(err Error) {
+        legalityCheckedTooOften(err)
+    }
+
+    defer panicChecks(inPanicLegalityCheckedTooOften)
     const numGames = 50
     const boardSize = 19
     //board := NewBoard(boardSize)
@@ -775,6 +785,11 @@ func TestFinalPosition(t *testing.T) {
     for nGame := 0; nGame < numGames; nGame++ {
         lastPass := false
         for {
+            // set the error handling for panic checks to the appropriate context
+            legalityCheckedTooOften = func(err Error) {
+                failLegalityCheckedTooOften(dumpFile, game, err, t)
+            }
+
             v := game.PlayRandomMove(game.Board.ColorOfNextPlay())
             //fmt.Printf("colorOfNextPlay: %v\n", game.Board.ColorOfNextPlay())
             if v.Pass {
@@ -810,6 +825,97 @@ func TestFinalPosition(t *testing.T) {
     }
 }
 
+func TestBoardCopy(t *testing.T) {
+// TODO: almost identical to TestListLegalPoints, refactor it!
+
+    legalityCheckedTooOften := func(err Error) {
+        printDbgMsgBTf(4, "legalityCheckedTooOften not yet initialized!\n")
+        t.Fatalf("legalityCheckedTooOften not yet initialized!\n")
+    }
+    inPanicLegalityCheckedTooOften := func(err Error) {
+        legalityCheckedTooOften(err)
+    }
+    defer panicChecks(inPanicLegalityCheckedTooOften)
+
+    numGames := 100 // Number of games this test should play
+    gamesLen := 100 // Number of random moves to play
+    boardsize := 9
+    dumpFile := relPathToAbs("../../../data/tmp/TestListLegalPoints.GTPsequence.tmp")
+    lastMovePass := false
+    for nGame := 0; nGame < numGames; nGame++ {
+        //fmt.Printf("Game %d\n", nGame)
+        game := NewGame(boardsize)
+        // expected total number of stones for each color, i.e. stones on the board + prisoners
+        totalWhite := 0
+        totalBlack := 0
+        var currentColor Color = Black
+        for nMove := 0; nMove < gamesLen; nMove++ {
+            //fmt.Printf("nGame: %d, nMove: %d\n", nGame, nMove)
+
+            bcpy := game.Board.Copy()
+            // set the error handling for panic checks to the appropriate context
+            legalityCheckedTooOften = func(err Error) {
+                failLegalityCheckedTooOften(dumpFile, game, err, t)
+            }
+            legalBlack := bcpy.ListLegalPoints(Black)
+            legalWhite := bcpy.ListLegalPoints(White)
+
+            game.Board = bcpy
+            gameStateCheck(game, dumpFile, t, nGame, nMove, legalBlack, legalWhite)
+
+            var legal []Point
+            if currentColor == Black {
+                legal = legalBlack
+            } else {
+                legal = legalWhite
+            }
+            // If there is no legal move for the side whos turn it is, this side passes.
+            // If there are two passes in a row, finish the game.
+            if len(legal) == 0 {
+                if lastMovePass {
+                    break
+                } else {
+                    game.PlayPass(currentColor)
+                    lastMovePass = true
+                }
+            } else {
+                // Play a random move, this time using a coyp of game.Board
+                sec, nsec, _ := os.Time()
+                random := rand.New(rand.NewSource(sec+nsec))
+                randomMove := legal[random.Intn(len(legal))]
+                game.PlayMove(randomMove.X, randomMove.Y, currentColor)
+
+                /*fmt.Println("game.Board")
+                PrintBoard(game.Board)
+                fmt.Println("bcpy")
+                PrintBoard(bcpy)*/
+
+                // check if total number of stones is as expected
+                if currentColor == Black {
+                    totalBlack++
+                } else {
+                    totalWhite++
+                }
+                onBoardBlack, onBoardWhite := game.Board.numberOfStones()
+                prisonersBlack, prisonersWhite := game.Board.numberOfPrisoners()
+                if (onBoardBlack + prisonersBlack != totalBlack) || (onBoardWhite + prisonersWhite != totalWhite) {
+                    PrintBoard(game.Board)
+                    failMessage := fmt.Sprintf("In game %d: wrong number of total stones.\n", nGame)
+                    failMessage += fmt.Sprintf("black stones on board: %d + black prisoners: %d = %d, expected %d\n",
+                        onBoardBlack, prisonersBlack, onBoardBlack + prisonersBlack, totalBlack)
+                    failMessage += fmt.Sprintf("white stones on board: %d + white prisoners: %d = %d, expected %d\n",
+                        onBoardWhite, prisonersWhite, onBoardWhite + prisonersWhite, totalWhite)
+                    failMessage += fmt.Sprintf("The sequence was dumped into %s", dumpFile)
+                    infoString := fmt.Sprintf("wrong number of total stones")
+                    fileFail(failMessage, infoString, dumpFile, game, t)
+                }
+
+                currentColor = !currentColor
+                lastMovePass = false
+            }
+        }
+    }
+}
 
 func Testsuite() []testing.Test {
     return []testing.Test {
@@ -828,5 +934,6 @@ func Testsuite() []testing.Test {
         testing.Test{"TestDoubleKo", TestDoubleKo},
         testing.Test{"TestListLegalPoints", TestListLegalPoints},
         testing.Test{"TestFinalPosition", TestFinalPosition},
+        testing.Test{"TestBoardCopy", TestBoardCopy},
     }
 }

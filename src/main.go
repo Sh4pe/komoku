@@ -85,6 +85,6 @@ func normalMain() {
 }
 
 func main() {
-    testMain()
-    //komoku.RunGTPMode()
+    //testMain()
+    komoku.RunGTPMode()
 }

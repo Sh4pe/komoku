@@ -252,8 +252,10 @@ func NewGTPObject(e *Environment) *GTPObject {
     ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
     ret.commands["komoku-numgroups"] = gtpkomoku_numgroups(ret)
     ret.commands["komoku-numstones"] = gtpkomoku_numstones(ret)
+    ret.commands["komoku-playfork"] = gtpkomoku_playfork(ret)
     ret.commands["komoku-showliberties"] = gtpkomoku_showliberties(ret)
     ret.commands["komoku-source"] = gtpkomoku_source(ret)
+    ret.commands["komoku-sourceforkn"] = gtpkomoku_sourceforkn(ret)
     ret.commands["komoku-sourcen"] = gtpkomoku_sourcen(ret)
 
     return ret

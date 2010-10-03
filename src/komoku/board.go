@@ -129,8 +129,9 @@ func (b *Board) BoardSize() int {
 // of these actions indicate if any legality update has been performed.
 // Note that this method assumes that 'pos' is empty.
 func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action *actionFunc) {
-    /*v, _ := pointToGTPVertex(*NewPoint(x, y))
-    printDbgMsgBTf(4,"entering Board.calculateIfLegal(%s, %v)\n", v, color) // <DBG>*/
+    /*x, y := b.posToXY(pos)
+    v, _ := pointToGTPVertex(*NewPoint(x, y))
+    printDbgMsgBTf(6,"entering Board.calculateIfLegal(%s, %v)\n", v, color) // <DBG>*/
     //printDbgMsgf("ko status: %v\n", b.ko)
 
     // Is this move prohibited because of a ko? It is not prohibited for the player who 
@@ -141,8 +142,8 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action *ac
     }
     // assemble context which is bound to the board
     nFree, context := b.getEnvironmentAndContext(pos, color)
-    /*printDbgMsgf("sameColLen: %d, othColLen: %d, enemInAtariLen: %d, enemNotInAtariLen: %d\n", len(adjSameColor), len(adjOtherColor), 
-                len(enemiesInAtari), len(enemiesNotInAtari)) // <DBG>*/
+    /*printDbgMsgf("sameColLen: %d, othColLen: %d, enemInAtariLen: %d, enemNotInAtariLen: %d\n", len(context.adjSameColor), len(context.adjOtherColor), 
+                len(context.enemiesInAtari), len(context.enemiesNotInAtari)) // <DBG>*/
     removeGroups := len(context.enemiesInAtari) > 0
 
     if len(context.adjSameColor) == 0 {
@@ -352,7 +353,16 @@ func (b *Board) calculateIfLegal(pos int, color Color) (isLegal bool, action *ac
                     //DbgHistogram.Score() // </DBG>
                     alreadyUpdated := make([]bool, boardPtr.boardSize*boardPtr.boardSize)
                     boardPtr.ko = nil
+
+                    /*printDbgMsgf("len(adjSameColor): %d\n", len(c.adjSameColor))
+                    nblack, nwhite := boardPtr.numberOfGroups()
+                    printDbgMsgf("before: nblack %d, nwhite %d\n", nblack, nwhite)*/
+
                     boardPtr.joinGroupsByPlayAt(pos, c.adjSameColor)
+
+                    /*nblack, nwhite = boardPtr.numberOfGroups()
+                    printDbgMsgf("after: nblack %d, nwhite %d\n", nblack, nwhite)*/
+
                     for _, grp := range c.enemiesNotInAtari {
                         boardPtr.updateGroupLiberties(grp)
                     }
@@ -431,10 +441,19 @@ func (b *Board) Copy() *Board {
     copy(cpy.fieldSequencesWhite, b.fieldSequencesWhite)
 
     // Copy .fields in a seperate loop first. The next loop, in which we set .actionOnNext{Black,White}Move
-    // depends upon correcty and already completely set .fields
+    // depends upon correcty and already completely set .fields. Remember to copy each group only once!
+    copiedGroups := make(map[*Group]bool)
     for i := 0; i < l; i++ {
-        if grp := b.fields[i]; grp != nil {
-            cpy.fields[i] = grp.Copy()
+        grp := b.fields[i]
+        _, present := copiedGroups[grp]
+        if !present && grp != nil  {
+            gcpy := grp.Copy()
+            last := gcpy.Fields.Last()
+            for it := gcpy.Fields.First(); it != last; it = it.Next() {
+                cpy.fields[it.Value()] = gcpy
+            }
+            // remember that we already copied grp
+            copiedGroups[grp] = true
         }
     }
 
@@ -552,8 +571,8 @@ func (b *Board) GetGroupByPoint(x,y int) *Group {
 func (b *Board) initialActionGenerator(pos int, color Color) *actionFunc {
     return NewActionFunc(b, nil, func(boardPtr *Board, c *boardBoundFuncContext) (blackUpToDate, whiteUpToDate bool) {
     //return func() (updateBlack, updateWhite bool) {
-        b.CreateGroup(pos, color)
-        b.colorOfNextPlay = !b.colorOfNextPlay
+        boardPtr.CreateGroup(pos, color)
+        boardPtr.colorOfNextPlay = !boardPtr.colorOfNextPlay
         return false, false
     })
 }
@@ -577,14 +596,14 @@ func (b *Board) IsLegalMove(pos int, color Color) bool {
                 b.currentSequence)*/
     if color == Black {
         if b.fieldSequencesBlack[pos] != b.currentSequence {
-            b.updateLegalityFor(pos, b.currentSequence)
+            b.updateLegalityForBlack(pos, b.currentSequence)
         }
         if b.actionOnNextBlackMove[pos] != nil {
             return true
         }
     } else {
         if b.fieldSequencesWhite[pos] != b.currentSequence {
-            b.updateLegalityFor(pos, b.currentSequence)
+            b.updateLegalityForWhite(pos, b.currentSequence)
         }
         if b.actionOnNextWhiteMove[pos] != nil {
             return true
@@ -973,6 +992,15 @@ func (b *Board) updateLegalityForAdjacentGroups(adjGroups GroupSlice, whichSeque
         lastLib := grp.Liberties.Last()
         for itLib := grp.Liberties.First(); itLib != lastLib; itLib = itLib.Next() {
             lpos := itLib.Value()
+
+            /*x, y := b.posToXY(lpos)
+            v, _ := pointToGTPVertex(*NewPoint(x, y))
+            printDbgMsgf("updateLegalityForAdjacentGroups walks over %s\n", v)
+            if x == 3 && y == 2 {
+                printDbgMsgf("we are at %s, this is the board:\n", v)
+                PrintBoard(b)
+            }*/
+
             if !alreadyUpdated[lpos] {
                 b.updateLegalityFor(lpos, whichSequence)
                 alreadyUpdated[lpos] = true
