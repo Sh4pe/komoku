@@ -11,3 +11,4 @@ List of things to do:
 - use anonymous fields in structs where possible
 - Clean up common.go
 - split the big makefile into several different ones. Restructure e/, b/ and t/ dirs...
+- change Environment.CurrentGame to Environment.Game

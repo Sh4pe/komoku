@@ -520,6 +520,24 @@ func (b *Board) dropLibertyFromEach(libertyPos int, adjGroups GroupSlice) {
     }
 }
 
+// This is used to cound the area surrounded by black and white.
+// This func assumes that the connected, free fields all have size one.
+func (b *Board) getArea() (black, white int) {
+    black, white = 0, 0
+    for pos := 0; pos < b.boardSize*b.boardSize; pos++ {
+        if b.fields[pos] == nil {
+            _, adjBlack, adjWhite := b.GetEnvironment(pos)
+            blackLen, whiteLen := len(adjBlack), len(adjWhite)
+            if blackLen == 0 && whiteLen > 0 {
+                white++
+            } else if blackLen > 0 && whiteLen == 0 {
+                black++
+            }
+        }
+    }
+    return
+}
+
 // Returns the `environment` of 'pos', i.e. the number 'nFree' of free neighbours
 // and GroupSlices 'adj{Black,White}' containing the adjacent {black,white} groups.
 func (b *Board) GetEnvironment(pos int) (nFree int, adjBlack, adjWhite GroupSlice) {
@@ -969,7 +987,6 @@ func (b *Board) updateLegalityFor(pos int, whichSequence uint32) {
 // Checks if a black move at 'pos' is legal and makes sure the state of the board remains correct. 
 // 'whichSequence' denotes the sequence to set in b.fieldSequences{Black,White}.
 func (b *Board) updateLegalityForBlack(pos int, whichSequence uint32) {
-    //pX, pY := b.posToXY(pos)
     _, b.actionOnNextBlackMove[pos] = b.calculateIfLegal(pos, Black)
     b.fieldSequencesBlack[pos] = whichSequence
 }
@@ -977,7 +994,6 @@ func (b *Board) updateLegalityForBlack(pos int, whichSequence uint32) {
 // Checks if a white move at 'pos' is legal and makes sure the state of the board remains correct. 
 // 'whichSequence' denotes the sequence to set in b.fieldSequences{Black,White}.
 func (b *Board) updateLegalityForWhite(pos int, whichSequence uint32) {
-    //pX, pY := b.posToXY(pos)
     _, b.actionOnNextWhiteMove[pos] = b.calculateIfLegal(pos, White)
     b.fieldSequencesWhite[pos] = whichSequence
 }

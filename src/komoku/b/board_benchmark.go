@@ -54,7 +54,8 @@ func BenchmarkRandomGameByPlayRandomMove(b *testing.B) {
 }
 
 func Benchmarks() []testing.Benchmark {
-    return []testing.Benchmark { testing.Benchmark{"BenchmarkRandomGameByListLegalPoints", BenchmarkRandomGameByListLegalPoints},
-                                 testing.Benchmark{"BenchmarkRandomGameByPlayRandomMove", BenchmarkRandomGameByPlayRandomMove},
-                               }
+    return []testing.Benchmark {
+        testing.Benchmark{"BenchmarkRandomGameByListLegalPoints", BenchmarkRandomGameByListLegalPoints},
+        testing.Benchmark{"BenchmarkRandomGameByPlayRandomMove", BenchmarkRandomGameByPlayRandomMove},
+    }
 }

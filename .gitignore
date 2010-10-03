@@ -13,6 +13,7 @@ src/komoku/t/group_test
 src/komoku/b/design_decision_benchmark
 src/komoku/b/board_benchmark
 src/komoku/b/intlist_benchmark
+src/komoku/b/ai_benchmark
 src/komoku/e/gamelength
 data/tmp/*.tmp
 data/prof/*.prof

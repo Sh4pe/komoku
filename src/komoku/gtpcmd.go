@@ -37,7 +37,7 @@ func gtpboardsize(obj *GTPObject) *GTPCommand {
         if !ok {
             panic("\n\nType assertion for first parameter of boardsize failed.\n\n")
         }
-        if boardsize > 25 {
+        if boardsize < 3 || boardsize > 25 {
             return "unacceptable size", false, NewUnacceptableBoardSizeError()
         }
 
@@ -108,7 +108,7 @@ func gtpkomi(obj *GTPObject) *GTPCommand {
         if !ok {
             panic("\n\nType assertion for first parameter of komi failed.\n\n")
         }
-        obj.env.CurrentGame.SetKomi(newKomi)
+        obj.env.SetKomi(newKomi)
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,

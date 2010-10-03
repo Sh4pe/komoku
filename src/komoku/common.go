@@ -20,7 +20,7 @@ import (
 const (
     DefaultBoardSize =  9 // This should be less than 25, because ui.go.PrintBoard and the GTP protocol 
                           // will have problems otherwise....
-    defaultKomi = 6.5
+    DefaultKomi = 6.5
     komokuVersion = "0.1a"
     komokuProgramName = "komoku"
 )

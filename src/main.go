@@ -78,6 +78,19 @@ func testMain() {
     b1 := komoku.NewBoard(19)
     b2 := b1.Copy()
     _ = b2
+
+    for i := 0; i < 5; i++ {
+        fmt.Println()
+    }
+
+    ai := komoku.NewAI(9)
+    for i := 0; i < 10000; i++ {
+        if i % 50 == 0 {
+            fmt.Printf("simulation %d\n", i)
+        }
+        ai.RunSimulation()
+    }
+
 }
 
 func normalMain() {
@@ -85,6 +98,6 @@ func normalMain() {
 }
 
 func main() {
-    //testMain()
-    komoku.RunGTPMode()
+    testMain()
+    //komoku.RunGTPMode()
 }

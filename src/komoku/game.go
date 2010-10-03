@@ -22,15 +22,10 @@ import (
 // ################################################################################
 type Game struct {
     Board *Board // The current board
-    komi float
     sequence vector.Vector // the sequence of moves
 }
 
 // ##################### Game methods ##########################
-
-func (g *Game) GetKomi() float {
-    return g.komi
-}
 
 // Returns the last move.
 func (g *Game) LastMove() *Move {
@@ -75,16 +70,10 @@ func (g *Game) Reset() {
     g.sequence.Resize(0,0)
 }
 
-func (g *Game) SetKomi(newKomi float) {
-    g.komi = newKomi
-}
-
-
 // ##################### Game helper functions ##########################
 func NewGame(boardsize int) *Game {
-    return &Game{ 
+    return &Game{
         Board: NewBoard(boardsize),
-        komi: defaultKomi,
     }
 }
 

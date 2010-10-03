@@ -18,6 +18,22 @@ package komoku
 // ################################################################################
 type Environment struct {
     CurrentGame *Game
+    komi float
+}
+
+// ##################### Environment methods ##########################
+
+func (e *Environment) SetKomi(newKomi float) {
+    e.komi = newKomi
+}
+
+// ##################### Environment helper functions ##########################
+
+func NewEnvironment(boardsize int) *Environment {
+    return &Environment{
+        CurrentGame: NewGame(boardsize),
+        komi: DefaultKomi,
+    }
 }
 
 

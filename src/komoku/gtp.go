@@ -274,15 +274,16 @@ func NewGTPSyntaxError(msg string) (err Error) {
 // ################################################################################
 
 func RunGTPMode() {
-    // Set up the global environment
-    board := NewBoard(DefaultBoardSize)
+    /*board := NewBoard(DefaultBoardSize)
 
     game := &Game{ Board: board,
                    komi: defaultKomi,
                  }
 
     environment := &Environment{ CurrentGame: game,
-                               }
+                               }*/
+    // Set up the global environment
+    environment := NewEnvironment(DefaultBoardSize)
 
     // Create the GTPObject and start the input loop
     gtpObject := NewGTPObject(environment)

@@ -20,7 +20,8 @@ COMPILEFIRST_QUIET = @echo '  6g $(@)'; $(COMPILE)
 
 OBJS= main main.6
 
-ALLSOURCE  = board.go
+ALLSOURCE  = ai.go
+ALLSOURCE += board.go
 ALLSOURCE += common.go
 ALLSOURCE += debug.go
 ALLSOURCE += environment.go
