@@ -38,12 +38,13 @@ func averageGameLength(boardsize int) {
         }
         board.Reset()
     }
-    fmt.Printf("played %d simulations on boardsize %d, average number of moves per simulation: %2.2f\n", numTestGames, boardsize, float(sum)/float(numTestGames))
+    //fmt.Printf("played %d simulations on boardsize %d, average number of moves per simulation: %2.2f\n", numTestGames, boardsize, float(sum)/float(numTestGames))
+    fmt.Printf("averageGameLength[%2d] = %2.0f\n", boardsize, float(sum)/float(numTestGames))
 }
 
 func main() {
-    averageGameLength(9)
-    averageGameLength(13)
-    averageGameLength(19)
+    for i := 5; i < 26; i++ {
+        averageGameLength(i)
+    }
 }
 

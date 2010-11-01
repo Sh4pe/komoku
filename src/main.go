@@ -9,87 +9,18 @@ package main
 
 import (
     "fmt"
+    "runtime"
     "./komoku/komoku"
+    //"time"
 )
 
-type testerContext struct {
-    string
-}
-
-type testerFunc struct {
-    context *testerContext
-    f func(c *testerContext)
-}
-
-func (t *testerFunc) Call() {
-    t.f(t.context)
-}
-
-func NewTesterFunc() *testerFunc {
-    return &testerFunc{
-        context: &testerContext {
-            string: "init",
-        },
-        f: func(c *testerContext) {
-            fmt.Printf("closure; context.string: '%s'\n", c.string)
-        },
-    }
-}
-
-type tester struct {
-    fu *testerFunc
-}
-
-func (t *tester) Copy() *tester {
-    f := NewTesterFunc()
-    f.context.string = t.fu.context.string
-    return &tester{
-        fu: f,
-    }
-}
-
-func NewTester() *tester {
-    return &tester{
-        fu: NewTesterFunc(),
-    }
-}
-
 func testMain() {
-    t1 := NewTester()
-    t2 := t1.Copy()
-
-    t1.fu.Call()
-    t2.fu.Call()
-
-    t2.fu.context.string = "modified"
-
-    t1.fu.Call()
-    t2.fu.Call()
-
-    t1.fu.context.string = "modified original"
-
-    t1.fu.Call()
-    t2.fu.Call()
+    fmt.Printf("runtime.GOMAXPROCS: %d\n", runtime.GOMAXPROCS(0))
 
     for i := 0; i < 5; i++ {
         fmt.Println()
     }
 
-    b1 := komoku.NewBoard(19)
-    b2 := b1.Copy()
-    _ = b2
-
-    for i := 0; i < 5; i++ {
-        fmt.Println()
-    }
-
-    ai := komoku.NewAI(9)
-    for i := 0; i < 10000; i++ {
-        if i % 50 == 0 {
-            fmt.Printf("simulation %d\n", i)
-        }
-        ai.RunSimulation()
-    }
 
 }
 
@@ -98,6 +29,6 @@ func normalMain() {
 }
 
 func main() {
-    testMain()
-    //komoku.RunGTPMode()
+    //testMain()
+    komoku.RunGTPMode()
 }

@@ -51,7 +51,7 @@ type GTPCommand struct {
 // This object provides the functionality for comunicating via the GTP protocol.
 type GTPObject struct {
     commands map[string]*GTPCommand
-    env *Environment // Points to the global environment
+    ai *AI // pointer to the current game AI
 }
 
 // ##################### GTPObject methods ##########################
@@ -227,11 +227,13 @@ func (obj *GTPObject) preprocessLine(input string) (result string) {
 }
 
 // ##################### GTPObject helper functions ##########################
-func NewGTPObject(e *Environment) *GTPObject {
+func NewGTPObject() *GTPObject {
+
     ret := &GTPObject{ commands: make(map[string]*GTPCommand),
-                       env: e,
+                       ai: NewAI(DefaultBoardSize),
                      }
-    // Add commands
+
+    // GTP commands
     ret.commands["boardsize"] = gtpboardsize(ret)
     ret.commands["clear_board"] = gtpclear_board(ret)
     ret.commands["genmove"] = gtpgenmove(ret)
@@ -245,8 +247,9 @@ func NewGTPObject(e *Environment) *GTPObject {
     ret.commands["showboard"] = gtpshowboard(ret)
     ret.commands["version"] = gtpversion(ret)
 
-    // private extensions
+    // Private extensions
     ret.commands["komoku-alllegal"] = gtpkomoku_alllegal(ret)
+    ret.commands["komoku-genmovedbg"] = gtpkomoku_genmovedbg(ret)
     ret.commands["komoku-getenv"] = gtpkomoku_getenv(ret)
     ret.commands["komoku-getgroup"] = gtpkomoku_getgroup(ret)
     ret.commands["komoku-infocmd"] = gtpkomoku_infocmd(ret)
@@ -274,19 +277,8 @@ func NewGTPSyntaxError(msg string) (err Error) {
 // ################################################################################
 
 func RunGTPMode() {
-    /*board := NewBoard(DefaultBoardSize)
-
-    game := &Game{ Board: board,
-                   komi: defaultKomi,
-                 }
-
-    environment := &Environment{ CurrentGame: game,
-                               }*/
-    // Set up the global environment
-    environment := NewEnvironment(DefaultBoardSize)
-
     // Create the GTPObject and start the input loop
-    gtpObject := NewGTPObject(environment)
+    gtpObject := NewGTPObject()
     in := bufio.NewReader(os.Stdin)
     for {
         line, err := in.ReadString('\n')

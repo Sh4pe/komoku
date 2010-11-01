@@ -37,12 +37,12 @@ func gtpboardsize(obj *GTPObject) *GTPCommand {
         if !ok {
             panic("\n\nType assertion for first parameter of boardsize failed.\n\n")
         }
-        if boardsize < 3 || boardsize > 25 {
+        if boardsize < 5 || boardsize > 25 {
             return "unacceptable size", false, NewUnacceptableBoardSizeError()
         }
 
         // TODO: get rid of this cast
-        object.env.CurrentGame.Board = NewBoard(int(boardsize))
+        object.ai.environment.Game.Board = NewBoard(int(boardsize))
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -55,8 +55,8 @@ func gtpboardsize(obj *GTPObject) *GTPCommand {
 func gtpclear_board(obj *GTPObject) *GTPCommand {
     signature := []int { }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        curSize := object.env.CurrentGame.Board.BoardSize()
-        object.env.CurrentGame.Board = NewBoard(curSize)
+        curSize := object.ai.environment.Game.Board.BoardSize()
+        object.ai.environment.Game.Board = NewBoard(curSize)
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -65,11 +65,32 @@ func gtpclear_board(obj *GTPObject) *GTPCommand {
 }
 
 // Generate a move of the requested color. This is where the AI kicks in.
-func gtpgenmove(obj *GTPObject) *GTPCommand {
+/*func gtpgenmove(obj *GTPObject) *GTPCommand {
     signature := []int { GTPColor }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         color, _ := params[0].(Color)
         vertex := obj.env.CurrentGame.PlayRandomMove(color)
+        if vertex.Pass {
+            return "pass", false, nil
+        }
+        r, ok := pointToGTPVertex(*NewPoint(vertex.X, vertex.Y))
+        if !ok {
+            panic("\n\nThe random move is a malformed coordinate.\n\n")
+        }
+        return r, false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}*/
+
+// Generate a move of the requested color. This is where the AI kicks in.
+func gtpgenmove(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPColor }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        color, _ := params[0].(Color)
+        //vertex := obj.ai.environment.Game.PlayRandomMove(color)
+        vertex := obj.ai.GenMove(color)
         if vertex.Pass {
             return "pass", false, nil
         }
@@ -108,7 +129,7 @@ func gtpkomi(obj *GTPObject) *GTPCommand {
         if !ok {
             panic("\n\nType assertion for first parameter of komi failed.\n\n")
         }
-        obj.env.SetKomi(newKomi)
+        obj.ai.environment.SetKomi(newKomi)
         return result, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -121,9 +142,30 @@ func gtpkomoku_alllegal(obj *GTPObject) *GTPCommand {
     signature := []int { GTPColor }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         color, _ := params[0].(Color)
-        b := obj.env.CurrentGame.Board
+        b := obj.ai.environment.Game.Board
         legalPoints := b.ListLegalPoints(color)
         return "\n" + printBoardPrimitive(b, " ", -1, -1, legalPoints) , false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// Generate a move of the requested color. This is the debug version of genmove
+func gtpkomoku_genmovedbg(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPColor }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        color, _ := params[0].(Color)
+        //vertex := obj.ai.environment.Game.PlayRandomMove(color)
+        vertex := obj.ai.genMoveDbg(color, 10000000000)
+        if vertex.Pass {
+            return "pass", false, nil
+        }
+        r, ok := pointToGTPVertex(*NewPoint(vertex.X, vertex.Y))
+        if !ok {
+            panic("\n\nThe random move is a malformed coordinate.\n\n")
+        }
+        return r, false, nil
     }
     return &GTPCommand{ Signature: signature,
                         Func: f,
@@ -139,8 +181,8 @@ func gtpkomoku_getenv(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        pos := obj.env.CurrentGame.Board.xyToPos(vertex.X, vertex.Y)
-        nFree, adjBlack, adjWhite := obj.env.CurrentGame.Board.GetEnvironment(pos)
+        pos := obj.ai.environment.Game.Board.xyToPos(vertex.X, vertex.Y)
+        nFree, adjBlack, adjWhite := obj.ai.environment.Game.Board.GetEnvironment(pos)
         return fmt.Sprintf("nFree: %d, len(adjBlack): %d, len(adjWhite): %d", nFree, len(adjBlack), len(adjWhite)), false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -157,7 +199,7 @@ func gtpkomoku_getgroup(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        grp := obj.env.CurrentGame.Board.GetGroupByPoint(vertex.X, vertex.Y)
+        grp := obj.ai.environment.Game.Board.GetGroupByPoint(vertex.X, vertex.Y)
         if grp == nil {
             return "empty", false, nil
         }
@@ -212,7 +254,7 @@ func gtpkomoku_infocmd(obj *GTPObject) *GTPCommand {
 func gtpkomoku_numgroups(obj *GTPObject) *GTPCommand {
     signature := []int {}
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        nblack, nwhite := obj.env.CurrentGame.Board.numberOfGroups()
+        nblack, nwhite := obj.ai.environment.Game.Board.numberOfGroups()
         return fmt.Sprintf("#black: %d, #white: %d", nblack, nwhite), false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -224,7 +266,7 @@ func gtpkomoku_numgroups(obj *GTPObject) *GTPCommand {
 func gtpkomoku_numstones(obj *GTPObject) *GTPCommand {
     signature := []int {}
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        nblack, nwhite := obj.env.CurrentGame.Board.numberOfStones()
+        nblack, nwhite := obj.ai.environment.Game.Board.numberOfStones()
         return fmt.Sprintf("#black: %d, #white:%d", nblack, nwhite), false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -236,14 +278,14 @@ func gtpkomoku_numstones(obj *GTPObject) *GTPCommand {
 func gtpkomoku_playfork(obj *GTPObject) *GTPCommand {
     signature := []int { GTPColor, GTPVertex }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        obj.env.CurrentGame.Board = obj.env.CurrentGame.Board.Copy()
+        obj.ai.environment.Game.Board = obj.ai.environment.Game.Board.Copy()
         color, _ := params[0].(Color)
         vertex, _ := params[1].(Vertex)
         if vertex.Pass {
-            obj.env.CurrentGame.PlayPass(color)
+            obj.ai.environment.Game.PlayPass(color)
             return "", false, nil
         }
-        if er := obj.env.CurrentGame.PlayMove(vertex.X, vertex.Y, color); er != nil {
+        if er := obj.ai.environment.Game.PlayMove(vertex.X, vertex.Y, color); er != nil {
             if er.Errno() == ErrIllegalMove {
                 return "illegal move", false, er
             } else {
@@ -267,18 +309,18 @@ func gtpkomoku_showliberties(obj *GTPObject) *GTPCommand {
             emsg := "argument 0 has to be a vertex other than pass"
             return emsg, false, NewGTPSyntaxError(emsg)
         }
-        group := obj.env.CurrentGame.Board.GetGroupByPoint(vertex.X, vertex.Y)
+        group := obj.ai.environment.Game.Board.GetGroupByPoint(vertex.X, vertex.Y)
         if group == nil {
             return "there is no group", false, nil
         }
         libPoints := make([]Point, group.Liberties.Length())
         i := 0
         group.Liberties.Do(func(val int) {
-            pX, pY := obj.env.CurrentGame.Board.posToXY(val)
+            pX, pY := obj.ai.environment.Game.Board.posToXY(val)
             libPoints[i] = *NewPoint(pX, pY)
             i++
         })
-        ret := "\n" + printBoardPrimitive(obj.env.CurrentGame.Board, "", -1, -1, libPoints)
+        ret := "\n" + printBoardPrimitive(obj.ai.environment.Game.Board, "", -1, -1, libPoints)
         return ret, false, nil
     }
     return &GTPCommand{ Signature: signature,
@@ -381,7 +423,7 @@ func gtpkomoku_sourceforkn(obj *GTPObject) *GTPCommand {
                 line = "#" + line
             }
             fmt.Printf(line)
-            obj.env.CurrentGame.Board = obj.env.CurrentGame.Board.Copy()
+            obj.ai.environment.Game.Board = obj.ai.environment.Game.Board.Copy()
             lineResult, lineQuit, _ := obj.ExecuteCommand(line)
             fmt.Printf(lineResult)
             if lineQuit {
@@ -437,12 +479,12 @@ func gtpplay(obj *GTPObject) *GTPCommand {
         color, _ := params[0].(Color)
         vertex, _ := params[1].(Vertex)
         if vertex.Pass {
-            obj.env.CurrentGame.PlayPass(color)
+            obj.ai.environment.Game.PlayPass(color)
             return "", false, nil
         }
         //fmt.Printf("gtpplay: coords: (%d,%d)\n", vertex.X, vertex.Y)
         //fmt.Printf("gtpplay: vertex: %v\n", vertex)
-        if er := obj.env.CurrentGame.PlayMove(vertex.X, vertex.Y, color); er != nil {
+        if er := obj.ai.environment.Game.PlayMove(vertex.X, vertex.Y, color); er != nil {
             if er.Errno() == ErrIllegalMove {
                 return "illegal move", false, er
             } else {
@@ -483,10 +525,10 @@ func gtpquit(obj *GTPObject) *GTPCommand {
 func gtpshowboard(obj *GTPObject) *GTPCommand {
     signature := []int { }
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
-        b := object.env.CurrentGame.Board
+        b := object.ai.environment.Game.Board
         lastX, lastY := -1,-1
-        if len(object.env.CurrentGame.sequence) != 0 {
-            lastMove := object.env.CurrentGame.sequence.Last().(Move)
+        if len(object.ai.environment.Game.sequence) != 0 {
+            lastMove := object.ai.environment.Game.sequence.Last().(Move)
             lastX, lastY = lastMove.Vertex.X, lastMove.Vertex.Y
         }
         result = "\n" + printBoardPrimitive(b, " ", lastX, lastY , nil)

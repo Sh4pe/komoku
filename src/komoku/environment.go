@@ -17,7 +17,7 @@ package komoku
 // ########################### Environment struct #################################
 // ################################################################################
 type Environment struct {
-    CurrentGame *Game
+    *Game
     komi float
 }
 
@@ -31,7 +31,7 @@ func (e *Environment) SetKomi(newKomi float) {
 
 func NewEnvironment(boardsize int) *Environment {
     return &Environment{
-        CurrentGame: NewGame(boardsize),
+        Game: NewGame(boardsize),
         komi: DefaultKomi,
     }
 }

@@ -11,17 +11,27 @@ import (
     "testing"
 )
 
-func BenchmarkRunSimulation(b *testing.B) {
+func BenchmarkRunSimulation9(b *testing.B) {
     b.StopTimer()
     ai := NewAI(9)
     b.StartTimer()
     for i := 0; i < b.N; i++ {
-        ai.RunSimulation()
+        ai.runSimulation()
+    }
+}
+
+func BenchmarkRunSimulation19(b *testing.B) {
+    b.StopTimer()
+    ai := NewAI(19)
+    b.StartTimer()
+    for i := 0; i < b.N; i++ {
+        ai.runSimulation()
     }
 }
 
 func Benchmarks() []testing.Benchmark {
     return []testing.Benchmark {
-        testing.Benchmark{"BenchmarkRunSimulation", BenchmarkRunSimulation},
+        testing.Benchmark{"BenchmarkRunSimulation9", BenchmarkRunSimulation9},
+        testing.Benchmark{"BenchmarkRunSimulation19", BenchmarkRunSimulation19},
     }
 }

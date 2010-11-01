@@ -54,7 +54,7 @@ TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created fi
 # the command for doing this quietly with a nice output
 TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
 
-ALLTESTS_TARGS = common_test group_test gtp_test intlist_test ui_test board_test
+ALLTESTS_TARGS = ai_test common_test group_test gtp_test intlist_test ui_test board_test
 ALLTESTS = $(patsubst %,$(TESTDIR)%,$(ALLTESTS_TARGS))
 
 
@@ -166,13 +166,16 @@ $(TARG).6: $(ALLSOURCE)
 
 #################### tests ################
 
+$(TESTDIR)ai_test: $(TESTDIR)ai_test.go ai.go board.go common.go environment.go game.go group.go intlist.go treenode.go ui.go
+	$(TESTCOMPILE_QUIET)
+
 $(TESTDIR)board_test: $(TESTDIR)board_test.go board.go common.go debug.go game.go group.go intlist.go ui.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)common_test: $(TESTDIR)common_test.go common.go
 	$(TESTCOMPILE_QUIET)
 
-$(TESTDIR)gtp_test: $(TESTDIR)gtp_test.go board.go common.go debug.go environment.go game.go gtp.go gtpcmd.go group.go intlist.go ui.go
+$(TESTDIR)gtp_test: $(TESTDIR)gtp_test.go ai.go board.go common.go debug.go environment.go game.go gtp.go gtpcmd.go group.go intlist.go ui.go treenode.go
 	$(TESTCOMPILE_QUIET)
 
 $(TESTDIR)group_test: $(TESTDIR)group_test.go common.go group.go intlist.go
@@ -224,7 +227,7 @@ $(BENCHMARKDIR)intlist_benchmark: $(BENCHMARKDIR)intlist_benchmark.go intlist.go
 $(BENCHMARKDIR)intlist_benchmark_run: $(BENCHMARKDIR)intlist_benchmark
 	$(BENCHMARKRUN)
 
-$(BENCHMARKDIR)ai_benchmark: $(BENCHMARKDIR)ai_benchmark.go ai.go board.go common.go environment.go game.go group.go intlist.go treenode.go
+$(BENCHMARKDIR)ai_benchmark: $(BENCHMARKDIR)ai_benchmark.go ai.go board.go common.go environment.go game.go group.go intlist.go treenode.go ui.go
 	$(BENCHMARKCOMPILE_QUIET)
 
 .PHONY: $(BENCHMARKDIR)ai_benchmark_run

@@ -4,6 +4,7 @@
 *.vim
 src/main
 src/komoku/komoku.a
+src/komoku/t/ai_test
 src/komoku/t/common_test
 src/komoku/t/board_test
 src/komoku/t/intlist_test
