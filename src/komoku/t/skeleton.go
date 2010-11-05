@@ -12,6 +12,7 @@ import (
     "SUBSTITUTE_THIS"
     "testing"
     "fmt"
+    "os"
 )
 
 func main() {
@@ -22,5 +23,8 @@ func main() {
     } else {
         fmt.Printf("Running %d test in SUBSTITUTE_THIS...\n", numTests)
     }
-    testing.Main(testsuite)
+    matchAlways := func(pat, str string) (bool, os.Error) {
+        return true, nil
+    }
+    testing.Main(matchAlways, testsuite)
 }

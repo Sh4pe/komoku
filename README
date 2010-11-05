@@ -1,0 +1,27 @@
+1. What is komoku
+
+Komoku is my attempt to write a program which is able to play go. As a general
+idea, it uses monte carlo simulations of random games and tries to find out 
+"the best move" by looking at the statistics. The best move (at a given situation)
+should be the move with the best winning percentage (taking the randomly generated
+follow-up games into account).
+
+The strongest computer go programs right now use monte carlo methods, see 
+MoGo (http://www.lri.fr/~teytaud/mogo.html) and Zen (http://senseis.xmp.net/?Zen)
+to name a few. Zen has a rank of 3d at the Kiseido Go Server, which is a
+strong amateur rank. This is very strong for a computer go program. With this 
+in mind, I started implementing my own Go engine in a very nice language,
+which is accidentally also called Go (www.golang.org).
+
+But it seems my idea has been far too naive. I spent quite some time testing my
+move generation implementation and profiling it, thinking that my program will 
+not be terribly bad when I finally let it play against me. I didn't expect it
+to be strong at all, but I thought that it might be a challenge to someone who
+is just beginning to play go.
+
+It seems my expectations have been far too high. I recently made komoku able to 
+play, and it is so bad that I'm loosing hope and begin to think that it might be
+better to either stop working on it or 'look for help'.
+
+So you can find it here on github now. Perhaps someone will find something
+useful in it. I didn't want to throw everything away.

@@ -71,11 +71,12 @@ func BenchmarkJoinUnique(b *testing.B) {
     }
 }
 
-func Benchmarks() []testing.Benchmark {
-    return []testing.Benchmark { testing.Benchmark{"BenchmarkIntListCreation", BenchmarkIntListCreation},
-                                 testing.Benchmark{"Benchmark10Appends", Benchmark10Appends},
-                                 testing.Benchmark{"Benchmark10Removes", Benchmark10Removes},
-                                 testing.Benchmark{"Benchmark10AppendUniques", Benchmark10AppendUniques},
-                                 testing.Benchmark{"BenchmarkJoinUnique", BenchmarkJoinUnique},
-                               }
+func Benchmarks() []testing.InternalBenchmark {
+    return []testing.InternalBenchmark { 
+        testing.InternalBenchmark{"BenchmarkIntListCreation", BenchmarkIntListCreation},
+        testing.InternalBenchmark{"Benchmark10Appends", Benchmark10Appends},
+        testing.InternalBenchmark{"Benchmark10Removes", Benchmark10Removes},
+        testing.InternalBenchmark{"Benchmark10AppendUniques", Benchmark10AppendUniques},
+        testing.InternalBenchmark{"BenchmarkJoinUnique", BenchmarkJoinUnique},
+    }
 }

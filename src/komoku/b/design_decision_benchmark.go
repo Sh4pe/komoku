@@ -114,14 +114,15 @@ func BenchmarkIntListDoLoop(b *testing.B) {
     }
 }
 
-func Benchmarks() []testing.Benchmark {
-    return []testing.Benchmark { testing.Benchmark{"BenchmarkGenericVector", BenchmarkGenericVector},
-                                 testing.Benchmark{"BenchmarkIntVector", BenchmarkIntVector},
-                                 testing.Benchmark{"BenchmarkCreationPointerAssign", BenchmarkCreationPointerAssign},
-                                 testing.Benchmark{"BenchmarkCreationValueAssign", BenchmarkCreationValueAssign},
-                                 testing.Benchmark{"BenchmarkIntAssignment", BenchmarkIntAssignment},
-                                 testing.Benchmark{"BenchmarkIntCast", BenchmarkIntCast},
-                                 testing.Benchmark{"BenchmarkIntListIteratorLoop", BenchmarkIntListIteratorLoop},
-                                 testing.Benchmark{"BenchmarkIntListDoLoop", BenchmarkIntListDoLoop},
-                               }
+func Benchmarks() []testing.InternalBenchmark {
+    return []testing.InternalBenchmark { 
+        testing.InternalBenchmark{"BenchmarkGenericVector", BenchmarkGenericVector},
+        testing.InternalBenchmark{"BenchmarkIntVector", BenchmarkIntVector},
+        testing.InternalBenchmark{"BenchmarkCreationPointerAssign", BenchmarkCreationPointerAssign},
+        testing.InternalBenchmark{"BenchmarkCreationValueAssign", BenchmarkCreationValueAssign},
+        testing.InternalBenchmark{"BenchmarkIntAssignment", BenchmarkIntAssignment},
+        testing.InternalBenchmark{"BenchmarkIntCast", BenchmarkIntCast},
+        testing.InternalBenchmark{"BenchmarkIntListIteratorLoop", BenchmarkIntListIteratorLoop},
+        testing.InternalBenchmark{"BenchmarkIntListDoLoop", BenchmarkIntListDoLoop},
+    }
 }

@@ -15,6 +15,7 @@ import (
     "flag"
     "fmt"
     "os"
+    "regexp"
     "SUBSTITUTE_THIS"
 )
 
@@ -31,6 +32,9 @@ func main() {
         fmt.Println(bn)
         return
     }
-    testing.RunBenchmarks(b)
+    matchAlways := func(pat, str string) (bool, os.Error) {
+        return regexp.MatchString(pat, str)
+    }
+    testing.RunBenchmarks(matchAlways, b)
 }
 

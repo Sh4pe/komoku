@@ -29,9 +29,9 @@ func BenchmarkRunSimulation19(b *testing.B) {
     }
 }
 
-func Benchmarks() []testing.Benchmark {
-    return []testing.Benchmark {
-        testing.Benchmark{"BenchmarkRunSimulation9", BenchmarkRunSimulation9},
-        testing.Benchmark{"BenchmarkRunSimulation19", BenchmarkRunSimulation19},
+func Benchmarks() []testing.InternalBenchmark {
+    return []testing.InternalBenchmark {
+        testing.InternalBenchmark{"BenchmarkRunSimulation9", BenchmarkRunSimulation9},
+        testing.InternalBenchmark{"BenchmarkRunSimulation19", BenchmarkRunSimulation19},
     }
 }

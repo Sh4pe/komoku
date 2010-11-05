@@ -53,9 +53,9 @@ func BenchmarkRandomGameByPlayRandomMove(b *testing.B) {
     DbgHistogram.PrintSorted()
 }
 
-func Benchmarks() []testing.Benchmark {
-    return []testing.Benchmark {
-        testing.Benchmark{"BenchmarkRandomGameByListLegalPoints", BenchmarkRandomGameByListLegalPoints},
-        testing.Benchmark{"BenchmarkRandomGameByPlayRandomMove", BenchmarkRandomGameByPlayRandomMove},
+func Benchmarks() []testing.InternalBenchmark {
+    return []testing.InternalBenchmark {
+        testing.InternalBenchmark{"BenchmarkRandomGameByListLegalPoints", BenchmarkRandomGameByListLegalPoints},
+        testing.InternalBenchmark{"BenchmarkRandomGameByPlayRandomMove", BenchmarkRandomGameByPlayRandomMove},
     }
 }
