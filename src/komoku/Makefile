@@ -70,6 +70,8 @@ TESTOBJS += ui_test
 TESTOBJS += ui_test.6
 TESTOBJS += group_test
 TESTOBJS += group_test.6
+TESTOBJS += ai_test
+TESTOBJS += ai_test.6
 
 #########################################################################################
 ############### Stuff needed for generating benchmark executables #######################

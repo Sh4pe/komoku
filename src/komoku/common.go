@@ -35,6 +35,8 @@ const (
     ErrGTPSyntaxError;
     ErrIOError;
     ErrFieldLegalityCheckedMoreThanOnce;
+    ErrGTPNotImplemented;
+    ErrGTPIllegalCommand;
 )
 
 // ################ interfaces ##############

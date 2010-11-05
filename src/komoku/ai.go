@@ -9,7 +9,7 @@
 package komoku
 
 import (
-    //"runtime"
+    "runtime"
     "fmt"
     "time"
 )
@@ -57,6 +57,89 @@ type AI struct {
 
 // ##################### AI methods ##########################
 
+// Debug version of AI.GenMove
+func (a *AI) dbgGenMove(color Color, timeToThink int64) Vertex {
+    fmt.Printf("\nBoard before simulations:\n")
+    PrintBoard(a.environment.Game.Board)
+
+    a.startThinking(true)
+    time.Sleep(timeToThink)
+    defer a.startThinking(a.stopThinking())
+    //a.stopThinking()
+
+
+    // find the best move
+    bestPos, bestWinPercentage := a.findBestMove(color)
+
+    sum := 0
+    numNodes := 0
+    highestNum := -1
+    highestPos := 0
+    fmt.Printf("number of simulations: %d, bestWinPercentage: %f\n", a.topNode.NodeInfo.simulations, bestWinPercentage)
+    for pos, node := range a.topNode.children{
+        num := node.NodeInfo.simulations
+        if num > highestNum {
+            highestNum = num
+            highestPos = pos
+        }
+        sum += node.NodeInfo.simulations
+        numNodes++
+    }
+    fmt.Printf("collected number of simulations: %d, number of nodes: %d\n\n", sum, numNodes)
+    fmt.Printf("highest number of simuls per field: %d (at %d)\n", highestNum, highestPos)
+
+    //take number of simulations into account!
+
+    // remove all nodes belonging to the other moves (i.e. not the best move)
+    for pos, _ := range a.topNode.children {
+        if pos != bestPos {
+            a.topNode.children[pos].Clear()
+            a.topNode.children[pos] = nil, false
+        }
+    }
+
+    // play the best move
+    bestX, bestY := a.environment.Game.Board.posToXY(bestPos)
+    a.PlayMove(bestX, bestY, color)
+
+    fmt.Printf("simulations on the best move: %d\n", a.topNode.NodeInfo.simulations)
+
+
+    fmt.Printf("\nBoard after simulations:\n")
+    PrintBoard(a.environment.Game.Board)
+
+    runtime.GC()
+
+    // TODO: this never plays pass yet
+    return *NewVertexByInts(bestX, bestY, false)
+}
+
+// Determines the best move for the player 'color 'on the current board based on the current statistics. 
+// Returns its pos and its winning percentage.
+func (a *AI) findBestMove(color Color) (bestPos int, winPercentage float) {
+    winPercentage  = -1.0
+    bestPos = -1
+    for pos, childNode := range a.topNode.children {
+        // We want to discard moves whose 'pos' is not legal. It is possible that topNode has a child node
+        // pointing to a now illegal move (this move might have been legal when the simulation creating it was
+        // run), but we surely do not want to consider these moves for playing...
+        if a.environment.Game.Board.IsLegalMove(pos, color) {
+            simulations := childNode.NodeInfo.simulations
+            var wonByColor int
+            if color == Black {
+                wonByColor = childNode.NodeInfo.wonByBlack
+            } else {
+                wonByColor = childNode.NodeInfo.wonByWhite
+            }
+            var p float = float(wonByColor)/float(simulations)
+            if p > winPercentage {
+                winPercentage = p
+                bestPos = pos
+            }
+        }
+    }
+    return
+}
 
 // Generate a move using the current statistics as a guide to the best move
 // and play this move.
@@ -72,23 +155,17 @@ func (a *AI) genMove(color Color, timeToThink int64) Vertex {
     a.startThinking(true)
     time.Sleep(timeToThink)
     defer a.startThinking(a.stopThinking())
+    //a.stopThinking()
 
 
     // find the best move
-    var bestWinPercentage float = -1.0
-    bestPos := -1
-    for pos, childNode := range a.topNode.children {
-        simulations := childNode.NodeInfo.simulations
-        var wonByColor int
-        if color == Black {
-            wonByColor = childNode.NodeInfo.wonByBlack
-        } else {
-            wonByColor = childNode.NodeInfo.wonByWhite
-        }
-        var winPercentage float = float(wonByColor)/float(simulations)
-        if winPercentage > bestWinPercentage {
-            bestWinPercentage = winPercentage
-            bestPos = pos
+    bestPos, _ := a.findBestMove(color)
+
+    // remove all nodes belonging to the other moves (i.e. not the best move)
+    for pos, _ := range a.topNode.children {
+        if pos != bestPos {
+            a.topNode.children[pos].Clear()
+            a.topNode.children[pos] = nil, false
         }
     }
 
@@ -96,63 +173,22 @@ func (a *AI) genMove(color Color, timeToThink int64) Vertex {
     bestX, bestY := a.environment.Game.Board.posToXY(bestPos)
     a.PlayMove(bestX, bestY, color)
 
-    // TODO: this never plays pass yet
-    return *NewVertexByInts(bestX, bestY, false)
-}
 
-// Debug version of AI.GenMove
-func (a *AI) genMoveDbg(color Color, timeToThink int64) Vertex {
-    fmt.Printf("\nBoard before simulations:\n")
-    PrintBoard(a.environment.Game.Board)
-
-    a.startThinking(true)
-    time.Sleep(timeToThink)
-    defer a.startThinking(a.stopThinking())
-
-
-    // find the best move
-    var bestWinPercentage float = -1.0
-    bestPos := -1
-    for pos, childNode := range a.topNode.children {
-        simulations := childNode.NodeInfo.simulations
-        var wonByColor int
-        if color == Black {
-            wonByColor = childNode.NodeInfo.wonByBlack
-        } else {
-            wonByColor = childNode.NodeInfo.wonByWhite
-        }
-        var winPercentage float = float(wonByColor)/float(simulations)
-        if winPercentage > bestWinPercentage {
-            bestWinPercentage = winPercentage
-            bestPos = pos
-        }
-    }
-
-    // play the best move
-    bestX, bestY := a.environment.Game.Board.posToXY(bestPos)
-    a.PlayMove(bestX, bestY, color)
-
-    fmt.Printf("number of simulations: %d, bestWinPercentage: %f\n", a.topNode.NodeInfo.simulations, bestWinPercentage)
-    sum := 0
-    numNodes := 0
-    for _, node := range a.topNode.children{
-        sum += node.NodeInfo.simulations
-        numNodes++
-    }
-    fmt.Printf("collected number of simulations: %d, number of nodes: %d\n", sum, numNodes)
-
-    fmt.Printf("\nBoard after simulations:\n")
-    PrintBoard(a.environment.Game.Board)
+    runtime.GC()
 
     // TODO: this never plays pass yet
     return *NewVertexByInts(bestX, bestY, false)
 }
+
 
 // Thinks until a.runThinker is false, and sends true to a.thinkerFinished[index] when finished
 func (a *AI) makeThinker(index int) {
+    //simuls := 0
     for a.runThinkers {
         a.runSimulation()
+        //simuls++
     }
+    //fmt.Printf("%d simuls in one thinker\n", simuls)
     a.thinkerFinished[index] <- true
 }
 
@@ -164,10 +200,6 @@ func (a *AI) NumSimulations() int {
 // Play a move on the board
 func (a *AI) PlayMove(x,y int, color Color) (err Error) {
     // if komoku is thinking already, stop thinking and restart it afterwards
-    /*if a.runThinkers {
-        a.stopThinking()
-        defer a.startThinking()
-    }*/
     defer a.startThinking(a.stopThinking())
     return a.playMove(x,y,color)
 }
@@ -257,15 +289,15 @@ func (a *AI) startThinking(think bool) {
     }
 }
 
-// Stop thinking and waits for all thinkers to finish. Does nothing if a is not thinking.
+// Stop thinking and waits for all thinkers to finish. Does nothing if the AI is not thinking.
 // Returns true iff a was thinking before
 func (a *AI) stopThinking() bool {
     if !a.runThinkers {
         return false
     }
 
-    // block until every thinker is ready
     a.runThinkers = false
+    // block until every thinker is ready
     for i := 0; i < a.numThinkers; i++ {
         <-a.thinkerFinished[i]
     }

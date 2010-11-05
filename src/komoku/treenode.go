@@ -47,6 +47,14 @@ func (t *TreeNode) ChildNode(pos int) *TreeNode {
     return child
 }
 
+// Deletes the t.NodeInfo and all its children
+func (t *TreeNode) Clear() {
+    t.NodeInfo = nil
+    for _, child := range t.children {
+        child.Clear()
+    }
+}
+
 // Increments the denoted scores
 func (t *TreeNode) IncrementScore(simuls, wonBlack, wonWhite, jigo int) {
     t.NodeInfo.simulations += simuls

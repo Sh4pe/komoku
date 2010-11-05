@@ -112,7 +112,7 @@ func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, er
             case GTPInt:
                 ival, err := strconv.Atoui(args[i])
                 if err != nil {
-                    errmsg := fmt.Sprintf("argument %d has to be an int", i)
+                    errmsg := fmt.Sprintf("argument %d has to be an unsigned int", i)
                     return obj.formatErrorResponse(hasId, id, errmsg), false, nil
                 } else {
                     argsToPass[i] = ival
@@ -256,6 +256,7 @@ func NewGTPObject() *GTPObject {
     ret.commands["komoku-numgroups"] = gtpkomoku_numgroups(ret)
     ret.commands["komoku-numstones"] = gtpkomoku_numstones(ret)
     ret.commands["komoku-playfork"] = gtpkomoku_playfork(ret)
+    ret.commands["komoku-placehandi"] = gtpkomoku_placehandi(ret)
     ret.commands["komoku-showliberties"] = gtpkomoku_showliberties(ret)
     ret.commands["komoku-source"] = gtpkomoku_source(ret)
     ret.commands["komoku-sourceforkn"] = gtpkomoku_sourceforkn(ret)
@@ -265,11 +266,19 @@ func NewGTPObject() *GTPObject {
 }
 
 func NewUnacceptableBoardSizeError() (err Error) {
-    return NewError(fmt.Sprintf("unacceptable size"), ErrGTPSyntaxError)
+    return NewError(fmt.Sprintf("unacceptable size"), ErrUnacceptableBoardSize)
 }
 
 func NewGTPSyntaxError(msg string) (err Error) {
-    return NewError(fmt.Sprintf(msg), ErrUnacceptableBoardSize)
+    return NewError(fmt.Sprintf(msg), ErrGTPSyntaxError)
+}
+
+func NewGTPNotImplementedError(msg string) (err Error) {
+    return NewError(fmt.Sprintf(msg), ErrGTPNotImplemented)
+}
+
+func NewGTPIllegalCommand(msg string) (err Error) {
+    return NewError(fmt.Sprintf(msg), ErrGTPIllegalCommand)
 }
 
 // ################################################################################
@@ -284,8 +293,6 @@ func RunGTPMode() {
         line, err := in.ReadString('\n')
         switch err {
             case nil:
-                // Everything went fine
-                //func (obj *GTPObject) ExecuteCommand(input string) (result string, quit bool, err Error) {
                 result, quit, execErr := gtpObject.ExecuteCommand(line)
                 if execErr != nil {
                     fmt.Printf("Error in GTPObject.ExecuteCommand:\n%s\n", execErr)

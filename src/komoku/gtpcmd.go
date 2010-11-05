@@ -157,7 +157,7 @@ func gtpkomoku_genmovedbg(obj *GTPObject) *GTPCommand {
     f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
         color, _ := params[0].(Color)
         //vertex := obj.ai.environment.Game.PlayRandomMove(color)
-        vertex := obj.ai.genMoveDbg(color, 10000000000)
+        vertex := obj.ai.dbgGenMove(color, 10000000000)
         if vertex.Pass {
             return "pass", false, nil
         }
@@ -293,6 +293,41 @@ func gtpkomoku_playfork(obj *GTPObject) *GTPCommand {
             }
         }
         // Everything went fine
+        return "", false, nil
+    }
+    return &GTPCommand{ Signature: signature,
+                        Func: f,
+                      }
+}
+
+// places the given number of handicap stones (which are black stones)
+func gtpkomoku_placehandi(obj *GTPObject) *GTPCommand {
+    signature := []int { GTPInt }
+    f := func(object *GTPObject, params []interface{}) (result string, quit bool, err Error) {
+        if obj.ai.environment.Game.Board.BoardSize() != 9 {
+            return "this command is only implemented for boards of size 9", false, NewGTPNotImplementedError("not implemented")
+        }
+        numHandi, _ := params[0].(uint)
+        if numHandi < 0 || numHandi > 4 {
+            return "number of handicap stones has to be between 0 and 4", false, NewGTPSyntaxError("wrong int argument")
+        }
+        if len(obj.ai.environment.Game.sequence) > 0 {
+            return "handicap placement must be done before a move is played", false, NewGTPIllegalCommand("komoku-placehandi played after some moves")
+        }
+
+        moves := []Point{
+            Point{ X: 2, Y: 6 },
+            Point{ X: 6, Y: 2 },
+            Point{ X: 6, Y: 6 },
+            Point{ X: 2, Y: 2 },
+        }
+        var i uint
+        for i = 0; i < numHandi; i++ {
+            x := moves[i].X
+            y := moves[i].Y
+            obj.ai.PlayMove(x,y,Black)
+        }
+
         return "", false, nil
     }
     return &GTPCommand{ Signature: signature,
