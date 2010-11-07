@@ -9,9 +9,7 @@
 #
 
 include ../common.mk
-#########################################################################################
 ####################### most common defintions ##########################################
-#########################################################################################
 TARG=komoku
 
 # prefix of this directory
@@ -20,7 +18,7 @@ THISDIR=komoku/
 KOMOKULIB=$(TARG).a
 
 COMPILE  = $(CC) -o $(@) $(^)
-COMPILE_QUIET = @echo '  6g $(THISDIR)$(@)'; $(COMPILE)
+COMPILE_QUIET = @echo '  $(CCSTR) $(THISDIR)$(@)'; $(COMPILE)
 
 ALLSOURCE  = ai.go
 ALLSOURCE += board.go
@@ -42,35 +40,35 @@ TESTDIR = t/
 
 ### the command for compiling tests
 #
-TESTCOMPILE  = $(CC) -o $(@).6 $(^); # compile all dependencies to $(@).6
+TESTCOMPILE  = $(CC) -o $(@).$(OBJSUFF) $(^); # compile all dependencies to $(@).$(OBJSUFF)
 # create tmp file with adjusted testrunner code in it
 TESTCOMPILE += cat $(TESTDIR)/skeleton.go | sed 's/SUBSTITUTE_THIS/$(notdir $(@))/g' > $(TESTDIR)$(notdir $(@)).tmp.go; 
-TESTCOMPILE += $(CC) -I$(TESTDIR) -o $(@).tmp.6 $(@).tmp.go; # compiles the generated program with all dependencies as .go-file arguments
-TESTCOMPILE += $(LINK) -L$(TESTDIR) -o $(@) $(@).tmp.6; # link the program to generate an executable
-TESTCOMPILE += rm -f $(@).tmp.6; # remove the .6 file for the temorarily created file
+TESTCOMPILE += $(CC) -I$(TESTDIR) -o $(@).tmp.$(OBJSUFF) $(@).tmp.go; # compiles the generated program with all dependencies as .go-file arguments
+TESTCOMPILE += $(LINK) -L$(TESTDIR) -o $(@) $(@).tmp.$(OBJSUFF); # link the program to generate an executable
+TESTCOMPILE += rm -f $(@).tmp.$(OBJSUFF); # remove the .$(OBJSUFF) file for the temorarily created file
 TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created file
 
 # the command for doing this quietly with a nice output
-TESTCOMPILE_QUIET = @echo '  6l $(THISDIR)$(@)'; $(TESTCOMPILE)
+TESTCOMPILE_QUIET = @echo '  $(LINKSTR) $(THISDIR)$(@)'; $(TESTCOMPILE)
 
 ALLTESTS_TARGS = ai_test common_test group_test gtp_test intlist_test ui_test board_test
 ALLTESTS = $(patsubst %,$(TESTDIR)%,$(ALLTESTS_TARGS))
 
 
 TESTOBJS += board_test
-TESTOBJS += board_test.6
+TESTOBJS += board_test.$(OBJSUFF)
 TESTOBJS += common_test
-TESTOBJS += common_test.6 
+TESTOBJS += common_test.$(OBJSUFF) 
 TESTOBJS += gtp_test
-TESTOBJS += gtp_test.6 
+TESTOBJS += gtp_test.$(OBJSUFF) 
 TESTOBJS += intlist_test
-TESTOBJS += intlist_test.6
+TESTOBJS += intlist_test.$(OBJSUFF)
 TESTOBJS += ui_test
-TESTOBJS += ui_test.6
+TESTOBJS += ui_test.$(OBJSUFF)
 TESTOBJS += group_test
-TESTOBJS += group_test.6
+TESTOBJS += group_test.$(OBJSUFF)
 TESTOBJS += ai_test
-TESTOBJS += ai_test.6
+TESTOBJS += ai_test.$(OBJSUFF)
 
 #########################################################################################
 ############### Stuff needed for generating benchmark executables #######################
@@ -79,14 +77,14 @@ BENCHMARKDIR = b/
 PROFDIR = ../../data/prof/
 
 # The command for compiling benchmarks. Mostly analogous to $(TESTCOMPILE)
-BENCHMARKCOMPILE  = $(CC) -o $(@).6 $(^);
+BENCHMARKCOMPILE  = $(CC) -o $(@).$(OBJSUFF) $(^);
 BENCHMARKCOMPILE += cat $(BENCHMARKDIR)/skeleton.go | sed 's/SUBSTITUTE_THIS/$(notdir $(@))/g' > $(BENCHMARKDIR)$(notdir $(@)).tmp.go; 
-BENCHMARKCOMPILE += $(CC) -I$(BENCHMARKDIR) -o $(@).tmp.6 $(@).tmp.go;
-BENCHMARKCOMPILE += $(LINK) -L$(BENCHMARKDIR) -o $(@) $(@).tmp.6;
-BENCHMARKCOMPILE += rm -f $(@).tmp.6;
+BENCHMARKCOMPILE += $(CC) -I$(BENCHMARKDIR) -o $(@).tmp.$(OBJSUFF) $(@).tmp.go;
+BENCHMARKCOMPILE += $(LINK) -L$(BENCHMARKDIR) -o $(@) $(@).tmp.$(OBJSUFF);
+BENCHMARKCOMPILE += rm -f $(@).tmp.$(OBJSUFF);
 BENCHMARKCOMPILE += rm -f $(@).tmp.go;
 
-BENCHMARKCOMPILE_QUIET = @echo '  6l $(THISDIR)$(@)'; $(BENCHMARKCOMPILE)
+BENCHMARKCOMPILE_QUIET = @echo '  $(LINKSTR) $(THISDIR)$(@)'; $(BENCHMARKCOMPILE)
 
 # This is the standard regexp supplied to -benchmarks= in the benchmark executables
 BENCHMARKREGEX = [a-zA-Z]*
@@ -117,13 +115,13 @@ ALLBENCHMARKS = $(patsubst %,$(BENCHMARKDIR)%,$(ALLBENCHMARKS_TARGS))
 
 
 BENCHMARKOBJS += ai_benchmark
-BENCHMARKOBJS += ai_benchmark.6
+BENCHMARKOBJS += ai_benchmark.$(OBJSUFF)
 BENCHMARKOBJS += board_benchmark
-BENCHMARKOBJS += board_benchmark.6
+BENCHMARKOBJS += board_benchmark.$(OBJSUFF)
 BENCHMARKOBJS += design_decision_benchmark
-BENCHMARKOBJS += design_decision_benchmark.6
+BENCHMARKOBJS += design_decision_benchmark.$(OBJSUFF)
 BENCHMARKOBJS += intlist_benchmark
-BENCHMARKOBJS += intlist_benchmark.6
+BENCHMARKOBJS += intlist_benchmark.$(OBJSUFF)
 
 #########################################################################################
 ############### Stuff needed for generating experiment executables ######################
@@ -131,23 +129,23 @@ BENCHMARKOBJS += intlist_benchmark.6
 EXPERIMENTDIR = e/
 
 EXPERIMENTCOMPILE += $(eval sourcefile=$(wordlist 2, $(words $(^)), $(^)))
-EXPERIMENTCOMPILE += $(CC) -o $(@).6 $(sourcefile);
-EXPERIMENTCOMPILE += $(LINK) -o $(@) $(@).6
+EXPERIMENTCOMPILE += $(CC) -o $(@).$(OBJSUFF) $(sourcefile);
+EXPERIMENTCOMPILE += $(LINK) -o $(@) $(@).$(OBJSUFF)
 
-EXPERIMENTCOMPILE_QUIET = @echo '  6l $(@)'; $(EXPERIMENTCOMPILE)
+EXPERIMENTCOMPILE_QUIET = @echo '  $(LINKSTR) $(@)'; $(EXPERIMENTCOMPILE)
 
 EXPERIMENTRUN  = @echo Performing the experiment $(patsubst %_run,%, $(@))...;
 EXPERIMENTRUN += ./$(patsubst %_run,%, $(@));
 
 EXPERIMENTOBJS += gamelength
-EXPERIMENTOBJS += gamelength.6
+EXPERIMENTOBJS += gamelength.$(OBJSUFF)
 
 
 #########################################################################################
 ####################### global vars #####################################################
 #########################################################################################
 
-OBJS  = $(TARG).6 $(TARG).a $(patsubst %,$(TESTDIR)%,$(TESTOBJS)) 
+OBJS  = $(TARG).$(OBJSUFF) $(TARG).a $(patsubst %,$(TESTDIR)%,$(TESTOBJS)) 
 OBJS += $(patsubst %,$(BENCHMARKDIR)%,$(BENCHMARKOBJS))
 OBJS += $(patsubst %,$(EXPERIMENTDIR)%,$(EXPERIMENTOBJS))
 OBJS += $(PROFDIR)*.prof
@@ -157,12 +155,12 @@ OBJS += $(PROFDIR)*.prof
 #########################################################################################
 all: $(KOMOKULIB)
 
-$(KOMOKULIB): $(TARG).6
+$(KOMOKULIB): $(TARG).$(OBJSUFF)
 	@rm -f $(TARG).a
-	@echo '  6l $(THISDIR)$(TARG).a'
-	@$(PACK) grc $(TARG).a $(TARG).6
+	@echo '  $(LINKSTR) $(THISDIR)$(TARG).a'
+	@$(PACK) grc $(TARG).a $(TARG).$(OBJSUFF)
 	
-$(TARG).6: $(ALLSOURCE)
+$(TARG).$(OBJSUFF): $(ALLSOURCE)
 	$(COMPILE_QUIET)
 
 #################### tests ################

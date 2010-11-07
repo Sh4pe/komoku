@@ -10,26 +10,25 @@
 
 include common.mk
 
-#########################################################################################
 ####################### most common defintions ##########################################
-#########################################################################################
 TARG=main
 
 # prefix of this directory
 THISDIR=
 
-OBJS= main main.6
+OBJS= main main.$(OBJSUFF)
 
 #########################################################################################
 ####################### build rules #####################################################
 #########################################################################################
 all: $(TARG)
 
-$(TARG): $(TARG).6
-	@echo '  6l $(THISDIR)$(TARG)'; 6l -o $(TARG) $(TARG).6
 
-$(TARG).6: main.go komoku/komoku.a
-	@echo '  6g $(@)'; $(CC) -o $(@) main.go
+$(TARG): $(TARG).$(OBJSUFF)
+	@echo '  $(LINKSTR) $(THISDIR)$(TARG)'; $(LINKSTR) -o $(TARG) $(TARG).$(OBJSUFF)
+
+$(TARG).$(OBJSUFF): main.go komoku/komoku.a
+	@echo '  $(CCSTR) $(@)'; $(CC) -o $(@) main.go
 
 komoku/komoku.a: force
 	@cd komoku && $(MAKE)

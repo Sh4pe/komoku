@@ -10,8 +10,12 @@
 
 # These are settings shared by all makefiles of this project
 
-CC=6g
-LINK=6l -e
+# Finds out if we have to use 6g or 8g, 5g is not supported
+OBJSUFF=$(shell if [ -x "`which 6g`" ]; then echo 6; else echo 8; fi )
+CCSTR=$(OBJSUFF)g
+CC=$(OBJSUFF)g
+LINKSTR=$(OBJSUFF)l
+LINK=$(OBJSUFF)l -e
 PACK=gopack
 PROFILER=sudo 6prof
 GOPPROF=gopprof
