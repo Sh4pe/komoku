@@ -21,6 +21,7 @@ func testMain() {
         fmt.Println()
     }
 
+    //fmt.Printf(runtime.Version())
 
 }
 
@@ -29,6 +30,6 @@ func normalMain() {
 }
 
 func main() {
-    //testMain()
-    komoku.RunGTPMode()
+    testMain()
+    //komoku.RunGTPMode()
 }

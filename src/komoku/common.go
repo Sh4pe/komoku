@@ -290,19 +290,12 @@ func pointToGTPVertex(p Point) (ret string, ok bool) {
     return ret, true
 }
 
-// Rel is a path relative to the executable which is run. This func returns the absolute path.
+// rel is a path relative to the executable which is run. This func returns the absolute path.
 func relPathToAbs(rel string) string {
-    wd, _ := os.Getwd()
-    //fmt.Println("wdir", wd)
-    execDir := os.Getenv("_")
-    //fmt.Println("execDir", execDir)
-    base := path.Base(execDir)
-    execDir = execDir[0:len(execDir)-len(base)]
-    fname := wd + "/" + execDir + "/" + rel
-    // zsh tweak (possibly for other shells too?)
-    if strings.Index(execDir, wd) != -1 {
-        fname = execDir + "/" + rel
-    }
+    wdir, _ := os.Getwd()
+    argv0 := os.Args[0]
+    execDir := argv0[0:len(argv0) - len(path.Base(argv0))]
+    fname := wdir + "/" + execDir + "/" + rel
     return path.Clean(fname)
 }
 
