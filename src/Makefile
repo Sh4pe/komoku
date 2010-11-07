@@ -8,46 +8,31 @@
 # that can be found in the LICENSE file.
 #
 
+include common.mk
+
 #########################################################################################
 ####################### most common defintions ##########################################
 #########################################################################################
-CC=6g
 TARG=main
-LINK=6l -e
 
-COMPILEFIRST  = $(CC) -o $(@) $(<)
-COMPILEFIRST_QUIET = @echo '  6g $(@)'; $(COMPILE)
+# prefix of this directory
+THISDIR=
 
 OBJS= main main.6
-
-ALLSOURCE  = ai.go
-ALLSOURCE += board.go
-ALLSOURCE += common.go
-ALLSOURCE += debug.go
-ALLSOURCE += environment.go
-ALLSOURCE += game.go
-ALLSOURCE += group.go 
-ALLSOURCE += gtp.go 
-ALLSOURCE += gtpcmd.go 
-ALLSOURCE += intlist.go 
-ALLSOURCE += treenode.go 
-ALLSOURCE += ui.go 
-
-KOMOKUDEPS = $(patsubst %,komoku/%, $(ALLSOURCE))
 
 #########################################################################################
 ####################### build rules #####################################################
 #########################################################################################
-all: $(TARG).6
-	@echo '  6l $(TARG)'; 6l -o $(TARG) $(TARG).6
+all: $(TARG)
+
+$(TARG): $(TARG).6
+	@echo '  6l $(THISDIR)$(TARG)'; 6l -o $(TARG) $(TARG).6
 
 $(TARG).6: main.go komoku/komoku.a
 	@echo '  6g $(@)'; $(CC) -o $(@) main.go
 
-komoku/komoku.a: $(KOMOKUDEPS)
-	@echo 'Building in subdirectory komoku...'
+komoku/komoku.a: force
 	@cd komoku && $(MAKE)
-	@echo 'Leaving komoku...'
 
 tests_run:
 	@cd komoku && $(MAKE) tests_run
@@ -55,11 +40,12 @@ tests_run:
 benchmarks_run:
 	@cd komoku && $(MAKE) benchmarks_run
 
+.PHONY: clean
 clean:
 	@for obj in $(OBJS); do \
-		echo '  rm '"$$obj"; \
+		echo '  rm '"$(THISDIR)$$obj"; \
 		rm -f "$$obj"; \
 	done;
-	@echo 
-	@echo 'Cleaning subdirectory komoku...'
 	@cd komoku && $(MAKE) clean
+
+force: ;

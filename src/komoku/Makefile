@@ -8,20 +8,19 @@
 # that can be found in the LICENSE file.
 #
 
+include ../common.mk
 #########################################################################################
 ####################### most common defintions ##########################################
 #########################################################################################
-CC=6g
 TARG=komoku
-PACK=gopack
-LINK=6l -e
-PROFILER=sudo 6prof
-GOPPROF=gopprof
+
+# prefix of this directory
+THISDIR=komoku/
 
 KOMOKULIB=$(TARG).a
 
 COMPILE  = $(CC) -o $(@) $(^)
-COMPILE_QUIET = @echo '  6g $(@)'; $(COMPILE)
+COMPILE_QUIET = @echo '  6g $(THISDIR)$(@)'; $(COMPILE)
 
 ALLSOURCE  = ai.go
 ALLSOURCE += board.go
@@ -52,7 +51,7 @@ TESTCOMPILE += rm -f $(@).tmp.6; # remove the .6 file for the temorarily created
 TESTCOMPILE += rm -f $(@).tmp.go; # and finally remove the temorarily created file
 
 # the command for doing this quietly with a nice output
-TESTCOMPILE_QUIET = @echo '  6l $(@)'; $(TESTCOMPILE)
+TESTCOMPILE_QUIET = @echo '  6l $(THISDIR)$(@)'; $(TESTCOMPILE)
 
 ALLTESTS_TARGS = ai_test common_test group_test gtp_test intlist_test ui_test board_test
 ALLTESTS = $(patsubst %,$(TESTDIR)%,$(ALLTESTS_TARGS))
@@ -87,7 +86,7 @@ BENCHMARKCOMPILE += $(LINK) -L$(BENCHMARKDIR) -o $(@) $(@).tmp.6;
 BENCHMARKCOMPILE += rm -f $(@).tmp.6;
 BENCHMARKCOMPILE += rm -f $(@).tmp.go;
 
-BENCHMARKCOMPILE_QUIET = @echo '  6l $(@)'; $(BENCHMARKCOMPILE)
+BENCHMARKCOMPILE_QUIET = @echo '  6l $(THISDIR)$(@)'; $(BENCHMARKCOMPILE)
 
 # This is the standard regexp supplied to -benchmarks= in the benchmark executables
 BENCHMARKREGEX = [a-zA-Z]*
@@ -160,7 +159,7 @@ all: $(KOMOKULIB)
 
 $(KOMOKULIB): $(TARG).6
 	@rm -f $(TARG).a
-	@echo '  6l $(TARG).a'
+	@echo '  6l $(THISDIR)$(TARG).a'
 	@$(PACK) grc $(TARG).a $(TARG).6
 	
 $(TARG).6: $(ALLSOURCE)
@@ -242,7 +241,7 @@ benchmarks_compile: $(ALLBENCHMARKS)
 benchmarks_run: $(KOMOKULIB) $(ALLBENCHMARKS)
 	@for targ in $(^); do \
 		 if test x"$$targ" != x"$(KOMOKULIB)"; then \
-		 	make "$$targ"_run; \
+		 	$(MAKE) "$$targ"_run; \
 		 fi \
 	done;
 
@@ -258,6 +257,6 @@ $(EXPERIMENTDIR)gamelength_run: $(EXPERIMENTDIR)gamelength
 .PHONY: clean
 clean:
 	@for obj in $(OBJS); do \
-		echo '  rm '"$$obj"; \
+		echo '  rm '"$(THISDIR)$$obj"; \
 		rm -f "$$obj"; \
 	done;
